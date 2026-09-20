@@ -1,38 +1,46 @@
 name: Build APK
+
 on:
   push:
-    branches: [main]
+    branches: [ main ]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - uses: actions/setup-java@v4
+          node-version: 20
+          
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '21'
+          
       - name: Install dependencies
-        run: |
-          npm install
-          npm install @capacitor/cli @capacitor/core @capacitor/android
-      - name: Create capacitor config
-        run: echo '{"appId":"com.pinin.app","appName":"PinIn","webDir":"dist"}' > capacitor.config.json
+        run: npm install
+        
       - name: Build web
-        run: npm run build
-      - name: Build Android
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
-          npx cap add android || echo "android exists"
+          npm run build
+          npx cap add android || true
           npx cap copy android
-      - name: Build APK file
+          
+      - name: Build APK
+        working-directory: android
         run: |
-          cd android
           chmod +x gradlew
           ./gradlew assembleDebug
+          
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: PinIn-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: pinin-apk
+          path: android/app/build/outputs/apk/debug/*.apk
