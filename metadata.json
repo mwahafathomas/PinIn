@@ -1,0 +1,7 @@
+{
+  "name": "PinIn",
+  "description": "PinIn - Modern Furniture Marketplace with Supabase Realtime and OneSignal Mobile Push Notifications",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
