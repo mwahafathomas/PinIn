@@ -28,10 +28,12 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm run build
+        
+      - name: Sync Capacitor
         run: |
-          npm run build
-          npx cap add android || true
-          npx cap copy android
+          npx @capacitor/cli add android || true
+          npx @capacitor/cli copy android
           
       - name: Build APK
         working-directory: android
