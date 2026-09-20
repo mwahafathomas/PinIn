@@ -22,18 +22,26 @@ jobs:
           java-version: '21'
           
       - name: Install dependencies
-        run: npm install
-        
+        run: |
+          npm install
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          
       - name: Build web
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
         
+      - name: Create Capacitor config
+        run: |
+          echo '{"appId":"com.pinin.app","appName":"PinIn","webDir":"dist","bundledWebRuntime":false}' > capacitor.config.json
+          cat capacitor.config.json
+          
       - name: Sync Capacitor
         run: |
           npx @capacitor/cli add android || true
           npx @capacitor/cli copy android
+          npx @capacitor/cli sync android
           
       - name: Build APK
         working-directory: android
