@@ -26,9 +26,11 @@ jobs:
         run: |
           npx cap add android || echo "android exists"
           npx cap copy android
+      - name: Build APK file
+        run: |
           cd android
           chmod +x gradlew
-         ./gradlew assembleDebug
+          ./gradlew assembleDebug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
