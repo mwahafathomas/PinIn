@@ -19,19 +19,17 @@ jobs:
         uses: android-actions/setup-android@v3
       - name: Install dependencies
         run: npm install
-      - name: Build web app
+      - name: Build web
         run: npm run build
-      - name: Install Capacitor
+      - name: Add Android
         run: |
+          rm -rf android
           npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init PinIn com.mwaha.pinin --web-dir=dist
           npx cap add android
           npx cap copy android
       - name: Build APK
-        working-directory: android
         run: |
-          chmod +x gradlew
-         ./gradlew assembleDebug
+          cd android && chmod +x gradlew &&./gradlew assembleDebug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
