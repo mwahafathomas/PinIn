@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@keyframes shrinkWidth {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 3s linear infinite;
+}
+
+:root {
+  --font-main: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --takealot-dark: #1f2937;
+  --takealot-grey: #4b5563;
+}
+
+/* Product titles like Takealot */
+h1, h2, h3, .product-title {
+  font-family: var(--font-main);
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  line-height: 1.2;
+  color: var(--takealot-dark);
+}
+
+/* Price - Takealot makes it big, bold,*/
+.price, .price-tag {
+  font-family: var(--font-main);
+  font-weight: 800;
+  font-size: 20px;
+}
+
+/* Descriptions / small text */
+p, .description, .location {
+  font-family: var(--font-main);
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--takealot-grey);
+  line-height: 1.5;
+}
+
+@layer base {
+  /* Hide all scrollbars globally for Chrome, Safari, Edge, Opera, Firefox */
+  * {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  html,
+  body {
+    font-family: var(--font-main);
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Mobile Safe Area & Notch / Camera Cutout Support (U-shape / Teardrop / Punch hole) */
+:root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+header {
+  padding-top: env(safe-area-inset-top, 30px);
+}
+
+/* Standalone / PWA / Android APK notch fallback */
+@media all and (display-mode: standalone), (display-mode: fullscreen) {
+  header {
+    padding-top: max(env(safe-area-inset-top, 0px), 30px);
+  }
+}
+
+html.is-mobile-apk header,
+body.is-mobile-apk header {
+  padding-top: max(env(safe-area-inset-top, 0px), 30px);
+}
+
+/* Drawer top header safe-area clearance */
+.drawer-safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top, 30px));
+}
+
+html.is-mobile-apk .drawer-safe-top,
+body.is-mobile-apk .drawer-safe-top {
+  padding-top: max(1rem, 30px);
+}
+
+/* Bottom safe-area for navigation bar */
+footer {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
