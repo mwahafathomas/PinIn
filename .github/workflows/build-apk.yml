@@ -21,11 +21,12 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
           
+      - name: Clean old android
+        run: rm -rf android
+        
       - name: Install dependencies
-        run: |
-          npm install
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-          
+        run: npm install
+        
       - name: Build web
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -33,21 +34,18 @@ jobs:
         run: npm run build
         
       - name: Create Capacitor config
-        run: |
-          echo '{"appId":"com.pinin.app","appName":"PinIn","webDir":"dist","bundledWebRuntime":false}' > capacitor.config.json
-          cat capacitor.config.json
+        run: echo '{"appId":"com.pinin.app","appName":"PinIn","webDir":"dist"}' > capacitor.config.json
           
-      - name: Sync Capacitor
+      - name: Add Android platform fresh
         run: |
-          npx @capacitor/cli add android || true
-          npx @capacitor/cli copy android
-          npx @capacitor/cli sync android
+          npx cap add android
+          npx cap copy android
           
       - name: Build APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
           
       - name: Upload APK
         uses: actions/upload-artifact@v4
