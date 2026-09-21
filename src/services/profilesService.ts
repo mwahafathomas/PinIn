@@ -9,6 +9,8 @@ export interface SupabaseProfileRow {
   full_name: string | null;
   email: string | null;
   avatar_url: string | null;
+  profile_picture?: string | null;
+  avatar?: string | null;
   phone: string | null;
   location: string | null;
   bio: string | null;
@@ -96,12 +98,15 @@ export async function fetchUserProfile(userId: string): Promise<Partial<UserAcco
       firstName = row.email?.split('@')[0] || 'Member';
     }
 
+    const avatarUrl =
+      (row as any).profile_picture || row.avatar_url || (row as any).avatar || '';
+
     const result: Partial<UserAccount> = {
       id: row.id,
       name: firstName,
       surname: cleanSurname,
       email: row.email || '',
-      avatar: row.avatar_url || '',
+      avatar: avatarUrl,
       phone: row.phone || '',
       location: row.location || '',
       bio: row.bio || '',
@@ -233,7 +238,7 @@ export async function fetchAllRegisteredUsers(): Promise<AppUserOption[]> {
   try {
     const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('id, full_name, name, surname, email, avatar_url, phone, location');
+      .select('*');
 
     if (!error && Array.isArray(profiles)) {
       profiles.forEach((p) => {
@@ -242,10 +247,11 @@ export async function fetchAllRegisteredUsers(): Promise<AppUserOption[]> {
           const displayName = formatDisplayName(rawName);
           const lower = displayName.toLowerCase();
           if (!lower.includes('marcus') && !lower.includes('gray')) {
+            const avatarImg = (p as any).profile_picture || p.avatar_url || (p as any).avatar || '';
             userMap.set(p.id, {
               id: p.id,
               name: displayName,
-              avatar: p.avatar_url || '',
+              avatar: avatarImg,
               email: p.email || undefined,
               location: p.location || undefined,
               role: 'Member',
@@ -287,5 +293,25 @@ export async function fetchAllRegisteredUsers(): Promise<AppUserOption[]> {
   } catch {}
 
   return allUsers;
+}
+
+// Fetch a single user's profile picture from the Supabase profiles table
+export async function fetchUserProfilePicture(userId: string): Promise<string | null> {
+  if (!userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!error && data) {
+      const picture = (data as any).profile_picture || data.avatar_url || (data as any).avatar || null;
+      return picture;
+    }
+  } catch (err) {
+    console.warn('fetchUserProfilePicture failed:', err);
+  }
+  return null;
 }
 

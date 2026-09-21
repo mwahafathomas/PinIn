@@ -40,7 +40,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
   unreadNotificationsCount = 0,
 }) => {
   const [localPrice, setLocalPrice] = useState<string>(
-    filters.maxPrice && filters.maxPrice < 20000 ? String(filters.maxPrice) : ''
+    filters.maxPrice && filters.maxPrice > 0 ? String(filters.maxPrice) : ''
   );
   const [selectedCategory, setSelectedCategory] = useState<string>(filters.category || 'all');
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
@@ -117,7 +117,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
 
     const updatedFilters: FilterState = {
       ...filters,
-      maxPrice: localPrice && Number(localPrice) > 0 ? Number(localPrice) : 20000,
+      maxPrice: localPrice && Number(localPrice) > 0 ? Number(localPrice) : 0,
       category: selectedCategories.length > 0 ? selectedCategories.join(', ') : selectedCategory,
       categories: selectedCategories,
       condition: updatedConditions,

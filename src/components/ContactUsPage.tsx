@@ -126,7 +126,10 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 overflow-y-auto no-scrollbar flex flex-col font-sans">
+    <div
+      className="fixed inset-0 z-50 bg-gray-50 overflow-y-auto no-scrollbar flex flex-col font-sans"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    >
       {/* Centered Message Sent / Status Popup */}
       {toast && (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 pointer-events-auto">
@@ -221,7 +224,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
             <div>
               <p className="text-[10px] font-black text-gray-400 uppercase">Trust & Safety</p>
-              <p className="text-xs font-bold text-gray-900">Verified Support</p>
+              <p className="text-xs font-bold text-gray-900"></p>
             </div>
           </div>
         </div>

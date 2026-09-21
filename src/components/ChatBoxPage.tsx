@@ -18,6 +18,7 @@ import { ChatConversation, ChatMessage, UserAccount } from '../types/furniture';
 import { DEFAULT_AVATAR_IMAGE } from '../data/defaultAvatar';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import { formatDisplayName } from '../utils/formatUtils';
+import { fetchUserProfilePicture } from '../services/profilesService';
 
 interface AppUserOption {
   id: string;
@@ -74,6 +75,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
   const [inputText, setInputText] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isBlockConfirmOpen, setIsBlockConfirmOpen] = useState(false);
+  const [partnerProfilePic, setPartnerProfilePic] = useState<string | null>(null);
   
   // Keyword Warning Popup State
   const [isKeywordWarningOpen, setIsKeywordWarningOpen] = useState(false);
@@ -82,6 +84,20 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch partner profile picture from Supabase profiles
+  useEffect(() => {
+    if (!conversation) return;
+    const isCurrentUserSeller =
+      (conversation.sellerId && conversation.sellerId === user.id) ||
+      (user.name && conversation.sellerName && conversation.sellerName.trim().toLowerCase() === user.name.trim().toLowerCase());
+    const otherId = isCurrentUserSeller ? conversation.buyerId : conversation.sellerId;
+    if (otherId) {
+      fetchUserProfilePicture(otherId).then((pic) => {
+        if (pic) setPartnerProfilePic(pic);
+      });
+    }
+  }, [conversation?.id, conversation?.buyerId, conversation?.sellerId, user.id, user.name]);
 
   useEffect(() => {
     if (isOpen) {
@@ -133,19 +149,21 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
       ? conversation.buyerName
       : (conversation.sellerName || 'User');
 
-    let avatar = (isCurrentUserSeller && conversation.buyerAvatar)
+    let avatar = partnerProfilePic || ((isCurrentUserSeller && conversation.buyerAvatar)
       ? conversation.buyerAvatar
-      : (conversation.sellerAvatar || '');
+      : (conversation.sellerAvatar || ''));
 
-    // Check allUsers for an uploaded profile picture
-    const matchingUser = allUsers.find(
-      (u) =>
-        (otherId && u.id === otherId) ||
-        (u.name && rawName && u.name.trim().toLowerCase() === rawName.trim().toLowerCase())
-    );
+    // Check allUsers for an uploaded profile picture if partnerProfilePic not available
+    if (!partnerProfilePic) {
+      const matchingUser = allUsers.find(
+        (u) =>
+          (otherId && u.id === otherId) ||
+          (u.name && rawName && u.name.trim().toLowerCase() === rawName.trim().toLowerCase())
+      );
 
-    if (matchingUser?.avatar && matchingUser.avatar.trim() !== '') {
-      avatar = matchingUser.avatar;
+      if (matchingUser?.avatar && matchingUser.avatar.trim() !== '') {
+        avatar = matchingUser.avatar;
+      }
     }
 
     if (!avatar || avatar.trim() === '') {
@@ -156,7 +174,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
       name: formatDisplayName(rawName),
       avatar,
     };
-  }, [conversation, user, allUsers]);
+  }, [conversation, user, allUsers, partnerProfilePic]);
 
   if (!isOpen || !conversation) return null;
 

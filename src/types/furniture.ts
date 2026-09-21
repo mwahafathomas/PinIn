@@ -81,7 +81,7 @@ export interface SellFormData {
   collectionAddress?: string;
   model: string;
   isNew: 'New' | 'Used';
-  condition: 'Brand New' | 'Like New' | 'Good' | 'Fair' | 'Vintage';
+  condition: 'Brand New' | 'Like New' | 'Good' | 'Fair' | 'Vintage' | '';
   description: string;
   // Verification for approval only
   handwrittenDateImage?: string;

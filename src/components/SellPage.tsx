@@ -18,14 +18,16 @@ import {
   CheckCircle2,
   AlertCircle,
   UserCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import { FurnitureItem, UserAccount, SellFormData } from '../types/furniture';
 import { getCoordinatesForLocation } from '../utils/geoUtils';
 import { ListingGuidelinesPage } from './ListingGuidelinesPage';
 import { compressImageBlob } from '../services/storageService';
 import { MAX_FILE_SIZE_BYTES, formatFileSize } from '../utils/imageOptimizer';
-import { isDefaultAvatar } from '../data/defaultAvatar';
+import { isDefaultAvatar, DEFAULT_AVATAR_IMAGE } from '../data/defaultAvatar';
 import { isUserProfileUpdated } from '../services/profilesService';
+import MediaPermissionSheet from './MediaPermissionSheet';
 
 interface SellPageProps {
   isOpen: boolean;
@@ -111,7 +113,10 @@ export const SellPage: React.FC<SellPageProps> = ({
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showGuidelines, setShowGuidelines] = useState<boolean>(false);
   const [showDiscardModal, setShowDiscardModal] = useState<boolean>(false);
+  const [showCommunityGuidelinesModal, setShowCommunityGuidelinesModal] = useState<boolean>(false);
+  const [pendingListingItem, setPendingListingItem] = useState<FurnitureItem | null>(null);
   const [videoValidationNote, setVideoValidationNote] = useState<string>('');
+  const [mediaMode, setMediaMode] = useState<'gallery' | 'camera' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dateImageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -430,13 +435,29 @@ export const SellPage: React.FC<SellPageProps> = ({
       return;
     }
 
-    if (!formData.price || Number(formData.price) <= 0) {
+    const priceNum = Number(formData.price);
+    if (!formData.price || isNaN(priceNum) || priceNum <= 0) {
       setErrorMessage('Please enter a valid price.');
+      return;
+    }
+
+    if (priceNum > 30000) {
+      setErrorMessage('Price cannot exceed R30,000');
       return;
     }
 
     if (!formData.categoryLabel || formData.categoryLabel === 'Select Category') {
       setErrorMessage('Please select a category for your furniture.');
+      return;
+    }
+
+    if (!formData.condition || formData.condition.trim() === '' || formData.condition === 'Select Condition') {
+      setErrorMessage('Please select item condition');
+      return;
+    }
+
+    if (!formData.isNew || formData.isNew.trim() === '') {
+      setErrorMessage('Please select item state');
       return;
     }
 
@@ -471,7 +492,7 @@ export const SellPage: React.FC<SellPageProps> = ({
       id: `item-${Date.now()}`,
       title: finalTitle,
       location: chosenSuburb,
-      price: Math.max(1, Number(formData.price) || 100),
+      price: Math.max(1, priceNum),
       category: formData.category,
       condition: formData.condition,
       imageUrl: formData.images[0],
@@ -481,7 +502,7 @@ export const SellPage: React.FC<SellPageProps> = ({
         name: user.name || 'PinIn Verified Member',
         avatar:
           user.avatar ||
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+          DEFAULT_AVATAR_IMAGE,
         rating: 5.0,
         reviewCount: 1,
         joinedDate: user.joinedDate || 'Recently',
@@ -504,7 +525,8 @@ export const SellPage: React.FC<SellPageProps> = ({
       verificationVideo: formData.verificationVideo,
     };
 
-    onAddListing(newItem);
+    setPendingListingItem(newItem);
+    setShowCommunityGuidelinesModal(true);
   };
 
   return (
@@ -624,16 +646,38 @@ export const SellPage: React.FC<SellPageProps> = ({
                 <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Upload Photos <span className="text-[#0052FF] font-extrabold">(Min. 4) *</span>
                 </span>
-                <span className={`text-xs font-semibold ${formData.images.length < 4 ? 'text-amber-600 font-bold' : 'text-gray-400'}`}>
-                  {formData.images.length}/10 uploaded {formData.images.length < 4 ? `(need ${4 - formData.images.length} more)` : '✓'}
-                </span>
+                {formData.images.length > 0 && (
+                  <span className={`text-xs font-semibold ${formData.images.length < 4 ? 'text-amber-600 font-bold' : 'text-gray-400'}`}>
+                    {formData.images.length}/10 uploaded {formData.images.length < 4 ? `(need ${4 - formData.images.length} more)` : '✓'}
+                  </span>
+                )}
+              </div>
+
+              {/* Media Option Buttons */}
+              <div className="flex gap-3 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setMediaMode('camera')}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 active:scale-95 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all text-gray-800 cursor-pointer shadow-2xs"
+                >
+                  <span>📷</span>
+                  <span>Camera</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMediaMode('gallery')}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 active:scale-95 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all text-gray-800 cursor-pointer shadow-2xs"
+                >
+                  <span>🖼️</span>
+                  <span>Gallery</span>
+                </button>
               </div>
 
               <div className={`bg-white border-2 border-dashed rounded-3xl p-4 text-center ${formData.images.length < 4 && formData.images.length > 0 ? 'border-amber-300' : 'border-gray-300'}`}>
                 {formData.images.length === 0 ? (
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => setMediaMode('gallery')}
                     className="w-full py-8 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 rounded-2xl transition-colors group"
                   >
                     <div className="w-14 h-14 rounded-full bg-blue-50 text-[#0052FF] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-xs">
@@ -708,7 +752,7 @@ export const SellPage: React.FC<SellPageProps> = ({
                     {formData.images.length < 10 && (
                       <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => setMediaMode('gallery')}
                         className="aspect-square rounded-2xl border-2 border-dashed border-gray-300 hover:border-[#0052FF] hover:bg-blue-50/50 flex flex-col items-center justify-center text-gray-400 hover:text-[#0052FF] transition-all cursor-pointer"
                       >
                         <Plus className="w-6 h-6 mb-1 stroke-[2.5]" />
@@ -727,7 +771,7 @@ export const SellPage: React.FC<SellPageProps> = ({
                     </span>
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => setMediaMode('gallery')}
                       className="py-1.5 px-3 bg-[#0052FF]/10 hover:bg-[#0052FF]/15 text-[#0052FF] text-xs font-extrabold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Camera className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -989,7 +1033,7 @@ export const SellPage: React.FC<SellPageProps> = ({
                 htmlFor="sell-condition"
                 className="text-[10px] font-extrabold uppercase tracking-wider text-blue-100 mb-0.5"
               >
-                Condition
+                Condition *
               </label>
               <div className="relative">
                 <select
@@ -1008,6 +1052,9 @@ export const SellPage: React.FC<SellPageProps> = ({
                   }
                   className="w-full bg-white/15 focus:bg-white text-white focus:text-gray-900 text-xs sm:text-sm font-bold px-2.5 py-1.5 rounded-lg outline-none cursor-pointer appearance-none pr-6 transition-all"
                 >
+                  <option value="" className="text-gray-700 bg-white">
+                    Select Condition
+                  </option>
                   {CONDITIONS.map((cond) => (
                     <option key={cond} value={cond} className="text-gray-900 bg-white">
                       {cond}
@@ -1022,7 +1069,7 @@ export const SellPage: React.FC<SellPageProps> = ({
           {/* Row 3: Item State (New / Used) */}
           <div className="bg-[#0052FF] rounded-xl px-3 py-2.5 shadow-md flex items-center justify-between text-white">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-100">
-              Item State
+              Item State *
             </span>
             <div className="grid grid-cols-2 gap-1 bg-black/20 p-0.5 rounded-lg w-40">
               <button
@@ -1164,6 +1211,66 @@ export const SellPage: React.FC<SellPageProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {/* Community Guidelines Illegal Items Warning Modal - Centered */}
+      {showCommunityGuidelinesModal && (
+        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 border border-gray-100 text-left">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0052FF] flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6 stroke-[2.2]" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-lg font-black text-gray-900 leading-tight">
+                Community Guidelines
+              </h3>
+              <p className="text-xs text-gray-600 font-medium leading-relaxed">
+                PinIn is committed to a safe and lawful marketplace. Please ensure your listing complies with South African law. Prohibited items, stolen goods, or any illegal products or services are not permitted. Listings that violate our guidelines will be removed and repeated violations may result in permanent account suspension.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCommunityGuidelinesModal(false);
+                  setPendingListingItem(null);
+                }}
+                className="flex-1 py-3 px-4 rounded-xl border border-gray-300 text-gray-700 text-xs font-bold hover:bg-gray-50 active:scale-95 transition-all cursor-pointer text-center"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCommunityGuidelinesModal(false);
+                  if (pendingListingItem) {
+                    onAddListing(pendingListingItem);
+                    setPendingListingItem(null);
+                  }
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-[#0052FF] hover:bg-blue-700 active:scale-95 text-white text-xs font-black shadow-md transition-all cursor-pointer text-center"
+              >
+                I Understand &amp; Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Media Permission Sheet Popup */}
+      {mediaMode && (
+        <MediaPermissionSheet
+          mode={mediaMode}
+          onClose={() => setMediaMode(null)}
+          onImagePicked={(img) => {
+            if (!img) return;
+            onUpdateFormData((prev) => ({
+              ...prev,
+              images: [...prev.images, img].slice(0, 10),
+            }));
+          }}
+        />
       )}
     </div>
   );

@@ -84,25 +84,52 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
   // Multiple photos support - gather all available photos (optimized for egress)
   const rawImages: string[] = [];
+  const addImageToList = (img: unknown) => {
+    if (img && typeof img === 'string') {
+      const clean = img.trim();
+      if (clean && !rawImages.includes(clean)) {
+        rawImages.push(clean);
+      }
+    }
+  };
+
   if (item.imageUrl && typeof item.imageUrl === 'string') {
-    rawImages.push(item.imageUrl);
+    addImageToList(item.imageUrl);
   }
-  if (Array.isArray(item.additionalImages)) {
-    item.additionalImages.forEach((img) => {
-      if (img && typeof img === 'string' && !rawImages.includes(img)) {
-        rawImages.push(img);
+
+  const parseAndAddImages = (source: unknown) => {
+    if (!source) return;
+    if (Array.isArray(source)) {
+      source.forEach(addImageToList);
+    } else if (typeof source === 'string') {
+      const trimmed = source.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) parsed.forEach(addImageToList);
+        } catch {}
+      } else if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        trimmed
+          .slice(1, -1)
+          .split(',')
+          .forEach((s) => {
+            addImageToList(s.replace(/^"(.*)"$/, '$1').trim());
+          });
+      } else if (trimmed.includes(',')) {
+        trimmed.split(',').forEach((s) => addImageToList(s.trim()));
+      } else if (trimmed !== '') {
+        addImageToList(trimmed);
       }
-    });
-  }
-  if (Array.isArray((item as any).images)) {
-    (item as any).images.forEach((img: string) => {
-      if (img && typeof img === 'string' && !rawImages.includes(img)) {
-        rawImages.push(img);
-      }
-    });
-  }
+    }
+  };
+
+  parseAndAddImages(item.additionalImages);
+  parseAndAddImages((item as any).additional_images);
+  parseAndAddImages((item as any).images);
+  parseAndAddImages((item as any).imageUrls);
+
   if (rawImages.length === 0 && item.imageUrl) {
-    rawImages.push(item.imageUrl);
+    addImageToList(item.imageUrl);
   }
 
   const allImages = rawImages.map((img) =>
@@ -346,28 +373,9 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 ))}
               </div>
 
-              {/* Multiple Image Dots indicator at bottom center */}
+              {/* Photo counter at bottom left (e.g. 1/5) - without arrows */}
               {allImages.length > 1 && (
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/60 px-2.5 py-1 rounded-full backdrop-blur-xs z-10">
-                  {allImages.map((_, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => scrollToImageIndex(idx)}
-                      className={`h-2 rounded-full transition-all cursor-pointer ${
-                        activeImageIndex === idx
-                          ? 'bg-white w-4'
-                          : 'bg-white/50 hover:bg-white/80 w-2'
-                      }`}
-                      aria-label={`View photo ${idx + 1}`}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Photo counter pill */}
-              {allImages.length > 1 && (
-                <div className="absolute top-2.5 right-2.5 bg-black/60 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-xs z-10 pointer-events-none">
+                <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-xs z-10 pointer-events-none shadow-md">
                   {activeImageIndex + 1}/{allImages.length}
                 </div>
               )}

@@ -598,6 +598,7 @@ export async function insertListing(item: FurnitureItem): Promise<{ success: boo
         category: pendingItem.category,
         condition: pendingItem.condition,
         image_url: pendingItem.imageUrl,
+        additional_images: pendingItem.additionalImages || [],
         location: pendingItem.location || pendingItem.collectionSuburb || 'Sandton',
         description: pendingItem.description || '',
         seller_id: pendingItem.seller?.id || 'anonymous_seller',

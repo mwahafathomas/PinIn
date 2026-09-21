@@ -141,7 +141,7 @@ const initialSellFormData: SellFormData = {
   location: 'Sandton (Gauteng)',
   model: '',
   isNew: 'Used',
-  condition: 'Like New',
+  condition: '',
   description: '',
 };
 
@@ -448,6 +448,7 @@ interface MessagesListViewProps {
   onOpenNotifications: () => void;
   onOpenSearchPage: () => void;
   onOpenHome?: () => void;
+  onClearBadgeCount?: () => void;
 }
 
 const MessagesListView: React.FC<MessagesListViewProps> = ({
@@ -466,6 +467,7 @@ const MessagesListView: React.FC<MessagesListViewProps> = ({
   onOpenNotifications,
   onOpenSearchPage,
   onOpenHome,
+  onClearBadgeCount,
 }) => {
   return (
     <MessagesPage
@@ -486,6 +488,7 @@ const MessagesListView: React.FC<MessagesListViewProps> = ({
       onOpenHome={onOpenHome}
       unreadMessagesCount={unreadMessagesCount}
       unreadNotificationsCount={unreadNotificationsCount}
+      onClearBadgeCount={onClearBadgeCount}
     />
   );
 };
@@ -2143,7 +2146,7 @@ export default function App() {
       }
 
       if (item.price < filters.minPrice) return false;
-      if (filters.maxPrice && filters.maxPrice < 20000 && item.price > filters.maxPrice) return false;
+      if (filters.maxPrice && filters.maxPrice > 0 && item.price > filters.maxPrice) return false;
 
       if (filters.condition.length > 0 && !filters.condition.includes(item.condition)) {
         return false;
@@ -2219,7 +2222,20 @@ export default function App() {
     }
     return undefined;
   }, [filters.categories, filters.category, activeCategoryObj]);
-  const unreadMessagesCount = conversations.filter((c) => c.unread).length;
+  const [messagesBadgeCleared, setMessagesBadgeCleared] = useState(false);
+
+  const unreadMessagesCount = useMemo(() => {
+    if (messagesBadgeCleared) return 0;
+    return conversations.filter((c) => {
+      if (c.messages && c.messages.length > 0) {
+        const lastMsg = c.messages[c.messages.length - 1];
+        const isReceiverMe = !lastMsg.isMe || (user.id && (lastMsg as any).receiverId === user.id) || (lastMsg.senderId !== user.id);
+        const isUnread = (lastMsg as any).isRead === false || (lastMsg as any).is_read === false;
+        return isReceiverMe && isUnread;
+      }
+      return !!c.unread;
+    }).length;
+  }, [conversations, messagesBadgeCleared, user.id]);
   const unreadNotificationsCount = notifications.filter(
     (n) => !n.read && ['system', 'listing_submitted', 'listing_approved', 'listing_rejected'].includes(n.type)
   ).length;
@@ -2823,6 +2839,7 @@ export default function App() {
                   onOpenNotifications={handleOpenNotifications}
                   unreadMessagesCount={unreadMessagesCount}
                   unreadNotificationsCount={unreadNotificationsCount}
+                  onOpenSell={() => requireAuth(() => goTo('/sell'))}
                 />
               }
             />
@@ -2896,6 +2913,7 @@ export default function App() {
                   onOpenNotifications={() => goTo('/notifications', 1)}
                   onOpenSearchPage={() => goTo('/search?type=messages')}
                   onOpenHome={handleGoHome}
+                  onClearBadgeCount={() => setMessagesBadgeCleared(true)}
                 />
               }
             />

@@ -55,7 +55,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               className="w-5 h-5 stroke-[2] text-[#0052FF] fill-[#0052FF] transition-transform group-hover:scale-105"
             />
             {unreadMessagesCount > 0 && (
-              <span className="absolute -top-1.5 -right-2.5 bg-[#0052FF] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+              <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                 {unreadMessagesCount}
               </span>
             )}

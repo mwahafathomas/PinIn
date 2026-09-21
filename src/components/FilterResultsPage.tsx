@@ -22,6 +22,7 @@ interface FilterResultsPageProps {
   onOpenNotifications?: () => void;
   unreadMessagesCount?: number;
   unreadNotificationsCount?: number;
+  onOpenSell?: () => void;
 }
 
 export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
@@ -34,6 +35,7 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
   onSelectItem,
   savedItemIds = [],
   onToggleSave,
+  onOpenSell,
 }) => {
   if (!isOpen) return null;
 
@@ -207,13 +209,22 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
               No matching listings
             </h2>
             <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
-              We couldn't find any furniture matching these active filters. Try adjusting price range or location.
+              We couldn't find any furniture matching these active filters.
             </p>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+              {onOpenSell && (
+                <button
+                  type="button"
+                  onClick={onOpenSell}
+                  className="w-full sm:w-auto py-2.5 px-5 bg-[#0052FF] hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer text-center"
+                >
+                  Be the first one to sell
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onEditFilters}
-                className="py-2 px-4 bg-[#0052FF] hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all"
+                className="w-full sm:w-auto py-2 px-4 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
               >
                 Modify Filters
               </button>

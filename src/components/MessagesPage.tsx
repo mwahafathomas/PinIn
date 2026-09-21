@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ChevronLeft,
   Search,
@@ -13,6 +13,7 @@ import { DEFAULT_AVATAR_IMAGE } from '../data/defaultAvatar';
 import { ChatBoxPage } from './ChatBoxPage';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import { formatDisplayName } from '../utils/formatUtils';
+import { fetchUserProfilePicture } from '../services/profilesService';
 
 interface AppUserOption {
   id: string;
@@ -44,6 +45,7 @@ interface MessagesPageProps {
   onOpenSearch?: () => void;
   unreadMessagesCount?: number;
   unreadNotificationsCount?: number;
+  onClearBadgeCount?: () => void;
 }
 
 export const MessagesPage: React.FC<MessagesPageProps> = ({
@@ -65,9 +67,18 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   onOpenSearch,
   unreadMessagesCount = 0,
   unreadNotificationsCount = 0,
+  onClearBadgeCount,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [profilePictures, setProfilePictures] = useState<Record<string, string>>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Clear badge count on opening Messages page
+  useEffect(() => {
+    if (isOpen && onClearBadgeCount) {
+      onClearBadgeCount();
+    }
+  }, [isOpen, onClearBadgeCount]);
 
   const searchedUsers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -117,6 +128,23 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       return true;
     });
   }, [conversations, user]);
+
+  // Fetch real profile pictures for conversation partners from Supabase profiles
+  useEffect(() => {
+    activeConversations.forEach((c) => {
+      const isCurrentUserSeller =
+        (c.sellerId && c.sellerId === user.id) ||
+        (user.name && c.sellerName && c.sellerName.trim().toLowerCase() === user.name.trim().toLowerCase());
+      const partnerId = isCurrentUserSeller ? c.buyerId : c.sellerId;
+      if (partnerId && !profilePictures[partnerId]) {
+        fetchUserProfilePicture(partnerId).then((pic) => {
+          if (pic) {
+            setProfilePictures((prev) => ({ ...prev, [partnerId]: pic }));
+          }
+        });
+      }
+    });
+  }, [activeConversations, user.id, user.name]);
 
   const activeConv = conversations.find((c) => c.id === activeConversationId);
 
@@ -322,15 +350,32 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                   const rawAvatar = (matchingUser?.avatar && matchingUser.avatar.trim() !== '')
                     ? matchingUser.avatar
                     : ((isCurrentUserSeller && conv.buyerAvatar) ? conv.buyerAvatar : (conv.sellerAvatar || DEFAULT_AVATAR_IMAGE));
-                  const partnerAvatar = rawAvatar || DEFAULT_AVATAR_IMAGE;
+                  const partnerAvatar =
+                    (otherPartyId && profilePictures[otherPartyId]) ||
+                    (matchingUser?.avatar && matchingUser.avatar.trim() !== '' ? matchingUser.avatar : null) ||
+                    ((isCurrentUserSeller && conv.buyerAvatar) ? conv.buyerAvatar : (conv.sellerAvatar || DEFAULT_AVATAR_IMAGE));
+
                   const displayTitle = conv.itemTitle && !conv.itemTitle.startsWith('Chat with ') && conv.itemPrice > 0 ? conv.itemTitle : null;
+
+                  // Unread = message where is_read = false and receiver_id = current_user
+                  const isLastMessageUnread = (() => {
+                    if (conv.messages && conv.messages.length > 0) {
+                      const lastMsg = conv.messages[conv.messages.length - 1];
+                      const isReceiverMe = !lastMsg.isMe || (user.id && (lastMsg as any).receiverId === user.id) || (lastMsg.senderId !== user.id);
+                      const isUnread = (lastMsg as any).isRead === false || (lastMsg as any).is_read === false;
+                      return isReceiverMe && isUnread;
+                    }
+                    return !!conv.unread;
+                  })();
 
                   return (
                     <button
                       key={conv.id}
                       type="button"
                       onClick={() => onSelectConversation(conv.id)}
-                      className="w-full p-3.5 flex items-center gap-3.5 hover:bg-blue-50/50 transition-colors text-left group cursor-pointer"
+                      className={`w-full p-3.5 flex items-center gap-3.5 ${
+                        isLastMessageUnread ? 'bg-blue-50/40 hover:bg-blue-50/70' : 'hover:bg-gray-50/70'
+                      } transition-colors text-left group cursor-pointer`}
                     >
                       <div className="relative shrink-0">
                         <img
@@ -340,32 +385,39 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                           loading="lazy"
                           decoding="async"
                         />
-                        {conv.unread && (
-                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-red-500 rounded-full ring-2 ring-white" />
-                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-0.5">
-                          <span className="font-extrabold text-xs sm:text-sm text-gray-900 truncate">
+                          <span className={`text-xs sm:text-sm truncate ${
+                            isLastMessageUnread ? 'font-black text-gray-950' : 'font-extrabold text-gray-900'
+                          }`}>
                             {partnerName}
                           </span>
                           {conv.lastMessageTime && conv.lastMessageTime !== 'Just now' && (
-                            <span className="text-[10px] font-semibold text-gray-400 shrink-0 ml-1">
+                            <span className={`text-[10px] shrink-0 ml-1 ${
+                              isLastMessageUnread ? 'font-black text-[#0052FF]' : 'font-semibold text-gray-400'
+                            }`}>
                               {conv.lastMessageTime}
                             </span>
                           )}
                         </div>
 
                         {displayTitle && (
-                          <p className="text-[11px] font-bold text-gray-700 truncate">
+                          <p className={`text-[11px] truncate ${
+                            isLastMessageUnread ? 'font-extrabold text-gray-900' : 'font-bold text-gray-700'
+                          }`}>
                             {displayTitle}
                           </p>
                         )}
 
-                        <p className="text-xs text-gray-500 truncate mt-0.5 font-medium">
-                          {conv.lastMessage}
-                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`text-xs truncate mt-0.5 ${
+                            isLastMessageUnread ? 'font-bold text-gray-950' : 'font-medium text-gray-500'
+                          }`}>
+                            {conv.lastMessage}
+                          </p>
+                        </div>
                       </div>
                     </button>
                   );
@@ -438,7 +490,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
             <div className="relative flex items-center justify-center">
               <MessageSquare className="w-5 h-5 stroke-[2] text-[#0052FF] fill-[#0052FF] transition-transform group-hover:scale-105" />
               {unreadMessagesCount > 0 && (
-                <span className="absolute -top-1.5 -right-2.5 bg-[#0052FF] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {unreadMessagesCount}
                 </span>
               )}
