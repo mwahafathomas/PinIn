@@ -22,17 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
       }}
     >
       <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
-        {/* Left: 3-horizontal-line menu button at top left */}
-        <div className="flex items-center">
-          <button
-            type="button"
-            onClick={onOpenMenu}
-            aria-label="Open navigation menu"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
-          >
-            <Menu className="w-6 h-6 stroke-[2.5]" />
-          </button>
-        </div>
+        {/* Left: spacer to keep PinIn centered without 3 bars */}
+        <div className="w-8" aria-hidden="true" />
 
         {/* Center: App Name (PinIn) right in the middle */}
         <div className="absolute left-1/2 -translate-x-1/2">

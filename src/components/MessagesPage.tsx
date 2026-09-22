@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  ChevronLeft,
+  Menu,
   Search,
+  Store,
   MessageSquare,
   Bell,
   User as UserIcon,
   X,
   MapPin,
+  Users,
 } from 'lucide-react';
 import { ChatConversation, UserAccount } from '../types/furniture';
 import { DEFAULT_AVATAR_IMAGE } from '../data/defaultAvatar';
@@ -46,6 +48,8 @@ interface MessagesPageProps {
   unreadMessagesCount?: number;
   unreadNotificationsCount?: number;
   onClearBadgeCount?: () => void;
+  onOpenMenu?: () => void;
+  onOpenUserProfile?: (userId: string, initialData?: { id?: string; name?: string; surname?: string; avatar?: string; location?: string; bio?: string }) => void;
 }
 
 export const MessagesPage: React.FC<MessagesPageProps> = ({
@@ -68,7 +72,10 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   unreadMessagesCount = 0,
   unreadNotificationsCount = 0,
   onClearBadgeCount,
+  onOpenMenu,
+  onOpenUserProfile,
 }) => {
+  const [activeTab, setActiveTab] = useState<'all' | 'chats' | 'communities'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [profilePictures, setProfilePictures] = useState<Record<string, string>>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -160,7 +167,9 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         onBlockUser={onBlockUser}
         onUnblockUser={onUnblockUser}
         onClearChat={onClearChat}
+        onOpenUserProfile={onOpenUserProfile}
         user={user}
+        allUsers={allUsers}
       />
     );
   }
@@ -190,15 +199,21 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       {/* Top Header Bar (White) */}
       <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
-          {/* Go back option ( < ) */}
+          {/* 3 bars menu button */}
           <div className="flex items-center">
             <button
               type="button"
-              onClick={onClose}
-              aria-label="Go back"
+              onClick={() => {
+                if (onOpenMenu) {
+                  onOpenMenu();
+                } else {
+                  onClose();
+                }
+              }}
+              aria-label="Open menu"
               className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
             >
-              <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+              <Menu className="w-6 h-6 stroke-[2.5]" />
             </button>
           </div>
 
@@ -322,18 +337,53 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         ) : (
           /* Conversations List: Displays only users that a user has texted in listings or in search */
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex items-center justify-between mb-2 px-1 shrink-0">
-              <span className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#0052FF]" />
-                <span>Conversations</span>
-                <span className="text-gray-400 font-medium">
-                  ({activeConversations.length})
-                </span>
-              </span>
+            {/* Containers for (All, Chats, Communities) styled like (Sell, Categories, Filters) boxes on home page */}
+            <div className="w-full bg-[#0052FF] text-white rounded-2xl grid grid-cols-3 divide-x divide-white/20 overflow-hidden shadow-xs mb-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveTab('all')}
+                className={`flex items-center justify-center py-3 px-2 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer ${
+                  activeTab === 'all' ? 'bg-white/20 shadow-inner' : 'hover:bg-white/10 active:bg-white/20'
+                }`}
+              >
+                <span className="whitespace-nowrap">All</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('chats')}
+                className={`flex items-center justify-center py-3 px-2 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer ${
+                  activeTab === 'chats' ? 'bg-white/20 shadow-inner' : 'hover:bg-white/10 active:bg-white/20'
+                }`}
+              >
+                <span className="whitespace-nowrap">Chats</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('communities')}
+                className={`flex items-center justify-center py-3 px-2 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer ${
+                  activeTab === 'communities' ? 'bg-white/20 shadow-inner' : 'hover:bg-white/10 active:bg-white/20'
+                }`}
+              >
+                <span className="whitespace-nowrap">Communities</span>
+              </button>
             </div>
 
             <div className="bg-white border-2 border-gray-200 rounded-3xl overflow-hidden shadow-xs divide-y divide-gray-100 flex-1 overflow-y-auto">
-              {activeConversations.length > 0 ? (
+              {activeTab === 'communities' ? (
+                <div className="p-8 text-center text-gray-500">
+                  <div className="w-12 h-12 mx-auto mb-2.5 rounded-2xl bg-blue-50 text-[#0052FF] flex items-center justify-center">
+                    <Users className="w-6 h-6 stroke-[2.2]" />
+                  </div>
+                  <p className="text-xs font-bold text-gray-800">
+                    No community channels yet
+                  </p>
+                  <p className="text-[11px] text-gray-400 mt-1 max-w-xs mx-auto">
+                    Local furniture & neighborhood community chats will appear here.
+                  </p>
+                </div>
+              ) : activeConversations.length > 0 ? (
                 activeConversations.map((conv) => {
                   const isCurrentUserSeller =
                     (conv.sellerId && conv.sellerId === user.id) ||
@@ -455,7 +505,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       {/* Bottom Navigation Dock */}
       <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-3 items-center">
-          {/* Search Icon at left */}
+          {/* Marketplace Icon at left */}
           <button
             type="button"
             onClick={() => {
@@ -468,13 +518,13 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
               }
             }}
             className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#0052FF] active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Search listings / Home"
+            aria-label="Marketplace"
           >
             <div className="relative flex items-center justify-center">
-              <Search className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#0052FF]" />
+              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#0052FF]" />
             </div>
             <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#0052FF]">
-              Search
+              Marketplace
             </span>
           </button>
 

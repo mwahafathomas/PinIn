@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   ChevronLeft,
-  Search,
+  Store,
   MessageSquare,
   Bell,
   Settings,
@@ -485,7 +485,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       {/* Bottom Navigation Dock */}
       <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-3 items-center">
-          {/* Search Icon */}
+          {/* Marketplace Icon */}
           <button
             type="button"
             onClick={() => {
@@ -493,13 +493,13 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#0052FF] active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Search listings"
+            aria-label="Marketplace"
           >
             <div className="relative flex items-center justify-center">
-              <Search className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#0052FF]" />
+              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#0052FF]" />
             </div>
             <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#0052FF]">
-              Search
+              Marketplace
             </span>
           </button>
 

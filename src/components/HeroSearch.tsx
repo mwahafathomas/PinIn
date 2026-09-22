@@ -25,18 +25,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
   onOpenSearchPage,
 }) => {
   return (
-    <div className="relative w-full overflow-hidden border-b border-gray-200">
-      {/* Furniture background image - visible and sharp (no blur) */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1200&auto=format&fit=crop&q=85')`,
-        }}
-      />
-
-      {/* Light subtle scrim to ensure search box clarity without any blur */}
-      <div className="absolute inset-0 bg-black/15" />
-
+    <div className="relative w-full overflow-hidden border-b border-gray-200 bg-gray-50">
       {/* Search Furniture space container */}
       <div className="relative w-full max-w-md md:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto px-4 md:px-6 pt-3.5 pb-3 sm:py-4 md:py-5">
         <div className="relative flex items-center">

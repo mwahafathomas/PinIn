@@ -37,6 +37,7 @@ interface ChatBoxPageProps {
   onUnblockUser?: (conversationId: string) => void;
   onClearChat?: (conversationId: string) => void;
   onMarkAsRead?: (conversationId: string) => void;
+  onOpenUserProfile?: (userId: string, initialData?: { id?: string; name?: string; surname?: string; avatar?: string; location?: string; bio?: string }) => void;
   unreadMessagesCount?: number;
   user: UserAccount;
   allUsers?: AppUserOption[];
@@ -68,6 +69,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
   onUnblockUser,
   onClearChat,
   onMarkAsRead,
+  onOpenUserProfile,
   unreadMessagesCount = 0,
   user,
   allUsers = [],
@@ -153,15 +155,18 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
       ? conversation.buyerAvatar
       : (conversation.sellerAvatar || ''));
 
-    // Check allUsers for an uploaded profile picture if partnerProfilePic not available
-    if (!partnerProfilePic) {
-      const matchingUser = allUsers.find(
-        (u) =>
-          (otherId && u.id === otherId) ||
-          (u.name && rawName && u.name.trim().toLowerCase() === rawName.trim().toLowerCase())
-      );
+    let userLocation: string | undefined;
 
-      if (matchingUser?.avatar && matchingUser.avatar.trim() !== '') {
+    // Check allUsers for an uploaded profile picture or location if partnerProfilePic not available
+    const matchingUser = allUsers.find(
+      (u) =>
+        (otherId && u.id === otherId) ||
+        (u.name && rawName && u.name.trim().toLowerCase() === rawName.trim().toLowerCase())
+    );
+
+    if (matchingUser) {
+      userLocation = matchingUser.location;
+      if (!partnerProfilePic && matchingUser.avatar && matchingUser.avatar.trim() !== '') {
         avatar = matchingUser.avatar;
       }
     }
@@ -171,8 +176,10 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
     }
 
     return {
+      id: otherId || matchingUser?.id || '',
       name: formatDisplayName(rawName),
       avatar,
+      location: userLocation,
     };
   }, [conversation, user, allUsers, partnerProfilePic]);
 
@@ -342,19 +349,35 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
 
         {/* Hero User Header */}
         <div className="pt-3 pb-2.5 px-4 md:px-6 flex flex-col items-center text-center border-b border-gray-100 shrink-0 bg-white">
-          <div className="relative mb-1.5">
-            <img
-              src={getOptimizedImageUrl(otherParty.avatar || DEFAULT_AVATAR_IMAGE, { width: 150, quality: 75, format: 'webp' })}
-              alt={otherParty.name}
-              className="w-14 h-14 rounded-full object-cover border border-gray-200 shadow-sm"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenUserProfile) {
+                onOpenUserProfile(otherParty.id, {
+                  id: otherParty.id,
+                  name: otherParty.name,
+                  avatar: otherParty.avatar,
+                  location: otherParty.location,
+                });
+              }
+            }}
+            className="flex flex-col items-center group cursor-pointer focus-visible:outline-none"
+            aria-label={`View ${otherParty.name}'s profile`}
+          >
+            <div className="relative mb-1.5 transition-transform group-hover:scale-105 active:scale-95">
+              <img
+                src={getOptimizedImageUrl(otherParty.avatar || DEFAULT_AVATAR_IMAGE, { width: 150, quality: 75, format: 'webp' })}
+                alt={otherParty.name}
+                className="w-14 h-14 rounded-full object-cover border border-gray-200 shadow-sm group-hover:border-[#0052FF] transition-colors"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
 
-          <h2 className="text-base font-black text-gray-900 tracking-tight">
-            {otherParty.name}
-          </h2>
+            <h2 className="text-base font-black text-gray-900 tracking-tight group-hover:text-[#0052FF] transition-colors">
+              {otherParty.name}
+            </h2>
+          </button>
 
           {conversation.itemTitle && !conversation.itemTitle.startsWith('Chat with ') && conversation.itemPrice > 0 && (
             <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500 font-medium">
@@ -448,13 +471,29 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
                       key={msg.id}
                       className="flex items-start gap-2 max-w-[88%] group/msg"
                     >
-                      <img
-                        src={getOptimizedImageUrl(otherParty.avatar || DEFAULT_AVATAR_IMAGE, { width: 100, quality: 75, format: 'webp' })}
-                        alt={otherParty.name}
-                        className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5 border border-gray-200 shadow-2xs"
-                        loading="lazy"
-                        decoding="async"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onOpenUserProfile) {
+                            onOpenUserProfile(otherParty.id, {
+                              id: otherParty.id,
+                              name: otherParty.name,
+                              avatar: otherParty.avatar,
+                              location: otherParty.location,
+                            });
+                          }
+                        }}
+                        className="shrink-0 cursor-pointer active:scale-95 transition-transform focus-visible:outline-none"
+                        aria-label={`View ${otherParty.name}'s profile`}
+                      >
+                        <img
+                          src={getOptimizedImageUrl(otherParty.avatar || DEFAULT_AVATAR_IMAGE, { width: 100, quality: 75, format: 'webp' })}
+                          alt={otherParty.name}
+                          className="w-7 h-7 rounded-full object-cover mt-0.5 border border-gray-200 shadow-2xs hover:border-[#0052FF]"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </button>
 
                       <div className="flex flex-col items-start min-w-0">
                         <div className="bg-white text-gray-900 border border-gray-200 px-4 py-2.5 rounded-2xl rounded-tl-xs shadow-xs text-xs font-medium leading-relaxed break-words">

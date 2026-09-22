@@ -34,6 +34,7 @@ import { AccountPage } from './components/AccountPage';
 import { MessagesPage } from './components/MessagesPage';
 import { SearchPage } from './components/SearchPage';
 import { ChatBoxPage } from './components/ChatBoxPage';
+import { UserProfilePage } from './components/UserProfilePage';
 import { PullToRefresh } from './components/PullToRefresh';
 import { Toast } from './components/Toast';
 import { CookieBanner } from './components/CookieBanner';
@@ -51,6 +52,7 @@ import { supabase } from './supabaseClient';
 import {
   fetchAllListings,
   fetchUserListings,
+  fetchListingById,
   insertListing,
   deleteListingFromDb,
   mapRowToFurnitureItem,
@@ -327,6 +329,7 @@ interface ListingDetailViewProps {
   onOpenMessages: () => void;
   onOpenNotifications: () => void;
   onOpenAuth: (mode?: 'signin' | 'signup') => void;
+  onOpenUserProfile?: (userId: string, initialData?: any) => void;
   onClose: () => void;
 }
 
@@ -346,14 +349,39 @@ const ListingDetailView: React.FC<ListingDetailViewProps> = ({
   onOpenMessages,
   onOpenNotifications,
   onOpenAuth,
+  onOpenUserProfile,
   onClose,
 }) => {
   const { id } = useParams<{ id: string }>();
+  const [fetchedItem, setFetchedItem] = useState<FurnitureItem | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (id) {
+      fetchListingById(id).then((mapped) => {
+        if (isMounted && mapped) {
+          setFetchedItem(mapped);
+        }
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  const fromSelected = selectedItem?.id === id ? selectedItem : null;
+  const fromList = furnitureList.find((i) => i.id === id);
+  const fromOwn = userOwnListings.find((i) => i.id === id);
   const item =
-    selectedItem ||
-    furnitureList.find((i) => i.id === id) ||
-    userOwnListings.find((i) => i.id === id) ||
-    null;
+    (fetchedItem?.additionalImages && fetchedItem.additionalImages.length > 0)
+      ? fetchedItem
+      : (fromSelected?.additionalImages && fromSelected.additionalImages.length > 0)
+      ? fromSelected
+      : (fromList?.additionalImages && fromList.additionalImages.length > 0)
+      ? fromList
+      : (fromOwn?.additionalImages && fromOwn.additionalImages.length > 0)
+      ? fromOwn
+      : fetchedItem || fromSelected || fromList || fromOwn || null;
 
   return (
     <ListingDetailPage
@@ -372,6 +400,7 @@ const ListingDetailView: React.FC<ListingDetailViewProps> = ({
       unreadNotificationsCount={unreadNotificationsCount}
       user={user}
       onOpenAuth={onOpenAuth}
+      onOpenUserProfile={onOpenUserProfile}
     />
   );
 };
@@ -449,6 +478,8 @@ interface MessagesListViewProps {
   onOpenSearchPage: () => void;
   onOpenHome?: () => void;
   onClearBadgeCount?: () => void;
+  onOpenMenu?: () => void;
+  onOpenUserProfile?: (userId: string, initialData?: any) => void;
 }
 
 const MessagesListView: React.FC<MessagesListViewProps> = ({
@@ -468,6 +499,8 @@ const MessagesListView: React.FC<MessagesListViewProps> = ({
   onOpenSearchPage,
   onOpenHome,
   onClearBadgeCount,
+  onOpenMenu,
+  onOpenUserProfile,
 }) => {
   return (
     <MessagesPage
@@ -489,6 +522,8 @@ const MessagesListView: React.FC<MessagesListViewProps> = ({
       unreadMessagesCount={unreadMessagesCount}
       unreadNotificationsCount={unreadNotificationsCount}
       onClearBadgeCount={onClearBadgeCount}
+      onOpenMenu={onOpenMenu}
+      onOpenUserProfile={onOpenUserProfile}
     />
   );
 };
@@ -505,6 +540,7 @@ interface ChatBoxViewProps {
   onClearChat: (conversationId: string) => void;
   onMarkAsRead: (conversationId: string) => void;
   onGoToMessages: () => void;
+  onOpenUserProfile?: (userId: string, initialData?: any) => void;
 }
 
 const ChatBoxView: React.FC<ChatBoxViewProps> = ({
@@ -519,6 +555,7 @@ const ChatBoxView: React.FC<ChatBoxViewProps> = ({
   onClearChat,
   onMarkAsRead,
   onGoToMessages,
+  onOpenUserProfile,
 }) => {
   const { id } = useParams<{ id: string }>();
   const conv = conversations.find((c) => c.id === id);
@@ -557,6 +594,35 @@ const ChatBoxView: React.FC<ChatBoxViewProps> = ({
       unreadMessagesCount={unreadMessagesCount}
       user={user}
       allUsers={allUsers}
+      onOpenUserProfile={onOpenUserProfile}
+    />
+  );
+};
+
+interface UserProfileRouteViewProps {
+  currentUser: UserAccount;
+  onClose: () => void;
+  onMessageUser: (targetUser: { id: string; name: string; avatar: string; location?: string }) => void;
+  selectedProfile: { id: string; profile?: any } | null;
+}
+
+const UserProfileRouteView: React.FC<UserProfileRouteViewProps> = ({
+  currentUser,
+  onClose,
+  onMessageUser,
+  selectedProfile,
+}) => {
+  const { id } = useParams<{ id: string }>();
+  const effectiveId = id || selectedProfile?.id || '';
+  const initial = selectedProfile?.id === effectiveId ? selectedProfile.profile : null;
+
+  return (
+    <UserProfilePage
+      userId={effectiveId}
+      initialProfile={initial}
+      currentUser={currentUser}
+      onClose={onClose}
+      onMessageUser={onMessageUser}
     />
   );
 };
@@ -681,6 +747,12 @@ export default function App() {
   const [showPostReviewPopup, setShowPostReviewPopup] = useState(false);
   const [submittedListingTitle, setSubmittedListingTitle] = useState<string>('');
   const [editProfileSource, setEditProfileSource] = useState<'sell' | 'account' | null>(null);
+  const [selectedUserProfile, setSelectedUserProfile] = useState<{ id: string; profile?: any } | null>(null);
+
+  const handleOpenUserProfile = (userId: string, initialData?: any) => {
+    setSelectedUserProfile({ id: userId, profile: initialData });
+    goTo(`/user/${userId}`, 1);
+  };
 
   // Sell Form Persistent State (retained across Category and Location sub-pages)
   const [sellFormData, setSellFormData] = useState<SellFormData>(() => ({
@@ -1484,7 +1556,7 @@ export default function App() {
       location: '',
       locationQuery: '',
     });
-    goTo('/', -1);
+    goTo('/marketplace', -1);
   };
 
   // Sell item with initial title from empty search
@@ -2281,7 +2353,7 @@ export default function App() {
   const currentTab = useMemo(() => {
     if (location.pathname.startsWith('/messages')) return 'messages';
     if (location.pathname.startsWith('/notifications')) return 'notifications';
-    return 'search';
+    return 'marketplace';
   }, [location.pathname]);
 
   return (
@@ -2379,9 +2451,13 @@ export default function App() {
           className="w-full h-[100dvh] bg-gray-50 fixed inset-0 overflow-hidden"
         >
           <Routes location={location}>
+            {/* Default root path: Open in messages page by default */}
+            <Route path="/" element={<Navigate to="/messages" replace />} />
+            <Route path="/home" element={<Navigate to="/marketplace" replace />} />
+
             {/* 1. Home Marketplace Feed */}
             <Route
-              path="/"
+              path="/marketplace"
               element={
                 <div className="h-[100dvh] max-h-[100dvh] flex flex-col font-sans text-gray-900 bg-gray-50 overflow-hidden">
                   {/* Pinned Top Header & Controls */}
@@ -2569,14 +2645,15 @@ export default function App() {
                   onOpenNotifications={() => goTo('/notifications')}
                   user={user}
                   onOpenAuth={handleOpenAuth}
+                  onOpenUserProfile={handleOpenUserProfile}
                   onClose={() => {
                     setDirection(-1);
                     if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
                       navigate(-1);
-                    } else if (window.history.length > 1 && location.pathname !== '/') {
+                    } else if (window.history.length > 1 && location.pathname !== '/marketplace' && location.pathname !== '/') {
                       navigate(-1);
                     } else {
-                      navigate('/');
+                      navigate('/marketplace');
                     }
                   }}
                 />
@@ -2897,7 +2974,7 @@ export default function App() {
                       setDirection(-1);
                       navigate(-1);
                     } else {
-                      goTo('/', -1);
+                      goTo('/marketplace', -1);
                     }
                   }}
                   onSendMessage={handleSendMessage}
@@ -2914,6 +2991,8 @@ export default function App() {
                   onOpenSearchPage={() => goTo('/search?type=messages')}
                   onOpenHome={handleGoHome}
                   onClearBadgeCount={() => setMessagesBadgeCleared(true)}
+                  onOpenMenu={() => setIsMenuOpen(true)}
+                  onOpenUserProfile={handleOpenUserProfile}
                 />
               }
             />
@@ -2939,6 +3018,51 @@ export default function App() {
                   onClearChat={handleClearChat}
                   onMarkAsRead={handleMarkConversationAsRead}
                   onGoToMessages={() => goTo('/messages', -1)}
+                  onOpenUserProfile={handleOpenUserProfile}
+                />
+              }
+            />
+
+            {/* 8b. User Profile Routes */}
+            <Route
+              path="/user/:id"
+              element={
+                <UserProfileRouteView
+                  currentUser={user}
+                  onClose={() => {
+                    if (window.history.state && window.history.state.idx > 0) {
+                      setDirection(-1);
+                      navigate(-1);
+                    } else {
+                      goTo('/messages', -1);
+                    }
+                  }}
+                  onMessageUser={(target) => {
+                    const convId = handleStartNewConversationWithUser(target);
+                    goTo(`/messages/${convId}`, 1);
+                  }}
+                  selectedProfile={selectedUserProfile}
+                />
+              }
+            />
+            <Route
+              path="/profile/:id"
+              element={
+                <UserProfileRouteView
+                  currentUser={user}
+                  onClose={() => {
+                    if (window.history.state && window.history.state.idx > 0) {
+                      setDirection(-1);
+                      navigate(-1);
+                    } else {
+                      goTo('/messages', -1);
+                    }
+                  }}
+                  onMessageUser={(target) => {
+                    const convId = handleStartNewConversationWithUser(target);
+                    goTo(`/messages/${convId}`, 1);
+                  }}
+                  selectedProfile={selectedUserProfile}
                 />
               }
             />
@@ -2949,7 +3073,7 @@ export default function App() {
               element={
                 <NotificationsPage
                   isOpen={true}
-                  onClose={() => goBack('/')}
+                  onClose={() => goBack('/marketplace')}
                   notifications={notifications}
                   onMarkAllRead={handleMarkAllNotificationsRead}
                   onDeleteNotification={handleDeleteNotification}

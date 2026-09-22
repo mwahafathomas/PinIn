@@ -150,11 +150,45 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
       row.image_url || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80',
       { width: 600, quality: 70, format: 'webp' }
     ),
-    additionalImages: Array.isArray(row.additional_images)
-      ? row.additional_images.map((img) =>
-          getOptimizedImageUrl(img, { width: 600, quality: 70, format: 'webp' })
-        )
-      : [],
+    additionalImages: (() => {
+      const list: string[] = [];
+      const add = (v: unknown) => {
+        if (typeof v === 'string') {
+          const t = v.trim();
+          if (t && !list.includes(t)) list.push(t);
+        }
+      };
+      const parse = (src: unknown) => {
+        if (!src) return;
+        if (Array.isArray(src)) {
+          src.forEach(add);
+        } else if (typeof src === 'string') {
+          const trimmed = src.trim();
+          if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+              const p = JSON.parse(trimmed);
+              if (Array.isArray(p)) p.forEach(add);
+            } catch {}
+          } else if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+            trimmed
+              .slice(1, -1)
+              .split(',')
+              .forEach((s) => add(s.replace(/^"(.*)"$/, '$1').trim()));
+          } else if (trimmed.includes(',')) {
+            trimmed.split(',').forEach((s) => add(s.trim()));
+          } else if (trimmed !== '') {
+            add(trimmed);
+          }
+        }
+      };
+      parse(row.additional_images);
+      parse((row as any).additionalImages);
+      parse((row as any).images);
+      parse((row as any).imageUrls);
+      return list.map((img) =>
+        getOptimizedImageUrl(img, { width: 600, quality: 70, format: 'webp' })
+      );
+    })(),
     seller: {
       id: row.seller_id || 'unknown_seller',
       name: row.seller_name || 'PinIn Member',
@@ -511,6 +545,35 @@ export async function fetchUserListings(userId: string): Promise<FurnitureItem[]
   } catch {
     return getLocalUserListings(userId).filter((l) => !deleted.has(l.id));
   }
+}
+
+// Fetch a single listing by ID with full fields including additional_images
+export async function fetchListingById(itemId: string): Promise<FurnitureItem | null> {
+  if (!itemId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('id', itemId)
+      .maybeSingle();
+
+    if (!error && data) {
+      return mapRowToFurnitureItem(data as SupabaseListingRow);
+    }
+  } catch (err) {
+    console.warn('fetchListingById error:', err);
+  }
+
+  // Fallback to local listings or cached user listings
+  try {
+    const local = getLocalListings();
+    const foundLocal = local.find((l) => l.id === itemId);
+    if (foundLocal) {
+      return foundLocal;
+    }
+  } catch {}
+
+  return null;
 }
 
 // Insert new listing into Supabase as 'pending' (requires approval in Supabase before appearing publicly)

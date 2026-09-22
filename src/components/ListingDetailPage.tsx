@@ -37,6 +37,7 @@ interface ListingDetailPageProps {
   unreadNotificationsCount?: number;
   user?: UserAccount;
   onOpenAuth?: (mode?: 'signin' | 'register') => void;
+  onOpenUserProfile?: (userId: string, initialData?: { id?: string; name?: string; surname?: string; avatar?: string; location?: string; bio?: string }) => void;
 }
 
 const REPORT_REASONS = [
@@ -62,6 +63,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   onReport,
   user,
   onOpenAuth,
+  onOpenUserProfile,
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -373,7 +375,30 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 ))}
               </div>
 
-              {/* Photo counter at bottom left (e.g. 1/5) - without arrows */}
+              {/* Prev / Next navigation buttons on carousel */}
+              {allImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePrevImage}
+                    aria-label="Previous image"
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-xs shadow-md transition-all active:scale-90 z-20 cursor-pointer focus-visible:outline-none"
+                  >
+                    <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleNextImage}
+                    aria-label="Next image"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-xs shadow-md transition-all active:scale-90 z-20 cursor-pointer focus-visible:outline-none"
+                  >
+                    <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+                  </button>
+                </>
+              )}
+
+              {/* Photo counter at bottom left (e.g. 1/5) */}
               {allImages.length > 1 && (
                 <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-xs z-10 pointer-events-none shadow-md">
                   {activeImageIndex + 1}/{allImages.length}
@@ -565,21 +590,35 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               )}
 
               {/* Seller Profile Icon & Name */}
-              <div className="flex flex-col items-center text-center shrink-0 w-20 sm:w-24">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenUserProfile) {
+                    onOpenUserProfile(item.seller.id || (item as any).userId, {
+                      id: item.seller.id || (item as any).userId,
+                      name: item.seller.name,
+                      avatar: item.seller.avatar,
+                      location: item.location,
+                    });
+                  }
+                }}
+                className="flex flex-col items-center text-center shrink-0 w-20 sm:w-24 group cursor-pointer focus-visible:outline-none"
+                aria-label={`View ${item.seller.name}'s profile`}
+              >
                 <img
                   src={getOptimizedImageUrl(item.seller.avatar || DEFAULT_AVATAR_IMAGE, { width: 200, quality: 75, format: 'webp' })}
                   alt={item.seller.name}
                   loading="lazy"
                   decoding="async"
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-gray-200 shadow-xs"
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-gray-200 shadow-xs group-hover:border-[#0052FF] group-hover:scale-105 transition-all"
                 />
-                <span className="text-xs font-extrabold text-gray-900 line-clamp-1 mt-1">
+                <span className="text-xs font-extrabold text-gray-900 line-clamp-1 mt-1 group-hover:text-[#0052FF] transition-colors">
                   {item.seller.name}
                 </span>
                 <span className="text-[10px] font-bold text-[#0052FF]">
                   {isOwnListing ? 'You' : 'Seller'}
                 </span>
-              </div>
+              </button>
             </div>
 
             {/* Buyer Safety Tips Banner */}

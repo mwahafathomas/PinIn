@@ -1,9 +1,9 @@
 import React from 'react';
-import { Search, MessageSquare, Bell } from 'lucide-react';
+import { Store, MessageSquare, Bell } from 'lucide-react';
 
 interface BottomNavProps {
-  activeTab: 'search' | 'messages' | 'notifications';
-  onNavigate: (tab: 'search' | 'messages' | 'notifications') => void;
+  activeTab: 'search' | 'marketplace' | 'messages' | 'notifications';
+  onNavigate: (tab: 'search' | 'marketplace' | 'messages' | 'notifications') => void;
   unreadMessagesCount?: number;
   unreadNotificationsCount?: number;
 }
@@ -14,32 +14,34 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   unreadMessagesCount = 0,
   unreadNotificationsCount = 0,
 }) => {
+  const isMarketplaceActive = activeTab === 'marketplace' || activeTab === 'search';
+
   return (
     <nav
       aria-label="Bottom navigation bar"
       className="w-full bg-white"
     >
       <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-3 items-center">
-        {/* Search Icon at bottom left */}
+        {/* Marketplace Icon at bottom left */}
         <button
           type="button"
-          onClick={() => onNavigate('search')}
-          aria-label="Home and Search"
+          onClick={() => onNavigate('marketplace')}
+          aria-label="Marketplace"
           className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#0052FF] active:scale-95 transition-all group relative cursor-pointer"
         >
           <div className="relative flex items-center justify-center">
-            <Search
+            <Store
               className={`w-5 h-5 stroke-[2.2] transition-colors ${
-                activeTab === 'search' ? 'text-[#0052FF]' : 'text-gray-600 group-hover:text-[#0052FF]'
+                isMarketplaceActive ? 'text-[#0052FF]' : 'text-gray-600 group-hover:text-[#0052FF]'
               }`}
             />
           </div>
           <span
             className={`text-[11px] font-bold mt-1 leading-none transition-colors ${
-              activeTab === 'search' ? 'text-[#0052FF]' : 'text-gray-600 group-hover:text-[#0052FF]'
+              isMarketplaceActive ? 'text-[#0052FF]' : 'text-gray-600 group-hover:text-[#0052FF]'
             }`}
           >
-            Search
+            Marketplace
           </span>
         </button>
 

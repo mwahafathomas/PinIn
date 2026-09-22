@@ -343,15 +343,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-md md:max-w-xl lg:max-w-2xl mx-auto pb-10 flex flex-col">
         {/* Top Hero Container */}
-        <div className="relative w-full overflow-hidden border-b border-gray-200 py-6 px-4">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1200&auto=format&fit=crop&q=80')`,
-            }}
-          />
-          <div className="absolute inset-0 bg-white/40" />
-
+        <div className="relative w-full overflow-hidden border-b border-gray-200 py-6 px-4 bg-gray-50">
           <div className="relative z-10 flex flex-col items-center justify-center space-y-4">
             {!isVerifyingOtp ? (
               <>
