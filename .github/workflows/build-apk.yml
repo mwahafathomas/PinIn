@@ -35,6 +35,10 @@ jobs:
         run: |
           npx @capacitor/cli add android
           npx @capacitor/cli copy android
+      - name: Generate icons and splash
+        run: |
+          npm install @capacitor/assets --save-dev
+          npx capacitor-assets generate --android
       - name: Build APK
         working-directory: android
         run: |
