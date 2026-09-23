@@ -53,7 +53,7 @@ export const FiltersModal: React.FC<FiltersModalProps> = ({
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/60">
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-5 h-5 text-[#0052FF]" />
+            <SlidersHorizontal className="w-5 h-5 text-[#2D8EDE]" />
             <h2 className="font-extrabold text-base text-gray-900">Filter Furniture</h2>
           </div>
           <button
@@ -81,7 +81,7 @@ export const FiltersModal: React.FC<FiltersModalProps> = ({
                   onClick={() => setLocalFilters({ ...localFilters, sortBy: opt.id })}
                   className={`p-2.5 rounded-xl border text-xs font-medium text-left transition-all ${
                     localFilters.sortBy === opt.id
-                      ? 'bg-blue-50 border-[#0052FF] text-[#0052FF] font-bold'
+                      ? 'bg-blue-50 border-[#2D8EDE] text-[#2D8EDE] font-bold'
                       : 'border-gray-200 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -107,7 +107,7 @@ export const FiltersModal: React.FC<FiltersModalProps> = ({
                     setLocalFilters({ ...localFilters, minPrice: Number(e.target.value) || 0 })
                   }
                   placeholder="$0"
-                  className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052FF]"
+                  className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D8EDE]"
                 />
               </div>
               <span className="text-gray-400 mt-5 font-bold">-</span>
@@ -124,7 +124,7 @@ export const FiltersModal: React.FC<FiltersModalProps> = ({
                     })
                   }
                   placeholder="Any"
-                  className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052FF]"
+                  className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D8EDE]"
                 />
               </div>
             </div>
@@ -145,7 +145,7 @@ export const FiltersModal: React.FC<FiltersModalProps> = ({
                     onClick={() => toggleCondition(cond)}
                     className={`py-1.5 px-3 rounded-full text-xs font-medium border flex items-center gap-1.5 transition-all ${
                       selected
-                        ? 'bg-[#0052FF] text-white border-[#0052FF] font-semibold'
+                        ? 'bg-[#2D8EDE] text-white border-[#2D8EDE] font-semibold'
                         : 'border-gray-200 text-gray-700 hover:bg-gray-100'
                     }`}
                   >
@@ -169,7 +169,7 @@ export const FiltersModal: React.FC<FiltersModalProps> = ({
                 setLocalFilters({ ...localFilters, locationQuery: e.target.value })
               }
               placeholder="e.g. Brooklyn, Manhattan, Queens..."
-              className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0052FF]"
+              className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D8EDE]"
             />
           </div>
         </div>
@@ -187,7 +187,7 @@ export const FiltersModal: React.FC<FiltersModalProps> = ({
           <button
             type="button"
             onClick={handleApply}
-            className="flex-1 py-2.5 rounded-xl bg-[#0052FF] hover:bg-blue-700 text-white font-bold text-xs shadow-sm"
+            className="flex-1 py-2.5 rounded-xl bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-bold text-xs shadow-sm"
           >
             Apply Filters
           </button>

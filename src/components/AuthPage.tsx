@@ -65,7 +65,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   if (!isOpen) return null;
 
   // Helper after successful auth session (NO green "Account verified" banner as requested)
-  const handleSuccessfulSession = (authUser: { id: string; email?: string; user_metadata?: Record<string, any> }) => {
+  const handleSuccessfulSession = async (
+    authUser: { id: string; email?: string; user_metadata?: Record<string, any> },
+    token?: string
+  ) => {
     const userMeta = authUser.user_metadata || {};
     const displayName =
       userMeta.full_name ||
@@ -100,6 +103,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       location: loggedUser.location,
       bio: loggedUser.bio,
     });
+
+    let userToken = token;
+    if (!userToken) {
+      try {
+        const { data: sData } = await supabase.auth.getSession();
+        userToken = sData?.session?.access_token;
+      } catch {}
+    }
+    if (userToken) {
+      try {
+        localStorage.setItem('user_token', userToken);
+      } catch {}
+    }
+    try {
+      localStorage.setItem('user_data', JSON.stringify(loggedUser));
+    } catch {}
 
     try {
       window.history.pushState({}, '', '/');
@@ -323,7 +342,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               }
             }}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -331,7 +350,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -358,7 +377,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     }}
                     className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all text-center cursor-pointer ${
                       mode === 'signin'
-                        ? 'bg-[#0052FF] text-white shadow-sm'
+                        ? 'bg-[#2D8EDE] text-white shadow-sm'
                         : 'text-gray-700 hover:text-gray-900 hover:bg-white/60'
                     }`}
                   >
@@ -374,7 +393,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     }}
                     className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm transition-all text-center cursor-pointer ${
                       mode === 'register'
-                        ? 'bg-[#0052FF] text-white shadow-sm'
+                        ? 'bg-[#2D8EDE] text-white shadow-sm'
                         : 'text-gray-700 hover:text-gray-900 hover:bg-white/60'
                     }`}
                   >
@@ -384,24 +403,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                 {/* Current Page Indicator */}
                 <div className="flex items-center gap-2 bg-white/95 px-4 py-1.5 rounded-full shadow-sm border border-gray-200/80">
-                  <div className="w-5 h-5 rounded-full bg-[#0052FF] text-white flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full bg-[#2D8EDE] text-white flex items-center justify-center">
                     {mode === 'signin' ? (
                       <LogIn className="w-3 h-3 stroke-[2.5]" />
                     ) : (
                       <UserPlus className="w-3 h-3 stroke-[2.5]" />
                     )}
                   </div>
-                  <span className="text-xs sm:text-sm font-extrabold text-[#0052FF] tracking-wide uppercase">
-                    {mode === 'signin' ? 'Sign In Page' : 'Register Page'}
+                  <span className="text-xs sm:text-sm font-extrabold text-[#2D8EDE] tracking-wide uppercase">
+                    {mode === 'signin' ? 'Sign In Page' : 'Register'}
                   </span>
                 </div>
               </>
             ) : (
               <div className="flex items-center gap-2 bg-white/95 px-4 py-1.5 rounded-full shadow-sm border border-gray-200/80">
-                <div className="w-5 h-5 rounded-full bg-[#0052FF] text-white flex items-center justify-center">
+                <div className="w-5 h-5 rounded-full bg-[#2D8EDE] text-white flex items-center justify-center">
                   <KeyRound className="w-3 h-3 stroke-[2.5]" />
                 </div>
-                <span className="text-xs sm:text-sm font-extrabold text-[#0052FF] tracking-wide uppercase">
+                <span className="text-xs sm:text-sm font-extrabold text-[#2D8EDE] tracking-wide uppercase">
                   Verify Email Code
                 </span>
               </div>
@@ -434,9 +453,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
                   placeholder="• • • • • •"
                   aria-label="6-digit verification code"
-                  className="w-full bg-white text-gray-900 text-center tracking-[0.6em] placeholder:tracking-normal placeholder:text-gray-300 text-2xl font-black py-3.5 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0052FF] focus:border-transparent transition-all"
+                  className="w-full bg-white text-gray-900 text-center tracking-[0.6em] placeholder:tracking-normal placeholder:text-gray-300 text-2xl font-black py-3.5 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:border-transparent transition-all"
                 />
-                <div className="absolute right-3.5 pointer-events-none text-[#0052FF]">
+                <div className="absolute right-3.5 pointer-events-none text-[#2D8EDE]">
                   <KeyRound className="w-5 h-5" />
                 </div>
               </div>
@@ -474,7 +493,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   type="button"
                   disabled={isResending}
                   onClick={handleResendOtp}
-                  className="text-[#0052FF] font-bold hover:underline flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+                  className="text-[#2D8EDE] font-bold hover:underline flex items-center gap-1 disabled:opacity-50 cursor-pointer"
                 >
                   <RotateCw className={`w-3.5 h-3.5 ${isResending ? 'animate-spin' : ''}`} />
                   <span>{isResending ? 'Resending...' : 'Resend code'}</span>
@@ -486,7 +505,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               <button
                 type="submit"
                 disabled={isLoading || otpCode.trim().length < 6}
-                className="w-full py-3.5 px-4 bg-[#0052FF] hover:bg-blue-700 disabled:opacity-60 active:scale-[0.99] text-white font-extrabold text-sm sm:text-base rounded-xl shadow-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0052FF] cursor-pointer disabled:cursor-not-allowed"
+                className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-60 active:scale-[0.99] text-white font-extrabold text-sm sm:text-base rounded-xl shadow-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#2D8EDE] cursor-pointer disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
@@ -517,7 +536,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="enter name"
                       aria-label="Enter name"
-                      className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm font-medium px-3.5 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0052FF] focus:border-transparent transition-all"
+                      className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm font-medium px-3.5 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:border-transparent transition-all"
                     />
                   </div>
 
@@ -529,7 +548,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       onChange={(e) => setSurname(e.target.value)}
                       placeholder="enter surname"
                       aria-label="Enter surname"
-                      className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm font-medium px-3.5 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0052FF] focus:border-transparent transition-all"
+                      className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm font-medium px-3.5 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:border-transparent transition-all"
                     />
                   </div>
                 </div>
@@ -544,9 +563,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="enter email"
                   aria-label="Enter email"
-                  className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm font-medium pl-3.5 pr-10 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0052FF] focus:border-transparent transition-all"
+                  className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm font-medium pl-3.5 pr-10 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:border-transparent transition-all"
                 />
-                <div className="absolute right-3.5 pointer-events-none text-[#0052FF]">
+                <div className="absolute right-3.5 pointer-events-none text-[#2D8EDE]">
                   <Mail className="w-5 h-5" />
                 </div>
               </div>
@@ -560,12 +579,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="enter password"
                   aria-label="Enter password"
-                  className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm font-medium pl-3.5 pr-10 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0052FF] focus:border-transparent transition-all"
+                  className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm font-medium pl-3.5 pr-10 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:border-transparent transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3.5 text-[#0052FF] hover:text-blue-700 p-0.5 transition-colors focus-visible:outline-none cursor-pointer"
+                  className="absolute right-3.5 text-[#2D8EDE] hover:text-blue-700 p-0.5 transition-colors focus-visible:outline-none cursor-pointer"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
@@ -582,9 +601,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="confirm password"
                     aria-label="Confirm password"
-                    className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm font-medium pl-3.5 pr-10 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0052FF] focus:border-transparent transition-all"
+                    className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm font-medium pl-3.5 pr-10 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:border-transparent transition-all"
                   />
-                  <div className="absolute right-3.5 pointer-events-none text-[#0052FF]">
+                  <div className="absolute right-3.5 pointer-events-none text-[#2D8EDE]">
                     <Lock className="w-5 h-5" />
                   </div>
                 </div>
@@ -612,7 +631,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               <button
                 type="submit"
                 disabled={isLoading || (mode === 'register' && !agreedToTerms)}
-                className="w-full py-3.5 px-4 bg-[#0052FF] hover:bg-blue-700 disabled:opacity-50 active:scale-[0.99] text-white font-extrabold text-sm sm:text-base rounded-xl shadow-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0052FF] cursor-pointer disabled:cursor-not-allowed"
+                className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-50 active:scale-[0.99] text-white font-extrabold text-sm sm:text-base rounded-xl shadow-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#2D8EDE] cursor-pointer disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
@@ -638,18 +657,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   id="terms-checkbox"
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded text-[#0052FF] border-gray-300 focus:ring-[#0052FF] cursor-pointer"
+                  className="mt-0.5 w-4 h-4 rounded text-[#2D8EDE] border-gray-300 focus:ring-[#2D8EDE] cursor-pointer"
                 />
                 <label
                   htmlFor="terms-checkbox"
                   className="text-[11px] sm:text-xs text-gray-500 leading-tight select-none cursor-pointer"
                 >
                   By continuing you agree with PinIn{' '}
-                  <span className="text-[#0052FF] font-semibold hover:underline">
+                  <span className="text-[#2D8EDE] font-semibold hover:underline">
                     Terms &amp; Conditions
                   </span>{' '}
                   and{' '}
-                  <span className="text-[#0052FF] font-semibold hover:underline">
+                  <span className="text-[#2D8EDE] font-semibold hover:underline">
                     Privacy Policies
                   </span>
                   .

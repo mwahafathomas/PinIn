@@ -26,7 +26,6 @@ interface MenuDrawerProps {
   onOpenPrivacyPolicy?: () => void;
   onOpenPolicies?: () => void;
   onOpenContactUs: () => void;
-  onOpenCookieSettings?: () => void;
 }
 
 export const MenuDrawer: React.FC<MenuDrawerProps> = ({
@@ -41,7 +40,6 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
   onOpenPrivacyPolicy,
   onOpenPolicies,
   onOpenContactUs,
-  onOpenCookieSettings,
 }) => {
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
@@ -64,7 +62,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
           <div className="w-8" aria-hidden="true" />
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center">
             <span className="font-extrabold text-xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
           <button
@@ -103,7 +101,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
                   onClose();
                   onOpenAuth('signin');
                 }}
-                className="py-2.5 px-3 bg-[#0052FF] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
+                className="py-2.5 px-3 bg-[#2D8EDE] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:bg-[#2579BE] active:scale-95 transition-all cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Sign In</span>
@@ -141,7 +139,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               {user.isLoggedIn ? (
                 <LogOut className="w-5 h-5 text-red-500" />
               ) : (
-                <LogIn className="w-5 h-5 text-[#0052FF]" />
+                <LogIn className="w-5 h-5 text-[#2D8EDE]" />
               )}
               <span className={user.isLoggedIn ? 'text-red-600 font-semibold' : 'text-gray-900 font-semibold'}>
                 {user.isLoggedIn ? 'Sign Out' : 'Sign In'}
@@ -162,10 +160,10 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
             className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-blue-50 text-gray-800 font-medium text-sm transition-colors text-left group cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <PlusCircle className="w-5 h-5 text-[#0052FF] group-hover:scale-110 transition-transform" />
+              <PlusCircle className="w-5 h-5 text-[#2D8EDE] group-hover:scale-110 transition-transform" />
               <span className="font-bold text-gray-900">Sell</span>
             </div>
-            <span className="text-[10px] bg-blue-100 text-[#0052FF] px-2 py-0.5 rounded font-bold">
+            <span className="text-[10px] bg-blue-100 text-[#2D8EDE] px-2 py-0.5 rounded font-bold">
               + Post
             </span>
           </button>

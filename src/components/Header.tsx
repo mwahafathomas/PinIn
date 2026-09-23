@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
             aria-label="PinIn Home"
           >
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </button>
         </div>

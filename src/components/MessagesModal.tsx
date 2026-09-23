@@ -65,7 +65,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-[#0052FF]" />
+              <MessageSquare className="w-5 h-5 text-[#2D8EDE]" />
               <h2 className="font-extrabold text-base text-gray-900">PinIn Messages</h2>
             </div>
           )}
@@ -96,7 +96,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({
                   {currentConv.itemTitle}
                 </span>
               </div>
-              <span className="font-bold text-[#0052FF]">${currentConv.itemPrice}</span>
+              <span className="font-bold text-[#2D8EDE]">${currentConv.itemPrice}</span>
             </div>
 
             {/* Messages bubbles list */}
@@ -109,7 +109,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({
                   <div
                     className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl text-xs font-medium ${
                       msg.isMe
-                        ? 'bg-[#0052FF] text-white rounded-br-xs shadow-xs'
+                        ? 'bg-[#2D8EDE] text-white rounded-br-xs shadow-xs'
                         : 'bg-white text-gray-800 border border-gray-200 rounded-bl-xs shadow-xs'
                     }`}
                   >
@@ -127,12 +127,12 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Write a message..."
-                className="flex-1 text-xs px-3.5 py-2.5 bg-gray-100 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0052FF] focus:bg-white"
+                className="flex-1 text-xs px-3.5 py-2.5 bg-gray-100 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:bg-white"
               />
               <button
                 type="submit"
                 disabled={!replyText.trim()}
-                className="p-2.5 bg-[#0052FF] text-white rounded-full disabled:opacity-40 hover:bg-blue-700 transition-colors shrink-0"
+                className="p-2.5 bg-[#2D8EDE] text-white rounded-full disabled:opacity-40 hover:bg-[#2579BE] transition-colors shrink-0"
               >
                 <Send className="w-4 h-4" />
               </button>

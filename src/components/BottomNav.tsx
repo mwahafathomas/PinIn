@@ -1,9 +1,9 @@
 import React from 'react';
-import { Store, MessageSquare, Bell } from 'lucide-react';
+import { Store, MessageSquare, Bell, User } from 'lucide-react';
 
 interface BottomNavProps {
-  activeTab: 'search' | 'marketplace' | 'messages' | 'notifications';
-  onNavigate: (tab: 'search' | 'marketplace' | 'messages' | 'notifications') => void;
+  activeTab: 'search' | 'marketplace' | 'messages' | 'profile' | 'account' | 'notifications';
+  onNavigate: (tab: 'search' | 'marketplace' | 'messages' | 'profile' | 'account' | 'notifications') => void;
   unreadMessagesCount?: number;
   unreadNotificationsCount?: number;
 }
@@ -15,46 +15,49 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   unreadNotificationsCount = 0,
 }) => {
   const isMarketplaceActive = activeTab === 'marketplace' || activeTab === 'search';
+  const isProfileActive = activeTab === 'profile' || activeTab === 'account';
 
   return (
     <nav
       aria-label="Bottom navigation bar"
       className="w-full bg-white"
     >
-      <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-3 items-center">
-        {/* Marketplace Icon at bottom left */}
+      <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-4 items-center">
+        {/* 1. Marketplace Icon at bottom left */}
         <button
           type="button"
           onClick={() => onNavigate('marketplace')}
           aria-label="Marketplace"
-          className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#0052FF] active:scale-95 transition-all group relative cursor-pointer"
+          className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
         >
           <div className="relative flex items-center justify-center">
             <Store
               className={`w-5 h-5 stroke-[2.2] transition-colors ${
-                isMarketplaceActive ? 'text-[#0052FF]' : 'text-gray-600 group-hover:text-[#0052FF]'
+                isMarketplaceActive ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
               }`}
             />
           </div>
           <span
             className={`text-[11px] font-bold mt-1 leading-none transition-colors ${
-              isMarketplaceActive ? 'text-[#0052FF]' : 'text-gray-600 group-hover:text-[#0052FF]'
+              isMarketplaceActive ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
             }`}
           >
             Marketplace
           </span>
         </button>
 
-        {/* Messages Icon in the middle */}
+        {/* 2. Messages Icon */}
         <button
           type="button"
           onClick={() => onNavigate('messages')}
           aria-label="Messages"
-          className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#0052FF] active:scale-95 transition-all group relative cursor-pointer"
+          className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
         >
           <div className="relative flex items-center justify-center">
             <MessageSquare
-              className="w-5 h-5 stroke-[2] text-[#0052FF] fill-[#0052FF] transition-transform group-hover:scale-105"
+              className={`w-5 h-5 stroke-[2] transition-transform group-hover:scale-105 ${
+                activeTab === 'messages' ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
+              }`}
             />
             {unreadMessagesCount > 0 && (
               <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
@@ -64,33 +67,58 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           </div>
           <span
             className={`text-[11px] font-bold mt-1 leading-none transition-colors ${
-              activeTab === 'messages' ? 'text-[#0052FF]' : 'text-gray-600 group-hover:text-[#0052FF]'
+              activeTab === 'messages' ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
             }`}
           >
             messages
           </span>
         </button>
 
-        {/* Notifications Icon (Notification Bell) at bottom right */}
+        {/* 3. Profile Icon (Between messages and notifications) */}
+        <button
+          type="button"
+          onClick={() => onNavigate('profile')}
+          aria-label="Profile"
+          className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+        >
+          <div className="relative flex items-center justify-center">
+            <User
+              className={`w-5 h-5 stroke-[2.2] transition-colors ${
+                isProfileActive ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
+              }`}
+            />
+          </div>
+          <span
+            className={`text-[11px] font-bold mt-1 leading-none transition-colors ${
+              isProfileActive ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
+            }`}
+          >
+            Profile
+          </span>
+        </button>
+
+        {/* 4. Notifications Icon at bottom right */}
         <button
           type="button"
           onClick={() => onNavigate('notifications')}
           aria-label="Notifications"
-          className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#0052FF] active:scale-95 transition-all group relative cursor-pointer"
+          className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
         >
           <div className="relative flex items-center justify-center">
             <Bell
-              className="w-5 h-5 stroke-[2] text-[#0052FF] fill-[#0052FF] transition-transform group-hover:scale-105"
+              className={`w-5 h-5 stroke-[2] transition-transform group-hover:scale-105 ${
+                activeTab === 'notifications' ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
+              }`}
             />
             {unreadNotificationsCount > 0 && (
-              <span className="absolute -top-1.5 -right-2.5 bg-[#0052FF] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+              <span className="absolute -top-1.5 -right-2.5 bg-[#2D8EDE] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                 {unreadNotificationsCount}
               </span>
             )}
           </div>
           <span
             className={`text-[11px] font-bold mt-1 leading-none transition-colors ${
-              activeTab === 'notifications' ? 'text-[#0052FF]' : 'text-gray-600 group-hover:text-[#0052FF]'
+              activeTab === 'notifications' ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
             }`}
           >
             Notifications

@@ -19,7 +19,7 @@ export const ActionNav: React.FC<ActionNavProps> = ({
   return (
     <nav
       aria-label="Marketplace quick actions"
-      className="w-full bg-[#0052FF] text-white shadow-sm border-b border-[#0047E0]"
+      className="w-full bg-[#2D8EDE] text-white shadow-sm border-b border-[#0047E0]"
     >
       <div className="w-full max-w-md md:max-w-7xl mx-auto px-0 md:px-6 lg:px-8 grid grid-cols-3 divide-x divide-white/20">
         {/* Left: + sell */}
@@ -53,7 +53,7 @@ export const ActionNav: React.FC<ActionNavProps> = ({
           <SlidersHorizontal className="w-4 h-4 stroke-[2.2]" />
           <span className="whitespace-nowrap">Filters</span>
           {activeFilterCount > 0 && (
-            <span className="ml-1 px-1.5 py-0.2 bg-white text-[#0052FF] text-[11px] font-black rounded-full">
+            <span className="ml-1 px-1.5 py-0.2 bg-white text-[#2D8EDE] text-[11px] font-black rounded-full">
               {activeFilterCount}
             </span>
           )}

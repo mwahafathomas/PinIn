@@ -136,7 +136,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Go back"
-              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
               <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -145,7 +145,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -159,10 +159,10 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
         <div className="mb-3 shrink-0">
           <div className="flex items-center justify-between">
             <h1 className="text-sm md:text-base font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#0052FF]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#2D8EDE]" />
               <span>{fromSell ? 'Select Category' : 'Furniture Categories'}</span>
               {selectedItems.length > 0 && (
-                <span className="text-[11px] md:text-xs font-extrabold bg-blue-100 text-[#0052FF] px-2.5 py-0.5 rounded-full ml-1 normal-case">
+                <span className="text-[11px] md:text-xs font-extrabold bg-blue-100 text-[#2D8EDE] px-2.5 py-0.5 rounded-full ml-1 normal-case">
                   {selectedItems.length} selected
                 </span>
               )}
@@ -171,7 +171,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
               <button
                 type="button"
                 onClick={handleClearAll}
-                className="text-xs md:text-sm text-[#0052FF] font-bold hover:underline cursor-pointer"
+                className="text-xs md:text-sm text-[#2D8EDE] font-bold hover:underline cursor-pointer"
               >
                 Clear all
               </button>
@@ -204,7 +204,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
                       <button
                         type="button"
                         onClick={() => handleToggleGroup(group)}
-                        className="text-[11px] font-bold text-[#0052FF] hover:underline flex items-center gap-0.5 cursor-pointer"
+                        className="text-[11px] font-bold text-[#2D8EDE] hover:underline flex items-center gap-0.5 cursor-pointer"
                       >
                         {isAllGroupSelected ? 'Deselect all' : 'Select all'}
                       </button>
@@ -223,17 +223,17 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
                           onClick={() => handleItemClick(group, item)}
                           className={`w-full py-2.5 px-3.5 rounded-xl border text-left font-bold text-xs md:text-sm transition-all flex items-center justify-between group cursor-pointer active:scale-[0.99] ${
                             isItemSelected
-                              ? 'bg-[#0052FF] border-[#0052FF] text-white shadow-sm'
+                              ? 'bg-[#2D8EDE] border-[#2D8EDE] text-white shadow-sm'
                               : 'bg-white hover:bg-blue-50/60 border-gray-200 text-gray-800 hover:border-blue-300'
                           }`}
                         >
                           <span className="capitalize">{item}</span>
                           {isItemSelected ? (
-                            <div className="w-5 h-5 rounded-full bg-white text-[#0052FF] flex items-center justify-center shrink-0 shadow-xs">
+                            <div className="w-5 h-5 rounded-full bg-white text-[#2D8EDE] flex items-center justify-center shrink-0 shadow-xs">
                               <Check className="w-3.5 h-3.5 stroke-[3]" />
                             </div>
                           ) : (
-                            <div className="w-4 h-4 rounded-full border-2 border-gray-300 group-hover:border-[#0052FF] shrink-0" />
+                            <div className="w-4 h-4 rounded-full border-2 border-gray-300 group-hover:border-[#2D8EDE] shrink-0" />
                           )}
                         </button>
                       );
@@ -250,19 +250,19 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
           <button
             type="button"
             onClick={handleExecuteSearch}
-            className={`w-full max-w-[360px] py-3.5 px-6 active:scale-95 text-xs sm:text-sm font-extrabold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer ${
+            className={`w-full max-w-[360px] py-3.5 px-6 active:scale-95 text-xs sm:text-sm font-extrabold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer ${
               fromSell
-                ? 'bg-[#0052FF] hover:bg-blue-700 text-white'
+                ? 'bg-[#2D8EDE] hover:bg-[#2579BE] text-white'
                 : selectedItems.length > 0
-                ? 'bg-[#0052FF] hover:bg-blue-700 text-white'
-                : 'bg-white hover:bg-gray-50 border-2 border-[#0052FF] text-gray-900'
+                ? 'bg-[#2D8EDE] hover:bg-[#2579BE] text-white'
+                : 'bg-white hover:bg-gray-50 border-2 border-[#2D8EDE] text-gray-900'
             }`}
           >
             <div
               className={`w-6 h-6 rounded-lg flex items-center justify-center shadow-xs shrink-0 ${
                 fromSell || selectedItems.length > 0
-                  ? 'bg-white text-[#0052FF]'
-                  : 'bg-[#0052FF] text-white'
+                  ? 'bg-white text-[#2D8EDE]'
+                  : 'bg-[#2D8EDE] text-white'
               }`}
             >
               {fromSell ? (

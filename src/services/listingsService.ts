@@ -428,6 +428,13 @@ export async function fetchAllListings(forceRefresh: boolean = false): Promise<F
   const deleted = getDeletedListingIds();
   const now = Date.now();
 
+  // 0. Offline fast-path: Don't call any API if offline, return local cached listings immediately
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const localListings = getLocalListings();
+    const valid = localListings.filter((l) => isListingRowApproved(l) && !MOCK_ITEM_IDS.has(l.id) && !deleted.has(l.id));
+    return valid;
+  }
+
   // 1. Check in-memory 5-minute cache
   if (!forceRefresh && inMemoryListingsCache && now - inMemoryListingsCache.timestamp < CACHE_TTL_MS) {
     return inMemoryListingsCache.data.filter((l) => !deleted.has(l.id));
@@ -509,6 +516,12 @@ export async function fetchAllListings(forceRefresh: boolean = false): Promise<F
 export async function fetchUserListings(userId: string): Promise<FurnitureItem[]> {
   if (!userId) return [];
   const deleted = getDeletedListingIds();
+
+  // Offline fast-path
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return getLocalUserListings(userId).filter((l) => !deleted.has(l.id));
+  }
+
   try {
     let rows: SupabaseListingRow[] | null = null;
 
@@ -550,6 +563,13 @@ export async function fetchUserListings(userId: string): Promise<FurnitureItem[]
 // Fetch a single listing by ID with full fields including additional_images
 export async function fetchListingById(itemId: string): Promise<FurnitureItem | null> {
   if (!itemId) return null;
+
+  // Offline fast-path
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    const local = getLocalListings().find((l) => l.id === itemId);
+    if (local) return local;
+  }
+
   try {
     const { data, error } = await supabase
       .from('listings')

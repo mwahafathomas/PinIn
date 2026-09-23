@@ -113,7 +113,7 @@ export const LocationPage: React.FC<LocationPageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -121,7 +121,7 @@ export const LocationPage: React.FC<LocationPageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -140,9 +140,9 @@ export const LocationPage: React.FC<LocationPageProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search Gauteng areas (e.g. Sandton, Midrand, Pretoria)..."
               aria-label="Search location"
-              className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-sm font-semibold pl-11 pr-10 py-3 rounded-2xl border-2 border-gray-300 focus:border-[#0052FF] shadow-xs focus:outline-none transition-all"
+              className="w-full bg-white text-gray-900 placeholder:text-gray-400 text-sm font-semibold pl-11 pr-10 py-3 rounded-2xl border-2 border-gray-300 focus:border-[#2D8EDE] shadow-xs focus:outline-none transition-all"
             />
-            <div className="absolute left-3.5 pointer-events-none text-[#0052FF]">
+            <div className="absolute left-3.5 pointer-events-none text-[#2D8EDE]">
               <Search className="w-5 h-5 stroke-[2.5]" />
             </div>
 
@@ -169,7 +169,7 @@ export const LocationPage: React.FC<LocationPageProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedLocations([])}
-                className="text-[11px] font-semibold text-[#0052FF] hover:underline cursor-pointer"
+                className="text-[11px] font-semibold text-[#2D8EDE] hover:underline cursor-pointer"
               >
                 Clear all
               </button>
@@ -178,9 +178,9 @@ export const LocationPage: React.FC<LocationPageProps> = ({
               {selectedLocations.map((loc) => (
                 <span
                   key={loc}
-                  className="inline-flex items-center gap-1 bg-white text-[#0052FF] text-xs font-bold px-2.5 py-1 rounded-lg border border-blue-200 shadow-2xs"
+                  className="inline-flex items-center gap-1 bg-white text-[#2D8EDE] text-xs font-bold px-2.5 py-1 rounded-lg border border-blue-200 shadow-2xs"
                 >
-                  <MapPin className="w-3 h-3 text-[#0052FF]" />
+                  <MapPin className="w-3 h-3 text-[#2D8EDE]" />
                   <span className="truncate max-w-[150px]">{loc.replace(' (Gauteng)', '')}</span>
                   <button
                     type="button"
@@ -224,14 +224,14 @@ export const LocationPage: React.FC<LocationPageProps> = ({
                     onClick={() => handleToggleLocation(loc)}
                     className={`w-full py-3 px-4 text-left flex items-center justify-between transition-colors cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-50/90 text-[#0052FF] font-bold'
+                        ? 'bg-blue-50/90 text-[#2D8EDE] font-bold'
                         : 'hover:bg-gray-50 text-gray-800 font-medium'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <MapPin
                         className={`w-4 h-4 shrink-0 ${
-                          isSelected ? 'text-[#0052FF]' : 'text-gray-400'
+                          isSelected ? 'text-[#2D8EDE]' : 'text-gray-400'
                         }`}
                       />
                       <span className="text-xs sm:text-sm truncate">
@@ -239,7 +239,7 @@ export const LocationPage: React.FC<LocationPageProps> = ({
                         <span
                           className={
                             isSelected
-                              ? 'text-[#0052FF] font-extrabold'
+                              ? 'text-[#2D8EDE] font-extrabold'
                               : 'text-gray-400 font-normal'
                           }
                         >
@@ -251,7 +251,7 @@ export const LocationPage: React.FC<LocationPageProps> = ({
                     <div
                       className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ml-2 transition-all ${
                         isSelected
-                          ? 'bg-[#0052FF] border-[#0052FF] text-white shadow-2xs'
+                          ? 'bg-[#2D8EDE] border-[#2D8EDE] text-white shadow-2xs'
                           : 'border-gray-300 bg-white'
                       }`}
                     >
@@ -279,7 +279,7 @@ export const LocationPage: React.FC<LocationPageProps> = ({
           <button
             type="button"
             onClick={handleContinue}
-            className="w-full max-w-[280px] py-3 px-6 bg-[#0052FF] hover:bg-blue-700 active:scale-95 text-white font-extrabold text-sm sm:text-base rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+            className="w-full max-w-[280px] py-3 px-6 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 text-white font-extrabold text-sm sm:text-base rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <span>
               {fromSell

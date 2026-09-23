@@ -50,8 +50,12 @@ export interface SupabaseNotificationRow {
 }
 
 export function getStoredNotifications(userId?: string): NotificationItem[] {
+  // Unauthenticated guests should not see any notifications
+  if (!userId || userId === 'guest') {
+    return [];
+  }
   try {
-    const key = `${NOTIFICATIONS_STORAGE_PREFIX}${userId || 'guest'}`;
+    const key = `${NOTIFICATIONS_STORAGE_PREFIX}${userId}`;
     const raw = localStorage.getItem(key);
     const readIds = getReadNotificationIds();
     if (raw) {
@@ -74,8 +78,11 @@ export function getStoredNotifications(userId?: string): NotificationItem[] {
 }
 
 export function saveStoredNotifications(userId: string | undefined, notifications: NotificationItem[]) {
+  if (!userId || userId === 'guest') {
+    return;
+  }
   try {
-    const key = `${NOTIFICATIONS_STORAGE_PREFIX}${userId || 'guest'}`;
+    const key = `${NOTIFICATIONS_STORAGE_PREFIX}${userId}`;
     localStorage.setItem(key, JSON.stringify(notifications));
 
     // Also persist any read IDs so they are never lost across remote syncs
@@ -179,18 +186,18 @@ async function withTimeout<T>(promise: PromiseLike<T>, ms: number, fallback: T):
  * Returns alerts targeted to this user or broadcast alerts (user_id IS NULL / 'all' / 'broadcast')
  */
 export async function fetchSupabaseNotifications(userId?: string): Promise<NotificationItem[]> {
+  // If no user is logged in, guest has no notifications
+  if (!userId || userId === 'guest') {
+    return [];
+  }
+
   try {
-    let query = supabase
+    const query = supabase
       .from('notifications')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(100);
-
-    if (userId) {
-      query = query.or(`user_id.eq.${userId},user_id.is.null,user_id.eq.all,user_id.eq.broadcast`);
-    } else {
-      query = query.or(`user_id.is.null,user_id.eq.all,user_id.eq.broadcast`);
-    }
 
     const { data, error } = await withTimeout(query, 7000, { data: null, error: null } as any);
 

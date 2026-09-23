@@ -4,6 +4,7 @@ import {
   Store,
   MessageSquare,
   Bell,
+  User as UserIcon,
   CheckCheck,
   Clock,
   CheckCircle2,
@@ -107,7 +108,7 @@ const SwipeableNotificationItem: React.FC<NotificationCardProps> = ({
 
         {/* Unread indicator dot */}
         {!notif.read && (
-          <span className="w-2.5 h-2.5 rounded-full bg-[#0052FF] shrink-0 mt-1.5 pointer-events-none" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#2D8EDE] shrink-0 mt-1.5 pointer-events-none" />
         )}
       </motion.div>
     </div>
@@ -122,8 +123,10 @@ interface NotificationsPageProps {
   onDeleteNotification?: (id: string) => void;
   onOpenSearch?: () => void;
   onOpenMessages?: () => void;
+  onOpenAccount?: () => void;
   unreadMessagesCount?: number;
   unreadNotificationsCount?: number;
+  isLoggedIn?: boolean;
 }
 
 export const NotificationsPage: React.FC<NotificationsPageProps> = ({
@@ -134,15 +137,17 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
   onDeleteNotification,
   onOpenSearch,
   onOpenMessages,
+  onOpenAccount,
   unreadMessagesCount = 0,
   unreadNotificationsCount = 0,
+  isLoggedIn = false,
 }) => {
   // Automatically mark all notifications as read when opening this page if any are unread
   useEffect(() => {
-    if (isOpen && notifications.some((n) => !n.read)) {
+    if (isOpen && isLoggedIn && notifications.some((n) => !n.read)) {
       onMarkAllRead();
     }
-  }, [isOpen, notifications, onMarkAllRead]);
+  }, [isOpen, isLoggedIn, notifications, onMarkAllRead]);
 
   if (!isOpen) return null;
 
@@ -150,9 +155,11 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
   // 1. Welcome to PinIn
   // 2. Listing under review (listing_submitted)
   // 3. Listing approved or rejected (listing_approved / listing_rejected)
-  const filteredNotifications = notifications.filter((n) =>
-    ['system', 'listing_submitted', 'listing_approved', 'listing_rejected'].includes(n.type)
-  );
+  const filteredNotifications = isLoggedIn
+    ? notifications.filter((n) =>
+        ['system', 'listing_submitted', 'listing_approved', 'listing_rejected'].includes(n.type)
+      )
+    : [];
 
   const getIcon = (type: NotificationItem['type']) => {
     switch (type) {
@@ -164,7 +171,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
         return <Clock className="w-5 h-5 text-amber-600" />;
       case 'system':
       default:
-        return <Info className="w-5 h-5 text-[#0052FF]" />;
+        return <Info className="w-5 h-5 text-[#2D8EDE]" />;
     }
   };
 
@@ -199,7 +206,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -213,7 +220,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
         {/* Title Bar */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-blue-50 text-[#0052FF] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
               <Bell className="w-4 h-4" />
             </div>
             <h1 className="text-base font-black text-gray-900 tracking-tight">
@@ -223,7 +230,30 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
         </div>
 
         {/* Notifications List */}
-        {filteredNotifications.length === 0 ? (
+        {!isLoggedIn ? (
+          <div className="bg-white rounded-3xl border-2 border-gray-200 p-8 shadow-xs text-center space-y-4 my-auto">
+            <div className="w-16 h-16 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
+              <Bell className="w-8 h-8 stroke-[2.2]" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-base font-black text-gray-900">
+                Sign in to view notifications
+              </h2>
+              <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
+                Log in to your PinIn account to view your private activity, messages, and listing updates.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenAccount) onOpenAccount();
+              }}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+            >
+              Sign In
+            </button>
+          </div>
+        ) : filteredNotifications.length === 0 ? (
           <div className="bg-white rounded-3xl border-2 border-gray-200 p-8 shadow-xs text-center space-y-3 my-auto">
             <div className="w-16 h-16 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto">
               <CheckCheck className="w-8 h-8 opacity-40" />
@@ -262,7 +292,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
 
       {/* Bottom Navigation Dock */}
       <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
-        <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-3 items-center">
+        <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-4 items-center">
           {/* Marketplace Icon at bottom left */}
           <button
             type="button"
@@ -270,18 +300,18 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
               onClose();
               if (onOpenSearch) onOpenSearch();
             }}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#0052FF] active:scale-95 transition-all group relative cursor-pointer"
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
             aria-label="Marketplace"
           >
             <div className="relative flex items-center justify-center">
-              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#0052FF]" />
+              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#0052FF]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
               Marketplace
             </span>
           </button>
 
-          {/* Messages Icon in middle */}
+          {/* Messages Icon */}
           <button
             type="button"
             onClick={() => {
@@ -291,15 +321,32 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
             aria-label="Messages"
           >
             <div className="relative flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 stroke-[2] text-[#0052FF] fill-[#0052FF] transition-transform group-hover:scale-105" />
+              <MessageSquare className="w-5 h-5 stroke-[2] text-gray-600 group-hover:text-[#2D8EDE] transition-transform group-hover:scale-105" />
               {unreadMessagesCount > 0 && (
                 <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {unreadMessagesCount}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#0052FF]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
               messages
+            </span>
+          </button>
+
+          {/* Profile Icon between Messages and Notifications */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenAccount) onOpenAccount();
+            }}
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Profile"
+          >
+            <div className="relative flex items-center justify-center">
+              <UserIcon className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
+            </div>
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+              Profile
             </span>
           </button>
 
@@ -310,14 +357,14 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
             aria-label="Notifications active"
           >
             <div className="relative flex items-center justify-center">
-              <Bell className="w-5 h-5 stroke-[2] text-[#0052FF] fill-[#0052FF] transition-transform group-hover:scale-105" />
+              <Bell className="w-5 h-5 stroke-[2] text-[#2D8EDE] transition-transform group-hover:scale-105" />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1.5 -right-2.5 bg-[#0052FF] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                <span className="absolute -top-1.5 -right-2.5 bg-[#2D8EDE] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {unreadNotificationsCount}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-[#0052FF]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">
               Notifications
             </span>
           </button>

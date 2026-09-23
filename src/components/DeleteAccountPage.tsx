@@ -61,7 +61,7 @@ export const DeleteAccountPage: React.FC<DeleteAccountPageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -69,7 +69,7 @@ export const DeleteAccountPage: React.FC<DeleteAccountPageProps> = ({
           {/* 2: App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 

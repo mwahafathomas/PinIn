@@ -43,7 +43,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="search furniture"
             aria-label="Search furniture"
-            className="w-full bg-white text-gray-900 placeholder:text-gray-500 text-sm md:text-base font-medium pl-10 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300/80 shadow-md focus:outline-none focus:ring-2 focus:ring-[#0052FF] focus:border-transparent transition-all cursor-pointer"
+            className="w-full bg-white text-gray-900 placeholder:text-gray-500 text-sm md:text-base font-medium pl-10 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300/80 shadow-md focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:border-transparent transition-all cursor-pointer"
           />
 
           {searchQuery && (

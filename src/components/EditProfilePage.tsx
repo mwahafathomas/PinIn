@@ -127,7 +127,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -135,7 +135,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -170,7 +170,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 aria-label="Upload new photo"
-                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#0052FF] hover:bg-blue-700 text-white flex items-center justify-center shadow-md border-2 border-white transition-all active:scale-90 cursor-pointer"
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#2D8EDE] hover:bg-[#2579BE] text-white flex items-center justify-center shadow-md border-2 border-white transition-all active:scale-90 cursor-pointer"
               >
                 <Camera className="w-4 h-4" />
               </button>
@@ -180,7 +180,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="text-xs font-bold text-[#0052FF] hover:underline cursor-pointer"
+                className="text-xs font-bold text-[#2D8EDE] hover:underline cursor-pointer"
               >
                 {hasCustomPhoto ? 'Change Photo' : 'Upload Photo'}
               </button>
@@ -220,7 +220,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="First name"
-                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-semibold pl-9 pr-3 py-2.5 rounded-xl outline-none focus:border-[#0052FF] focus:bg-white transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-semibold pl-9 pr-3 py-2.5 rounded-xl outline-none focus:border-[#2D8EDE] focus:bg-white transition-all"
                   />
                 </div>
               </div>
@@ -238,7 +238,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
                   value={surname}
                   onChange={(e) => setSurname(e.target.value)}
                   placeholder="Surname"
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-semibold px-3 py-2.5 rounded-xl outline-none focus:border-[#0052FF] focus:bg-white transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-semibold px-3 py-2.5 rounded-xl outline-none focus:border-[#2D8EDE] focus:bg-white transition-all"
                 />
               </div>
             </div>
@@ -260,7 +260,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="e.g. Sandton (Gauteng)"
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-semibold pl-9 pr-3 py-2.5 rounded-xl outline-none focus:border-[#0052FF] focus:bg-white transition-all"
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-semibold pl-9 pr-3 py-2.5 rounded-xl outline-none focus:border-[#2D8EDE] focus:bg-white transition-all"
                 />
               </div>
               <p className="text-[10px] text-gray-400 pl-1">
@@ -308,7 +308,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
                 value={bio}
                 onChange={(e) => setBio(e.target.value.slice(0, 50))}
                 placeholder="Short bio (e.g. Vintage furniture collector)..."
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-semibold p-3 rounded-xl outline-none focus:border-[#0052FF] focus:bg-white resize-none transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-semibold p-3 rounded-xl outline-none focus:border-[#2D8EDE] focus:bg-white resize-none transition-all"
               />
             </div>
           </div>
@@ -317,7 +317,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
           <div className="pt-2 space-y-2.5">
             <button
               type="submit"
-              className="w-full py-3.5 px-6 bg-[#0052FF] hover:bg-blue-700 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-lg transition-all flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="w-full py-3.5 px-6 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-lg transition-all flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
               Save Changes
             </button>

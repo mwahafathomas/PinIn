@@ -61,7 +61,7 @@ export const ContactUsModal: React.FC<ContactUsModalProps> = ({
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/60">
           <div className="flex items-center gap-2">
-            <Headphones className="w-5 h-5 text-[#0052FF]" />
+            <Headphones className="w-5 h-5 text-[#2D8EDE]" />
             <h2 className="font-extrabold text-base text-gray-900">Contact PinIn Support</h2>
           </div>
           <button
@@ -92,7 +92,7 @@ export const ContactUsModal: React.FC<ContactUsModalProps> = ({
               <select
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="w-full text-xs px-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0052FF] bg-white"
+                className="w-full text-xs px-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white"
               >
                 <option value="support">Help with a Listing / Seller</option>
                 <option value="safety">Trust & Safety Report</option>
@@ -112,7 +112,7 @@ export const ContactUsModal: React.FC<ContactUsModalProps> = ({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your Name"
-                  className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0052FF]"
+                  className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2D8EDE]"
                 />
               </div>
               <div>
@@ -125,7 +125,7 @@ export const ContactUsModal: React.FC<ContactUsModalProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@email.com"
-                  className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0052FF]"
+                  className="w-full text-xs px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2D8EDE]"
                 />
               </div>
             </div>
@@ -140,7 +140,7 @@ export const ContactUsModal: React.FC<ContactUsModalProps> = ({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="How can we assist you with PinIn?"
-                className="w-full text-xs p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0052FF]"
+                className="w-full text-xs p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2D8EDE]"
               />
             </div>
 
@@ -152,7 +152,7 @@ export const ContactUsModal: React.FC<ContactUsModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 bg-[#0052FF] hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-60"
+              className="w-full py-2.5 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-60"
             >
               <Send className={`w-3.5 h-3.5 ${isSubmitting ? 'animate-pulse' : ''}`} />
               <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>

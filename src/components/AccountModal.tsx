@@ -22,7 +22,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/60">
           <div className="flex items-center gap-2">
-            <User className="w-5 h-5 text-[#0052FF]" />
+            <User className="w-5 h-5 text-[#2D8EDE]" />
             <h2 className="font-extrabold text-base text-gray-900">PinIn Account</h2>
           </div>
           <button
@@ -41,13 +41,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             <img
               src={getOptimizedImageUrl(user.avatar, { width: 200, quality: 75, format: 'webp' })}
               alt={user.name}
-              className="w-16 h-16 rounded-full object-cover border-2 border-[#0052FF]"
+              className="w-16 h-16 rounded-full object-cover border-2 border-[#2D8EDE]"
               loading="lazy"
               decoding="async"
             />
             <div>
               <h3 className="font-extrabold text-lg text-gray-900">{user.name}</h3>
-              <p className="text-xs text-[#0052FF] font-semibold flex items-center gap-1 mt-0.5">
+              <p className="text-xs text-[#2D8EDE] font-semibold flex items-center gap-1 mt-0.5">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 Verified Furniture Seller & Buyer
               </p>

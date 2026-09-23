@@ -92,7 +92,7 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
 
         {/* 14: Price Blue Badge with Rand 'R' on top-left of photo */}
         <div className="absolute top-2 left-2 z-10 pointer-events-none">
-          <div className="bg-[#0052FF] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1">
+          <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1">
             <span>R{item.price}</span>
           </div>
         </div>
@@ -126,13 +126,13 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
             onToggleSave(item.id, e);
           }}
           aria-label={isSaved ? 'Remove from saved' : 'Save item'}
-          className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-gray-700 hover:text-[#0052FF] active:scale-90 transition-all shadow-xs cursor-pointer"
+          className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-gray-700 hover:text-[#2D8EDE] active:scale-90 transition-all shadow-xs cursor-pointer"
         >
           <Bookmark
             className={`w-4 h-4 ${
               isSaved
-                ? 'fill-[#0052FF] text-[#0052FF]'
-                : 'text-gray-700 hover:text-[#0052FF]'
+                ? 'fill-[#2D8EDE] text-[#2D8EDE]'
+                : 'text-gray-700 hover:text-[#2D8EDE]'
             }`}
           />
         </button>
@@ -189,11 +189,11 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
         {/* Location & Distance */}
         <div className="mt-0.5 flex items-center justify-between gap-1 text-gray-500 text-[11px]">
           <div className="flex items-center gap-1 min-w-0 truncate">
-            <MapPin className="w-3 h-3 shrink-0 text-[#0052FF]" />
+            <MapPin className="w-3 h-3 shrink-0 text-[#2D8EDE]" />
             <span className="truncate">{item.location}</span>
           </div>
           {showDistance && item.distanceText && (
-            <span className="shrink-0 font-bold text-[#0052FF] bg-blue-50 px-1.5 py-0.2 rounded text-[10px]">
+            <span className="shrink-0 font-bold text-[#2D8EDE] bg-blue-50 px-1.5 py-0.2 rounded text-[10px]">
               {item.distanceText}
             </span>
           )}

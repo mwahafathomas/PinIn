@@ -95,16 +95,12 @@ export function rejectAllCookies(): CookieConsentSettings {
   return saveConsent({ analytics: false, personalization: false });
 }
 
-// Check if first-time visitor pop-up should be displayed
+// Check if first-time visitor pop-up should be displayed - ALWAYS FALSE (Cookie popup removed as requested)
 export function shouldShowCookiePopup(): boolean {
-  // Only show on web browser context (Chrome, Google, Safari, etc.), NOT in installed app
-  if (!isWebsiteBrowser()) {
-    return false;
-  }
-
-  const consent = getSavedConsent();
-  // Show only if user hasn't made an explicit choice yet
-  return !consent || !consent.hasChosen;
+  try {
+    localStorage.removeItem(COOKIE_CONSENT_KEY);
+  } catch {}
+  return false;
 }
 
 // Declare global window gtag

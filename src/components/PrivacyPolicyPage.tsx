@@ -9,20 +9,17 @@ import {
   Server,
   Mail,
   CheckCircle2,
-  Cookie,
-  Sliders,
+  Globe,
 } from 'lucide-react';
 
 interface PrivacyPolicyPageProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenCookieSettings?: () => void;
 }
 
 export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({
   isOpen,
   onClose,
-  onOpenCookieSettings,
 }) => {
   if (!isOpen) return null;
 
@@ -138,25 +135,15 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({
           </p>
         </div>
 
-        {/* Section 6: Cookies and Google Analytics */}
+        {/* Section 6: Web Browsing & Security */}
         <div className="bg-white rounded-3xl border-2 border-gray-200 p-5 shadow-xs space-y-3">
           <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
-            <Cookie className="w-4 h-4 text-[#0052FF]" />
-            <span>6. Cookies, Google Analytics & Web Browsing</span>
+            <Globe className="w-4 h-4 text-[#0052FF]" />
+            <span>6. Web Browsing & Security</span>
           </h2>
           <p className="text-xs text-gray-600 leading-relaxed font-medium">
-            When you visit PinIn from web browsers such as Google Chrome, Safari, Edge, or Firefox, we use essential cookies for user security and session management, and optional Google Analytics cookies to track page visits and popular furniture categories. You can customize or withdraw your consent at any time.
+            When you use PinIn, standard session tokens are securely stored locally on your device for user authentication and offline access. No third-party advertising tracking cookies or intrusive tracking pixels are utilized.
           </p>
-          {onOpenCookieSettings && (
-            <button
-              type="button"
-              onClick={onOpenCookieSettings}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-50 text-[#0052FF] font-bold text-xs hover:bg-blue-100 transition-colors border border-blue-200 cursor-pointer"
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Manage Cookie & Analytics Preferences</span>
-            </button>
-          )}
         </div>
 
         {/* Section 7: Contact Us */}

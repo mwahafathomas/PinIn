@@ -279,7 +279,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Go back"
-              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
               <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -288,7 +288,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -301,9 +301,9 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 setIsMenuOpen((prev) => !prev);
               }}
               aria-label="More options"
-              className="p-2 -mr-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="p-2 -mr-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
-              <MoreVertical className="w-5 h-5 stroke-[2.5] text-gray-700 hover:text-[#0052FF]" />
+              <MoreVertical className="w-5 h-5 stroke-[2.5] text-gray-700 hover:text-[#2D8EDE]" />
             </button>
 
             {/* Dropdown Menu */}
@@ -319,9 +319,9 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     await handleNativeShare(item);
                     onShare?.(item);
                   }}
-                  className="w-full px-3.5 py-2.5 text-left text-xs font-bold text-gray-800 hover:bg-blue-50 hover:text-[#0052FF] flex items-center gap-2.5 transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2.5 text-left text-xs font-bold text-gray-800 hover:bg-blue-50 hover:text-[#2D8EDE] flex items-center gap-2.5 transition-colors cursor-pointer"
                 >
-                  <Share className="w-4 h-4 text-[#0052FF]" />
+                  <Share className="w-4 h-4 text-[#2D8EDE]" />
                   <span>Share listing</span>
                 </button>
 
@@ -416,7 +416,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     onClick={() => scrollToImageIndex(idx)}
                     className={`relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-white ${
                       activeImageIndex === idx
-                        ? 'border-[#0052FF] ring-2 ring-blue-200 scale-95'
+                        ? 'border-[#2D8EDE] ring-2 ring-blue-200 scale-95'
                         : 'border-gray-200 hover:border-gray-400 opacity-70 hover:opacity-100'
                     }`}
                   >
@@ -446,7 +446,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2.5">
                 {/* Location */}
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#0052FF] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
                     <MapPin className="w-4 h-4 stroke-[2.5]" />
                   </div>
                   <div>
@@ -461,7 +461,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
                 {/* Category & Condition Badges */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#0052FF] rounded-xl border border-blue-200 text-xs font-black">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#2D8EDE] rounded-xl border border-blue-200 text-xs font-black">
                     <Tag className="w-3.5 h-3.5 stroke-[2.5]" />
                     <span>{item.category}</span>
                   </div>
@@ -476,7 +476,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             {/* Space for Description directly under Category & Location */}
             <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs">
               <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#0052FF]" />
+                <span className="w-2 h-2 rounded-full bg-[#2D8EDE]" />
                 <span>Description</span>
               </h2>
               <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium whitespace-pre-line">
@@ -507,13 +507,13 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   type="button"
                   onClick={(e) => onToggleSave(item.id, e)}
                   aria-label={isSaved ? 'Remove from saved' : 'Save listing'}
-                  className="w-11 h-11 rounded-2xl bg-gray-50 hover:bg-blue-50 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-[#0052FF] active:scale-90 transition-all shrink-0 shadow-xs cursor-pointer"
+                  className="w-11 h-11 rounded-2xl bg-gray-50 hover:bg-blue-50 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-[#2D8EDE] active:scale-90 transition-all shrink-0 shadow-xs cursor-pointer"
                 >
                   <Bookmark
                     className={`w-5 h-5 ${
                       isSaved
-                        ? 'fill-[#0052FF] text-[#0052FF]'
-                        : 'text-gray-700 hover:text-[#0052FF]'
+                        ? 'fill-[#2D8EDE] text-[#2D8EDE]'
+                        : 'text-gray-700 hover:text-[#2D8EDE]'
                     }`}
                   />
                 </button>
@@ -521,7 +521,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
               {/* Price with Rand 'R' */}
               <div className="flex items-center justify-between pt-1">
-                <div className="bg-[#0052FF] text-white text-base sm:text-lg font-black px-4 py-1.5 rounded-xl shadow-xs inline-flex items-center">
+                <div className="bg-[#2D8EDE] text-white text-base sm:text-lg font-black px-4 py-1.5 rounded-xl shadow-xs inline-flex items-center">
                   R{item.price}
                 </div>
 
@@ -544,7 +544,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               {/* If the current user owns this item, sellers cannot message themselves */}
               {isOwnListing ? (
                 <div className="flex-1 bg-blue-50 border border-blue-200 rounded-2xl p-3.5 text-center">
-                  <p className="text-xs sm:text-sm font-bold text-[#0052FF]">
+                  <p className="text-xs sm:text-sm font-bold text-[#2D8EDE]">
                     This is your listing
                   </p>
                   <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
@@ -580,7 +580,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     <button
                       type="submit"
                       disabled={!messageInput.trim()}
-                      className="py-1.5 px-4 bg-[#0052FF] hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-black rounded-xl active:scale-95 transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      className="py-1.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-40 text-white text-xs font-black rounded-xl active:scale-95 transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <span>Send</span>
                       <Send className="w-3.5 h-3.5" />
@@ -610,12 +610,12 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   alt={item.seller.name}
                   loading="lazy"
                   decoding="async"
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-gray-200 shadow-xs group-hover:border-[#0052FF] group-hover:scale-105 transition-all"
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-gray-200 shadow-xs group-hover:border-[#2D8EDE] group-hover:scale-105 transition-all"
                 />
-                <span className="text-xs font-extrabold text-gray-900 line-clamp-1 mt-1 group-hover:text-[#0052FF] transition-colors">
+                <span className="text-xs font-extrabold text-gray-900 line-clamp-1 mt-1 group-hover:text-[#2D8EDE] transition-colors">
                   {item.seller.name}
                 </span>
-                <span className="text-[10px] font-bold text-[#0052FF]">
+                <span className="text-[10px] font-bold text-[#2D8EDE]">
                   {isOwnListing ? 'You' : 'Seller'}
                 </span>
               </button>
@@ -674,7 +674,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 type="checkbox"
                 checked={isUnderstoodChecked}
                 onChange={(e) => setIsUnderstoodChecked(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded text-[#0052FF] focus:ring-[#0052FF] border-gray-300 cursor-pointer"
+                className="mt-0.5 w-4 h-4 rounded text-[#2D8EDE] focus:ring-[#2D8EDE] border-gray-300 cursor-pointer"
               />
               <span className="text-xs font-bold text-gray-800 leading-snug">
                 I understand that PinIn does not handle payments and agree never to pay a deposit before inspecting the item in person.
@@ -693,7 +693,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 type="button"
                 onClick={handleConfirmSendMessage}
                 disabled={!isUnderstoodChecked}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-[#0052FF] hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-extrabold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-extrabold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <span>Send Message</span>
                 <Send className="w-3.5 h-3.5" />
@@ -743,7 +743,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   key={reason}
                   className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
                     reportReason === reason
-                      ? 'border-[#0052FF] bg-blue-50/60 text-gray-900 shadow-2xs'
+                      ? 'border-[#2D8EDE] bg-blue-50/60 text-gray-900 shadow-2xs'
                       : 'border-gray-200 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -753,7 +753,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     value={reason}
                     checked={reportReason === reason}
                     onChange={(e) => setReportReason(e.target.value)}
-                    className="text-[#0052FF] focus:ring-[#0052FF]"
+                    className="text-[#2D8EDE] focus:ring-[#2D8EDE]"
                   />
                   <span className="capitalize">{reason}</span>
                 </label>
@@ -770,7 +770,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     onChange={(e) => setOtherDetails(e.target.value)}
                     placeholder="Provide additional context to help our moderation team..."
                     rows={3}
-                    className="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:border-[#0052FF] focus:ring-1 focus:ring-[#0052FF] outline-none font-medium text-gray-900 placeholder:text-gray-400 resize-none bg-gray-50/50"
+                    className="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:border-[#2D8EDE] focus:ring-1 focus:ring-[#2D8EDE] outline-none font-medium text-gray-900 placeholder:text-gray-400 resize-none bg-gray-50/50"
                   />
                 </div>
               )}

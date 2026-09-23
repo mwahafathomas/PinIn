@@ -35,7 +35,7 @@ export const FurnitureGrid: React.FC<FurnitureGridProps> = ({
           <button
             type="button"
             onClick={onResetFilters}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0052FF] text-white text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all shadow-sm cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2D8EDE] text-white text-sm font-semibold hover:bg-[#2579BE] active:scale-95 transition-all shadow-sm cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
             Reset all filters

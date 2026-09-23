@@ -1,19 +1,16 @@
 import React from 'react';
-import { Cookie, ShieldCheck, Headphones, Heart } from 'lucide-react';
+import { ShieldCheck, Headphones } from 'lucide-react';
 
 interface DesktopFooterProps {
-  onOpenCookieSettings: () => void;
   onOpenPrivacyPolicy: () => void;
   onOpenContactUs: () => void;
 }
 
 /**
- * Footer containing the "Manage Cookie Settings" option.
- * Configured with `hidden sm:block` so that it is removed on mobile preview,
- * and visible only on tablet preview (sm:) and desktop / current screen preview.
+ * Desktop & Tablet Footer containing quick links.
+ * Visible on tablet preview (sm:) and desktop.
  */
 export const DesktopFooter: React.FC<DesktopFooterProps> = ({
-  onOpenCookieSettings,
   onOpenPrivacyPolicy,
   onOpenContactUs,
 }) => {
@@ -26,7 +23,7 @@ export const DesktopFooter: React.FC<DesktopFooterProps> = ({
         {/* Brand info */}
         <div className="flex items-center gap-2.5 sm:gap-3 text-center sm:text-left">
           <span className="font-extrabold text-base sm:text-lg tracking-tight text-gray-900 font-sans">
-            Pin<span className="text-[#0052FF]">In</span>
+            Pin<span className="text-[#2D8EDE]">In</span>
           </span>
           <span className="text-gray-300">|</span>
           <span className="text-gray-500 font-medium text-[11px] sm:text-xs">
@@ -34,19 +31,8 @@ export const DesktopFooter: React.FC<DesktopFooterProps> = ({
           </span>
         </div>
 
-        {/* Footer Navigation Links including Manage Cookies */}
+        {/* Footer Navigation Links */}
         <div className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-6 font-semibold">
-          {/* Manage Cookie Settings Button (Requested) */}
-          <button
-            type="button"
-            onClick={onOpenCookieSettings}
-            id="footer-manage-cookies-btn"
-            className="inline-flex items-center gap-1.5 text-gray-800 hover:text-[#0052FF] bg-gray-100 hover:bg-blue-50 active:bg-blue-100 px-3.5 py-2 rounded-xl border border-gray-200 hover:border-blue-200 transition-all cursor-pointer text-xs font-semibold shadow-xs"
-          >
-            <Cookie className="w-4 h-4 text-[#0052FF]" />
-            <span>Manage Cookie Settings</span>
-          </button>
-
           {/* Privacy Policy */}
           <button
             type="button"
@@ -79,3 +65,4 @@ export const DesktopFooter: React.FC<DesktopFooterProps> = ({
     </footer>
   );
 };
+

@@ -90,6 +90,11 @@ async function withTimeout<T>(promise: PromiseLike<T>, ms: number, fallback: T):
 
 // Fetch all conversations and their messages from Supabase
 export async function fetchAllConversations(): Promise<ChatConversation[]> {
+  // Offline fast-path: Don't call API if offline, return local cache
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return getLocalConversations();
+  }
+
   try {
     // 1. Fetch conversations with timeout
     const convPromise = supabase

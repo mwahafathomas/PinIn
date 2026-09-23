@@ -162,7 +162,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
             <button
               type="button"
               onClick={() => setToast(null)}
-              className="mt-2 w-full py-2.5 px-4 rounded-xl bg-[#0052FF] text-white font-bold text-xs hover:bg-blue-700 transition-colors shadow-sm"
+              className="mt-2 w-full py-2.5 px-4 rounded-xl bg-[#2D8EDE] text-white font-bold text-xs hover:bg-[#2579BE] transition-colors shadow-sm"
             >
               OK
             </button>
@@ -178,7 +178,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -186,7 +186,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -198,7 +198,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
       <main className="flex-1 w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto pb-16 flex flex-col px-4 md:px-6 lg:px-8 pt-4 space-y-4 text-left">
         {/* Banner */}
         <div className="bg-white rounded-3xl border-2 border-gray-200 p-5 shadow-xs flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0052FF] flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
             <Headphones className="w-6 h-6 stroke-[2.5]" />
           </div>
           <div>
@@ -214,7 +214,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
         {/* Quick Highlights */}
         <div className="grid grid-cols-2 gap-2.5">
           <div className="bg-white rounded-2xl border-2 border-gray-200 p-3 shadow-2xs flex items-center gap-2.5">
-            <Clock className="w-4 h-4 text-[#0052FF] shrink-0" />
+            <Clock className="w-4 h-4 text-[#2D8EDE] shrink-0" />
             <div>
               <p className="text-[10px] font-black text-gray-400 uppercase">Response Time</p>
               <p className="text-xs font-bold text-gray-900">&lt; 24 Hours</p>
@@ -259,7 +259,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
             <select
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              className="w-full text-xs font-semibold px-3.5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#0052FF] bg-gray-50"
+              className="w-full text-xs font-semibold px-3.5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#2D8EDE] bg-gray-50"
             >
               <option value="support">Help with a Furniture Listing or Pickup</option>
               <option value="safety">Trust & Safety / Report a User</option>
@@ -280,7 +280,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Sarah Jenkins"
-                className="w-full text-xs font-semibold px-3.5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#0052FF] bg-gray-50"
+                className="w-full text-xs font-semibold px-3.5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#2D8EDE] bg-gray-50"
               />
             </div>
 
@@ -294,7 +294,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
-                className="w-full text-xs font-semibold px-3.5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#0052FF] bg-gray-50"
+                className="w-full text-xs font-semibold px-3.5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#2D8EDE] bg-gray-50"
               />
             </div>
           </div>
@@ -309,7 +309,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Brief summary of your inquiry..."
-              className="w-full text-xs font-semibold px-3.5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#0052FF] bg-gray-50"
+              className="w-full text-xs font-semibold px-3.5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#2D8EDE] bg-gray-50"
             />
           </div>
 
@@ -323,19 +323,19 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Please describe how we can assist you..."
-              className="w-full text-xs font-semibold p-3.5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#0052FF] bg-gray-50 resize-none"
+              className="w-full text-xs font-semibold p-3.5 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#2D8EDE] bg-gray-50 resize-none"
             />
           </div>
 
           <div className="p-3 bg-blue-50 border border-blue-100 rounded-2xl flex items-center gap-2.5 text-xs text-gray-600 font-medium">
-            <Mail className="w-4 h-4 text-[#0052FF] shrink-0" />
+            <Mail className="w-4 h-4 text-[#2D8EDE] shrink-0" />
             <span>Direct support: <strong>support@pinin.co.za</strong></span>
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3.5 px-4 bg-[#0052FF] hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 text-white font-extrabold text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             <Send className={`w-4 h-4 ${isSubmitting ? 'animate-pulse' : ''}`} />
             <span>{isSubmitting ? 'Sending Message...' : 'Send Message'}</span>

@@ -138,7 +138,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Go back"
-              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
               <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -147,7 +147,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -161,11 +161,11 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
         <div className="mb-4">
           <div className="flex items-center justify-between">
             <h1 className="text-sm md:text-base font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#0052FF]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#2D8EDE]" />
               <span>Filters</span>
             </h1>
             {appliedCount > 0 && (
-              <span className="text-[11px] md:text-xs font-bold bg-blue-100 text-[#0052FF] px-2.5 py-0.5 rounded-full">
+              <span className="text-[11px] md:text-xs font-bold bg-blue-100 text-[#2D8EDE] px-2.5 py-0.5 rounded-full">
                 {appliedCount} active
               </span>
             )}
@@ -176,7 +176,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
         <form onSubmit={handleSearchSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Price Blue Bar with 100 Increment/Decrement buttons */}
-            <div className="bg-[#0052FF] rounded-2xl px-4 py-3 shadow-md flex flex-col justify-center text-white">
+            <div className="bg-[#2D8EDE] rounded-2xl px-4 py-3 shadow-md flex flex-col justify-center text-white">
               <div className="flex items-center justify-between mb-1">
                 <label
                   htmlFor="filter-price"
@@ -224,7 +224,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
             <button
               type="button"
               onClick={onOpenCategoriesPage}
-              className="w-full bg-[#0052FF] hover:bg-blue-700 active:scale-[0.99] rounded-2xl px-4 py-3 shadow-md flex items-center justify-between text-white transition-all text-left group cursor-pointer"
+              className="w-full bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-[0.99] rounded-2xl px-4 py-3 shadow-md flex items-center justify-between text-white transition-all text-left group cursor-pointer"
             >
               <div>
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-100 block mb-0.5">
@@ -245,7 +245,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
             </button>
 
             {/* Condition Blue Bar */}
-            <div className="bg-[#0052FF] rounded-2xl px-4 py-3 shadow-md flex flex-col justify-center text-white">
+            <div className="bg-[#2D8EDE] rounded-2xl px-4 py-3 shadow-md flex flex-col justify-center text-white">
               <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-100 mb-1.5">
                 Condition (New / Used)
               </span>
@@ -257,7 +257,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
                     onClick={() => setConditionType(type)}
                     className={`py-1.5 text-xs font-extrabold rounded-lg transition-all text-center cursor-pointer ${
                       conditionType === type
-                        ? 'bg-white text-[#0052FF] shadow-sm'
+                        ? 'bg-white text-[#2D8EDE] shadow-sm'
                         : 'text-blue-100 hover:text-white'
                     }`}
                   >
@@ -271,7 +271,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
             <button
               type="button"
               onClick={onOpenLocationPage}
-              className="w-full bg-[#0052FF] hover:bg-blue-700 active:scale-[0.99] rounded-2xl px-4 py-3 shadow-md flex items-center justify-between text-white transition-all text-left group cursor-pointer"
+              className="w-full bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-[0.99] rounded-2xl px-4 py-3 shadow-md flex items-center justify-between text-white transition-all text-left group cursor-pointer"
             >
               <div>
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-100 block mb-0.5">
@@ -296,13 +296,13 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
             <button
               type="button"
               onClick={handleClearFilters}
-              className="w-full bg-[#0052FF]/90 hover:bg-[#0052FF] active:scale-[0.99] rounded-2xl px-4 py-3 shadow-md flex items-center justify-between text-white transition-all text-left border border-white/20 cursor-pointer"
+              className="w-full bg-[#2D8EDE]/90 hover:bg-[#2D8EDE] active:scale-[0.99] rounded-2xl px-4 py-3 shadow-md flex items-center justify-between text-white transition-all text-left border border-white/20 cursor-pointer"
             >
               <div className="flex items-center gap-2">
                 <RotateCcw className="w-4 h-4" />
                 <span className="text-sm font-extrabold">Clear Filters</span>
               </div>
-              <span className="text-xs font-black bg-white text-[#0052FF] px-2.5 py-1 rounded-full shadow-xs">
+              <span className="text-xs font-black bg-white text-[#2D8EDE] px-2.5 py-1 rounded-full shadow-xs">
                 {appliedCount} Applied
               </span>
             </button>
@@ -310,7 +310,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
             {/* Search Button */}
             <button
               type="submit"
-              className="w-full py-3.5 px-4 bg-[#0052FF] hover:bg-blue-700 active:scale-[0.99] rounded-2xl shadow-lg flex items-center justify-center gap-2 text-white font-black text-sm sm:text-base tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-[0.99] rounded-2xl shadow-lg flex items-center justify-center gap-2 text-white font-black text-sm sm:text-base tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
               <Search className="w-4 h-4 stroke-[3]" />
               <span>Search</span>

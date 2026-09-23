@@ -45,12 +45,17 @@ interface MessagesPageProps {
   onOpenSearchPage?: () => void;
   onOpenHome?: () => void;
   onOpenSearch?: () => void;
+  onOpenAccount?: () => void;
   unreadMessagesCount?: number;
   unreadNotificationsCount?: number;
   onClearBadgeCount?: () => void;
   onOpenMenu?: () => void;
   onOpenUserProfile?: (userId: string, initialData?: { id?: string; name?: string; surname?: string; avatar?: string; location?: string; bio?: string }) => void;
 }
+
+// Persistent module cache for partner avatars to prevent reload/resume re-renders & layout jumps
+const partnerAvatarCache: Record<string, string> = {};
+const pendingAvatarFetches = new Set<string>();
 
 export const MessagesPage: React.FC<MessagesPageProps> = ({
   isOpen,
@@ -69,23 +74,18 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   onOpenSearchPage,
   onOpenHome,
   onOpenSearch,
+  onOpenAccount,
   unreadMessagesCount = 0,
   unreadNotificationsCount = 0,
   onClearBadgeCount,
   onOpenMenu,
   onOpenUserProfile,
 }) => {
-  const [activeTab, setActiveTab] = useState<'all' | 'chats' | 'communities'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'communities'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [profilePictures, setProfilePictures] = useState<Record<string, string>>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Clear badge count on opening Messages page
-  useEffect(() => {
-    if (isOpen && onClearBadgeCount) {
-      onClearBadgeCount();
-    }
-  }, [isOpen, onClearBadgeCount]);
+  // Badge count is cleared when navigating or clicking tab, eliminating on-focus setState jumps
 
   const searchedUsers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -103,6 +103,11 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
   // Only display conversations that the user has actively texted in or received messages in
   const activeConversations = useMemo(() => {
+    // When user has not signed in, do not show conversations of other users
+    if (!user || !user.isLoggedIn || !user.id || user.id === 'guest') {
+      return [];
+    }
+
     return conversations.filter((c) => {
       if (
         c.sellerName?.toLowerCase().includes('marcus') ||
@@ -118,40 +123,37 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
       if (!hasMessages) return false;
 
-      // When user is logged in, show conversations relevant to this user
-      if (user && user.isLoggedIn && user.id) {
-        const isBuyer =
-          c.buyerId === user.id ||
-          (user.name && c.buyerName && c.buyerName.trim().toLowerCase() === user.name.trim().toLowerCase());
-        const isSeller =
-          c.sellerId === user.id ||
-          (user.name && c.sellerName && c.sellerName.trim().toLowerCase() === user.name.trim().toLowerCase());
+      const isBuyer =
+        c.buyerId === user.id ||
+        (user.name && c.buyerName && c.buyerName.trim().toLowerCase() === user.name.trim().toLowerCase());
+      const isSeller =
+        c.sellerId === user.id ||
+        (user.name && c.sellerName && c.sellerName.trim().toLowerCase() === user.name.trim().toLowerCase());
 
-        if (c.buyerId || c.sellerId || c.buyerName) {
-          return isBuyer || isSeller;
-        }
-      }
-
-      return true;
+      return isBuyer || isSeller;
     });
   }, [conversations, user]);
 
-  // Fetch real profile pictures for conversation partners from Supabase profiles
+  // Pre-fetch partner avatars quietly in background without triggering component re-render loops or screen jumps
   useEffect(() => {
     activeConversations.forEach((c) => {
       const isCurrentUserSeller =
         (c.sellerId && c.sellerId === user.id) ||
         (user.name && c.sellerName && c.sellerName.trim().toLowerCase() === user.name.trim().toLowerCase());
       const partnerId = isCurrentUserSeller ? c.buyerId : c.sellerId;
-      if (partnerId && !profilePictures[partnerId]) {
+      if (partnerId && !partnerAvatarCache[partnerId] && !pendingAvatarFetches.has(partnerId)) {
+        pendingAvatarFetches.add(partnerId);
         fetchUserProfilePicture(partnerId).then((pic) => {
+          pendingAvatarFetches.delete(partnerId);
           if (pic) {
-            setProfilePictures((prev) => ({ ...prev, [partnerId]: pic }));
+            partnerAvatarCache[partnerId] = pic;
           }
+        }).catch(() => {
+          pendingAvatarFetches.delete(partnerId);
         });
       }
     });
-  }, [activeConversations, user.id, user.name]);
+  }, [activeConversations.length, user.id]);
 
   const activeConv = conversations.find((c) => c.id === activeConversationId);
 
@@ -175,6 +177,11 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   }
 
   const handleSelectSearchedUser = (targetUser: AppUserOption) => {
+    if (!user || !user.isLoggedIn || user.id === 'guest') {
+      if (onOpenAccount) onOpenAccount();
+      return;
+    }
+
     const existing = conversations.find(
       (c) =>
         (c.sellerName && c.sellerName.toLowerCase() === targetUser.name.toLowerCase()) ||
@@ -195,7 +202,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans select-none">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans select-none">
       {/* Top Header Bar (White) */}
       <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
@@ -211,7 +218,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                 }
               }}
               aria-label="Open menu"
-              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
               <Menu className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -229,7 +236,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
               className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans cursor-pointer focus-visible:outline-none"
               aria-label="PinIn Home"
             >
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </button>
           </div>
 
@@ -248,10 +255,10 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                 onOpenSearchPage();
               }
             }}
-            className="w-full bg-white text-gray-400 text-sm font-semibold pl-11 pr-4 py-3.5 rounded-2xl border-2 border-gray-300 hover:border-[#0052FF] shadow-xs transition-all relative flex items-center text-left cursor-pointer active:scale-[0.99]"
+            className="w-full bg-white text-gray-400 text-sm font-semibold pl-11 pr-4 py-3.5 rounded-2xl border-2 border-gray-300 hover:border-[#2D8EDE] shadow-xs transition-all relative flex items-center text-left cursor-pointer active:scale-[0.99]"
             aria-label="Search users in app"
           >
-            <div className="absolute left-3.5 text-[#0052FF]">
+            <div className="absolute left-3.5 text-[#2D8EDE]">
               <Search className="w-5 h-5 stroke-[2.5]" />
             </div>
             <span className="text-gray-400 font-medium">Search users...</span>
@@ -262,7 +269,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         {searchQuery.trim() ? (
           <div className="flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-2 px-1 shrink-0">
-              <span className="text-xs font-black text-[#0052FF] uppercase tracking-wider">
+              <span className="text-xs font-black text-[#2D8EDE] uppercase tracking-wider">
                 Search Results ({searchedUsers.length})
               </span>
               <span className="text-[11px] text-gray-500 font-medium">
@@ -290,17 +297,17 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                         <img
                           src={getOptimizedImageUrl(targetUser.avatar || DEFAULT_AVATAR_IMAGE, { width: 150, quality: 75, format: 'webp' })}
                           alt={targetUser.name}
-                          className="w-11 h-11 rounded-full object-cover border border-gray-200 group-hover:border-[#0052FF]"
+                          className="w-11 h-11 rounded-full object-cover border border-gray-200 group-hover:border-[#2D8EDE]"
                           loading="lazy"
                           decoding="async"
                         />
                         <div className="min-w-0">
-                          <p className="font-extrabold text-xs sm:text-sm text-gray-900 group-hover:text-[#0052FF] transition-colors truncate">
+                          <p className="font-extrabold text-xs sm:text-sm text-gray-900 group-hover:text-[#2D8EDE] transition-colors truncate">
                             {formatDisplayName(targetUser.name)}
                           </p>
                           {targetUser.location && (
                             <p className="text-[11px] font-medium text-gray-500 flex items-center gap-1 truncate mt-0.5">
-                              <MapPin className="w-3 h-3 text-[#0052FF] shrink-0" />
+                              <MapPin className="w-3 h-3 text-[#2D8EDE] shrink-0" />
                               <span>{targetUser.location}</span>
                             </p>
                           )}
@@ -312,7 +319,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                           className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-colors ${
                             hasExistingConv
                               ? 'bg-gray-100 text-gray-700'
-                              : 'bg-[#0052FF] text-white shadow-xs'
+                              : 'bg-[#2D8EDE] text-white shadow-xs'
                           }`}
                         >
                           {hasExistingConv ? 'Open Chat' : 'Text User'}
@@ -337,8 +344,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         ) : (
           /* Conversations List: Displays only users that a user has texted in listings or in search */
           <div className="flex-1 flex flex-col min-h-0">
-            {/* Containers for (All, Chats, Communities) styled like (Sell, Categories, Filters) boxes on home page */}
-            <div className="w-full bg-[#0052FF] text-white rounded-2xl grid grid-cols-3 divide-x divide-white/20 overflow-hidden shadow-xs mb-3 shrink-0">
+            {/* Containers for (All, Communities, The circle) styled like (Sell, Categories, Filters) boxes on home page */}
+            <div className="w-full bg-[#2D8EDE] text-white rounded-2xl grid grid-cols-3 divide-x divide-white/20 overflow-hidden shadow-xs mb-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveTab('all')}
@@ -351,16 +358,6 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
               <button
                 type="button"
-                onClick={() => setActiveTab('chats')}
-                className={`flex items-center justify-center py-3 px-2 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer ${
-                  activeTab === 'chats' ? 'bg-white/20 shadow-inner' : 'hover:bg-white/10 active:bg-white/20'
-                }`}
-              >
-                <span className="whitespace-nowrap">Chats</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => setActiveTab('communities')}
                 className={`flex items-center justify-center py-3 px-2 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer ${
                   activeTab === 'communities' ? 'bg-white/20 shadow-inner' : 'hover:bg-white/10 active:bg-white/20'
@@ -368,12 +365,41 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
               >
                 <span className="whitespace-nowrap">Communities</span>
               </button>
+
+              {/* The circle - not clickable yet */}
+              <div
+                aria-disabled="true"
+                className="flex items-center justify-center py-3 px-2 text-white/50 font-bold text-sm tracking-wide cursor-default select-none pointer-events-none"
+              >
+                <span className="whitespace-nowrap">The circle</span>
+              </div>
             </div>
 
             <div className="bg-white border-2 border-gray-200 rounded-3xl overflow-hidden shadow-xs divide-y divide-gray-100 flex-1 overflow-y-auto">
-              {activeTab === 'communities' ? (
+              {!user || !user.isLoggedIn || !user.id || user.id === 'guest' ? (
+                <div className="p-8 text-center space-y-4 flex flex-col items-center justify-center my-auto">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
+                    <MessageSquare className="w-6 h-6 stroke-[2]" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-gray-900">
+                      Welcome to Messages
+                    </h3>
+                    <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1 mb-5">
+                      Your chats with sellers and friends will appear here once you connect.
+                    </p>
+                    {/* Non-clickable blue box: 'Find users' */}
+                    <div
+                      aria-disabled="true"
+                      className="w-full max-w-xs mx-auto bg-[#2D8EDE] text-white font-bold py-3 px-6 rounded-2xl text-center text-sm shadow-xs select-none opacity-90 cursor-default"
+                    >
+                      Find users
+                    </div>
+                  </div>
+                </div>
+              ) : activeTab === 'communities' ? (
                 <div className="p-8 text-center text-gray-500">
-                  <div className="w-12 h-12 mx-auto mb-2.5 rounded-2xl bg-blue-50 text-[#0052FF] flex items-center justify-center">
+                  <div className="w-12 h-12 mx-auto mb-2.5 rounded-2xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
                     <Users className="w-6 h-6 stroke-[2.2]" />
                   </div>
                   <p className="text-xs font-bold text-gray-800">
@@ -401,7 +427,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                     ? matchingUser.avatar
                     : ((isCurrentUserSeller && conv.buyerAvatar) ? conv.buyerAvatar : (conv.sellerAvatar || DEFAULT_AVATAR_IMAGE));
                   const partnerAvatar =
-                    (otherPartyId && profilePictures[otherPartyId]) ||
+                    (otherPartyId && partnerAvatarCache[otherPartyId]) ||
                     (matchingUser?.avatar && matchingUser.avatar.trim() !== '' ? matchingUser.avatar : null) ||
                     ((isCurrentUserSeller && conv.buyerAvatar) ? conv.buyerAvatar : (conv.sellerAvatar || DEFAULT_AVATAR_IMAGE));
 
@@ -431,7 +457,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                         <img
                           src={getOptimizedImageUrl(partnerAvatar || DEFAULT_AVATAR_IMAGE, { width: 150, quality: 75, format: 'webp' })}
                           alt={partnerName}
-                          className="w-12 h-12 rounded-full object-cover border border-gray-200 group-hover:border-[#0052FF] transition-colors"
+                          className="w-12 h-12 rounded-full object-cover border border-gray-200 group-hover:border-[#2D8EDE] transition-colors"
                           loading="lazy"
                           decoding="async"
                         />
@@ -446,7 +472,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                           </span>
                           {conv.lastMessageTime && conv.lastMessageTime !== 'Just now' && (
                             <span className={`text-[10px] shrink-0 ml-1 ${
-                              isLastMessageUnread ? 'font-black text-[#0052FF]' : 'font-semibold text-gray-400'
+                              isLastMessageUnread ? 'font-black text-[#2D8EDE]' : 'font-semibold text-gray-400'
                             }`}>
                               {conv.lastMessageTime}
                             </span>
@@ -474,7 +500,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                 })
               ) : (
                 <div className="p-8 text-center space-y-3 flex flex-col items-center justify-center my-auto">
-                  <div className="w-12 h-12 rounded-full bg-blue-50 text-[#0052FF] flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
                     <MessageSquare className="w-6 h-6 stroke-[2]" />
                   </div>
                   <div>
@@ -484,16 +510,13 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                     <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1 mb-4">
                       You haven't texted any sellers or users yet.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        searchInputRef.current?.focus();
-                      }}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#0052FF] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+                    {/* Non-clickable blue box: 'Find users' */}
+                    <div
+                      aria-disabled="true"
+                      className="w-full max-w-xs mx-auto bg-[#2D8EDE] text-white font-bold py-3 px-6 rounded-2xl text-center text-sm shadow-xs select-none opacity-90 cursor-default"
                     >
-                      <Search className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Search users</span>
-                    </button>
+                      Find users
+                    </div>
                   </div>
                 </div>
               )}
@@ -504,7 +527,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
       {/* Bottom Navigation Dock */}
       <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
-        <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-3 items-center">
+        <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-4 items-center">
           {/* Marketplace Icon at left */}
           <button
             type="button"
@@ -517,18 +540,18 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                 onClose();
               }
             }}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#0052FF] active:scale-95 transition-all group relative cursor-pointer"
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
             aria-label="Marketplace"
           >
             <div className="relative flex items-center justify-center">
-              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#0052FF]" />
+              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#0052FF]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
               Marketplace
             </span>
           </button>
 
-          {/* Messages Icon in middle */}
+          {/* Messages Icon */}
           <button
             type="button"
             onClick={() => {
@@ -538,15 +561,32 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
             aria-label="Messages"
           >
             <div className="relative flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 stroke-[2] text-[#0052FF] fill-[#0052FF] transition-transform group-hover:scale-105" />
+              <MessageSquare className="w-5 h-5 stroke-[2] text-[#2D8EDE] transition-transform group-hover:scale-105" />
               {unreadMessagesCount > 0 && (
                 <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {unreadMessagesCount}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-[#0052FF]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">
               messages
+            </span>
+          </button>
+
+          {/* Profile Icon between Messages and Notifications */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenAccount) onOpenAccount();
+            }}
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Profile"
+          >
+            <div className="relative flex items-center justify-center">
+              <UserIcon className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
+            </div>
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+              Profile
             </span>
           </button>
 
@@ -560,14 +600,14 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
             aria-label="Notifications"
           >
             <div className="relative flex items-center justify-center">
-              <Bell className="w-5 h-5 stroke-[2] text-[#0052FF] fill-[#0052FF] transition-transform group-hover:scale-105" />
+              <Bell className="w-5 h-5 stroke-[2] text-gray-600 group-hover:text-[#2D8EDE] transition-transform group-hover:scale-105" />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1.5 -right-2.5 bg-[#0052FF] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                <span className="absolute -top-1.5 -right-2.5 bg-[#2D8EDE] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {unreadNotificationsCount}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#0052FF]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
               Notifications
             </span>
           </button>

@@ -92,7 +92,9 @@ ul::-webkit-scrollbar {
 
 @layer base {
   html,
-  body {
+  body,
+  #root {
+    background-color: #ffffff !important;
     font-family: var(--font-main);
     -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;

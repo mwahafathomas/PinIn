@@ -25,7 +25,7 @@ export const CategoriesModal: React.FC<CategoriesModalProps> = ({
         {/* Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/60">
           <div className="flex items-center gap-2">
-            <LayoutGrid className="w-5 h-5 text-[#0052FF]" />
+            <LayoutGrid className="w-5 h-5 text-[#2D8EDE]" />
             <h2 className="font-extrabold text-base text-gray-900">Browse by Category</h2>
           </div>
           <button
@@ -52,14 +52,14 @@ export const CategoriesModal: React.FC<CategoriesModalProps> = ({
                 }}
                 className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
                   isSelected
-                    ? 'bg-blue-50/70 border-[#0052FF] text-[#0052FF] shadow-xs'
+                    ? 'bg-blue-50/70 border-[#2D8EDE] text-[#2D8EDE] shadow-xs'
                     : 'border-gray-100 bg-white hover:bg-gray-50 text-gray-800'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
                     className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                      isSelected ? 'bg-[#0052FF] text-white' : 'bg-gray-100 text-gray-600'
+                      isSelected ? 'bg-[#2D8EDE] text-white' : 'bg-gray-100 text-gray-600'
                     }`}
                   >
                     <Grid className="w-4 h-4" />
@@ -71,7 +71,7 @@ export const CategoriesModal: React.FC<CategoriesModalProps> = ({
                 </div>
 
                 {isSelected && (
-                  <span className="text-xs font-bold bg-[#0052FF] text-white px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-bold bg-[#2D8EDE] text-white px-2 py-0.5 rounded-full">
                     Selected
                   </span>
                 )}

@@ -40,6 +40,7 @@ interface SearchPageProps {
   onSelectConversation?: (convId: string) => void;
   currentUser: UserAccount;
   onSellItemWithTitle?: (title: string) => void;
+  onRequireAuth?: () => void;
 }
 
 export const SearchPage: React.FC<SearchPageProps> = ({
@@ -59,6 +60,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   onSelectConversation,
   currentUser,
   onSellItemWithTitle,
+  onRequireAuth,
 }) => {
   const [activeTab, setActiveTab] = useState<'furniture' | 'messages'>(initialType);
   const [localQuery, setLocalQuery] = useState(searchQuery);
@@ -153,7 +155,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -161,7 +163,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
           {/* App Name in the Middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -186,12 +188,14 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               value={localQuery}
               onChange={(e) => handleQueryChange(e.target.value)}
               placeholder={
-                activeTab === 'furniture'
+                initialType === 'messages'
+                  ? 'Search users in the app...'
+                  : activeTab === 'furniture'
                   ? 'Search couches, tables, beds...'
                   : 'Search sellers or conversations...'
               }
               aria-label="Search"
-              className="w-full bg-gray-100 text-gray-900 placeholder:text-gray-400 text-sm font-semibold pl-10 pr-10 py-3 rounded-2xl border border-gray-200 focus:bg-white focus:border-[#0052FF] focus:ring-2 focus:ring-[#0052FF]/20 focus:outline-none transition-all"
+              className="w-full bg-gray-100 text-gray-900 placeholder:text-gray-400 text-sm font-semibold pl-10 pr-10 py-3 rounded-2xl border border-gray-200 focus:bg-white focus:border-[#2D8EDE] focus:ring-2 focus:ring-[#2D8EDE]/20 focus:outline-none transition-all"
             />
 
             {localQuery && (
@@ -206,31 +210,33 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             )}
           </div>
 
-          {/* Tab Selector */}
-          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setActiveTab('furniture')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'furniture'
-                  ? 'bg-white text-[#0052FF] shadow-xs'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              Furniture ({filteredFurniture.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('messages')}
-              className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'messages'
-                  ? 'bg-white text-[#0052FF] shadow-xs'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              Sellers &amp; Chat ({filteredUsers.length})
-            </button>
-          </div>
+          {/* Tab Selector - hidden when searching from messages */}
+          {initialType !== 'messages' && (
+            <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setActiveTab('furniture')}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'furniture'
+                    ? 'bg-white text-[#2D8EDE] shadow-xs'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                Furniture ({filteredFurniture.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('messages')}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'messages'
+                    ? 'bg-white text-[#2D8EDE] shadow-xs'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}
+              >
+                Sellers &amp; Chat ({filteredUsers.length})
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -252,7 +258,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                   onClick={() => {
                     onViewAllResults();
                   }}
-                  className="text-xs font-bold text-[#0052FF] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-bold text-[#2D8EDE] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <span>Filter Page</span>
                   <ArrowRight className="w-3 h-3" />
@@ -269,7 +275,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                     <div
                       key={item.id}
                       onClick={() => onSelectItem(item)}
-                      className="bg-white rounded-2xl border border-gray-200 p-2.5 flex items-center gap-3 shadow-xs hover:border-[#0052FF] transition-all cursor-pointer active:scale-[0.99]"
+                      className="bg-white rounded-2xl border border-gray-200 p-2.5 flex items-center gap-3 shadow-xs hover:border-[#2D8EDE] transition-all cursor-pointer active:scale-[0.99]"
                     >
                       {/* Thumbnail with sharp 90-degree corners */}
                       <div className="relative w-18 h-18 rounded-none overflow-hidden bg-gray-100 shrink-0">
@@ -280,7 +286,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                           loading="lazy"
                           decoding="async"
                         />
-                        <div className="absolute top-1 left-1 bg-[#0052FF] text-white text-[9px] font-black px-1.5 py-0.5 rounded-md">
+                        <div className="absolute top-1 left-1 bg-[#2D8EDE] text-white text-[9px] font-black px-1.5 py-0.5 rounded-md">
                           R{item.price}
                         </div>
                       </div>
@@ -291,11 +297,11 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                           {item.title}
                         </h4>
                         <p className="text-[11px] text-gray-500 font-semibold flex items-center gap-1 mt-0.5 truncate">
-                          <MapPin className="w-3 h-3 text-[#0052FF] shrink-0" />
+                          <MapPin className="w-3 h-3 text-[#2D8EDE] shrink-0" />
                           <span className="truncate">{item.location}</span>
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] font-bold bg-blue-50 text-[#0052FF] px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-bold bg-blue-50 text-[#2D8EDE] px-1.5 py-0.5 rounded">
                             {item.condition}
                           </span>
                           {item.distanceText && (
@@ -315,11 +321,11 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                             onToggleSave(item.id, e);
                           }}
                           aria-label={isSaved ? 'Saved' : 'Save listing'}
-                          className="p-2 text-gray-400 hover:text-[#0052FF] active:scale-90 transition-all shrink-0 cursor-pointer"
+                          className="p-2 text-gray-400 hover:text-[#2D8EDE] active:scale-90 transition-all shrink-0 cursor-pointer"
                         >
                           <Bookmark
                             className={`w-5 h-5 ${
-                              isSaved ? 'fill-[#0052FF] text-[#0052FF]' : 'text-gray-400'
+                              isSaved ? 'fill-[#2D8EDE] text-[#2D8EDE]' : 'text-gray-400'
                             }`}
                           />
                         </button>
@@ -330,7 +336,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               </div>
             ) : (
               <div className="py-10 text-center space-y-3 bg-white rounded-3xl border-2 border-gray-200 p-6 my-4">
-                <div className="w-12 h-12 rounded-full bg-blue-50 text-[#0052FF] flex items-center justify-center mx-auto">
+                <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
                   <Search className="w-6 h-6 stroke-[2.2]" />
                 </div>
                 <div className="space-y-1">
@@ -349,7 +355,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                         onSellItemWithTitle(localQuery.trim());
                       }
                     }}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#0052FF] hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
                   >
                     <span>Be the first one to sell {localQuery.trim() ? `"${localQuery.trim()}"` : 'an item'}</span>
                     <Plus className="w-4 h-4 stroke-[3]" />
@@ -364,51 +370,69 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             <div className="pb-2.5 mb-2 border-b border-gray-200">
               <span className="text-xs font-bold text-gray-500">
                 {localQuery.trim()
-                  ? `Sellers matching "${localQuery}" (${filteredUsers.length})`
-                  : `Active Sellers & Members (${filteredUsers.length})`}
+                  ? `Users matching "${localQuery}" (${filteredUsers.length})`
+                  : `Users in the app (${filteredUsers.length})`}
               </span>
             </div>
 
             {filteredUsers.length > 0 ? (
               <div className="space-y-2.5">
-                {filteredUsers.map((targetUser) => (
-                  <div
-                    key={targetUser.id}
-                    onClick={() => {
-                      if (onSelectUserForChat) {
-                        onSelectUserForChat(targetUser);
-                      }
-                    }}
-                    className="bg-white rounded-2xl border border-gray-200 p-3 flex items-center justify-between gap-3 shadow-xs hover:border-[#0052FF] transition-all cursor-pointer active:scale-[0.99]"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <img
-                        src={getOptimizedImageUrl(targetUser.avatar, { width: 150, quality: 75, format: 'webp' })}
-                        alt={targetUser.name}
-                        className="w-11 h-11 rounded-full object-cover border border-gray-200 shrink-0"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-xs sm:text-sm text-gray-900 truncate">
-                          {targetUser.name}
-                        </h4>
-                        <p className="text-[11px] text-gray-500 font-medium truncate flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-[#0052FF] shrink-0" />
-                          <span className="truncate">{targetUser.location || 'Gauteng'}</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="py-1.5 px-3 bg-blue-50 text-[#0052FF] font-bold text-xs rounded-xl hover:bg-[#0052FF] hover:text-white transition-all flex items-center gap-1 shrink-0"
+                {filteredUsers.map((targetUser) => {
+                  const isUserLoggedIn = Boolean(currentUser?.isLoggedIn && currentUser.id && currentUser.id !== 'guest');
+                  return (
+                    <div
+                      key={targetUser.id}
+                      onClick={() => {
+                        if (!isUserLoggedIn) {
+                          if (onRequireAuth) {
+                            onRequireAuth();
+                          }
+                          return;
+                        }
+                        if (onSelectUserForChat) {
+                          onSelectUserForChat(targetUser);
+                        }
+                      }}
+                      className="bg-white rounded-2xl border border-gray-200 p-3 flex items-center justify-between gap-3 shadow-xs hover:border-[#2D8EDE] transition-all cursor-pointer active:scale-[0.99]"
                     >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      <span>Chat</span>
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img
+                          src={getOptimizedImageUrl(targetUser.avatar, { width: 150, quality: 75, format: 'webp' })}
+                          alt={targetUser.name}
+                          className="w-11 h-11 rounded-full object-cover border border-gray-200 shrink-0"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-xs sm:text-sm text-gray-900 truncate">
+                            {targetUser.name}
+                          </h4>
+                          <p className="text-[11px] text-gray-500 font-medium truncate flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-[#2D8EDE] shrink-0" />
+                            <span className="truncate">{targetUser.location || 'Gauteng'}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* If signed in: show Chat option. If not signed in: do not show Chat option */}
+                      {isUserLoggedIn && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onSelectUserForChat) {
+                              onSelectUserForChat(targetUser);
+                            }
+                          }}
+                          className="py-1.5 px-3 bg-blue-50 text-[#2D8EDE] font-bold text-xs rounded-xl hover:bg-[#2D8EDE] hover:text-white transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Chat</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="py-12 text-center space-y-2 bg-white rounded-3xl border border-gray-200 p-6 my-4">

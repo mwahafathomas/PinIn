@@ -37,16 +37,12 @@ import { ChatBoxPage } from './components/ChatBoxPage';
 import { UserProfilePage } from './components/UserProfilePage';
 import { PullToRefresh } from './components/PullToRefresh';
 import { Toast } from './components/Toast';
-import { CookieBanner } from './components/CookieBanner';
-import { CookiePreferencesModal } from './components/CookiePreferencesModal';
 import { DesktopFooter } from './components/DesktopFooter';
+import { InternetBanner } from './components/InternetBanner';
+import NetInfo from '@react-native-community/netinfo';
 import {
   initGoogleAnalytics,
-  shouldShowCookiePopup,
-  acceptAllCookies,
-  rejectAllCookies,
   trackPageView,
-  CookieConsentSettings,
 } from './services/analyticsService';
 import { supabase } from './supabaseClient';
 import {
@@ -419,6 +415,7 @@ interface SearchPageViewProps {
   onViewAllResults: () => void;
   onSelectUserForChat: (user: { id: string; name: string; avatar: string; location?: string }) => void;
   onSellItemWithTitle?: (title: string) => void;
+  onRequireAuth?: () => void;
 }
 
 const SearchPageView: React.FC<SearchPageViewProps> = ({
@@ -435,6 +432,7 @@ const SearchPageView: React.FC<SearchPageViewProps> = ({
   onViewAllResults,
   onSelectUserForChat,
   onSellItemWithTitle,
+  onRequireAuth,
 }) => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -457,6 +455,7 @@ const SearchPageView: React.FC<SearchPageViewProps> = ({
       onSelectUserForChat={onSelectUserForChat}
       currentUser={currentUser}
       onSellItemWithTitle={onSellItemWithTitle}
+      onRequireAuth={onRequireAuth}
     />
   );
 };
@@ -477,6 +476,7 @@ interface MessagesListViewProps {
   onOpenNotifications: () => void;
   onOpenSearchPage: () => void;
   onOpenHome?: () => void;
+  onOpenAccount?: () => void;
   onClearBadgeCount?: () => void;
   onOpenMenu?: () => void;
   onOpenUserProfile?: (userId: string, initialData?: any) => void;
@@ -498,6 +498,7 @@ const MessagesListView: React.FC<MessagesListViewProps> = ({
   onOpenNotifications,
   onOpenSearchPage,
   onOpenHome,
+  onOpenAccount,
   onClearBadgeCount,
   onOpenMenu,
   onOpenUserProfile,
@@ -519,6 +520,7 @@ const MessagesListView: React.FC<MessagesListViewProps> = ({
       onOpenNotifications={onOpenNotifications}
       onOpenSearchPage={onOpenSearchPage}
       onOpenHome={onOpenHome}
+      onOpenAccount={onOpenAccount}
       unreadMessagesCount={unreadMessagesCount}
       unreadNotificationsCount={unreadNotificationsCount}
       onClearBadgeCount={onClearBadgeCount}
@@ -563,7 +565,7 @@ const ChatBoxView: React.FC<ChatBoxViewProps> = ({
   if (!conv) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center font-sans">
-        <div className="w-14 h-14 rounded-full bg-blue-50 text-[#0052FF] flex items-center justify-center mb-4 text-2xl font-bold">
+        <div className="w-14 h-14 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mb-4 text-2xl font-bold">
           💬
         </div>
         <h2 className="text-lg font-black text-gray-900 mb-1">Conversation Not Found</h2>
@@ -573,7 +575,7 @@ const ChatBoxView: React.FC<ChatBoxViewProps> = ({
         <button
           type="button"
           onClick={onGoToMessages}
-          className="px-5 py-2.5 bg-[#0052FF] hover:bg-blue-600 text-white text-xs font-black rounded-2xl shadow-md transition-all active:scale-95 cursor-pointer"
+          className="px-5 py-2.5 bg-[#2D8EDE] hover:bg-[#2579BE] text-white text-xs font-black rounded-2xl shadow-md transition-all active:scale-95 cursor-pointer"
         >
           Back to Messages
         </button>
@@ -674,6 +676,21 @@ export default function App() {
     return getLocalUserListings(INITIAL_USER.id).filter((l) => !deleted.has(l.id));
   });
   const [user, setUser] = useState<UserAccount>(() => {
+    // Task 2: On app start, FIRST check localStorage.getItem('user_data')
+    try {
+      const storedUserData = localStorage.getItem('user_data');
+      if (storedUserData) {
+        const parsed = JSON.parse(storedUserData);
+        if (parsed && (parsed.id || parsed.email)) {
+          return {
+            ...INITIAL_USER,
+            ...parsed,
+            isLoggedIn: true,
+          };
+        }
+      }
+    } catch {}
+
     const cachedProfile = getLocalUserProfile(INITIAL_USER.id);
     const cachedSaved = getLocalSavedItemIds(INITIAL_USER.id);
     const isUpdated = isUserProfileUpdated(INITIAL_USER.id) || !!cachedProfile?.name;
@@ -785,24 +802,30 @@ export default function App() {
   // Feed Refreshing State
   const [isFeedRefreshing, setIsFeedRefreshing] = useState(false);
 
-  // Cookie Consent & Google Analytics State
-  const [showCookieBanner, setShowCookieBanner] = useState<boolean>(() => shouldShowCookiePopup());
-  const [showCookiePreferences, setShowCookiePreferences] = useState<boolean>(false);
+  // Offline detection using @react-native-community/netinfo at root
+  const [isOnline, setIsOnline] = useState<boolean>(() => {
+    return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  });
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const online = state.isConnected !== false && state.isInternetReachable !== false;
+      setIsOnline(online);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Android hardware back button handling via @capacitor/app
   const lastBackPressTimeRef = useRef<number>(0);
   const isMenuOpenRef = useRef(isMenuOpen);
-  const showCookiePreferencesRef = useRef(showCookiePreferences);
   const showPostReviewPopupRef = useRef(showPostReviewPopup);
   const locationRef = useRef(location);
 
   useEffect(() => {
     isMenuOpenRef.current = isMenuOpen;
   }, [isMenuOpen]);
-
-  useEffect(() => {
-    showCookiePreferencesRef.current = showCookiePreferences;
-  }, [showCookiePreferences]);
 
   useEffect(() => {
     showPostReviewPopupRef.current = showPostReviewPopup;
@@ -821,10 +844,6 @@ export default function App() {
       }
 
       // 2. If modal popups are open, close them first
-      if (showCookiePreferencesRef.current) {
-        setShowCookiePreferences(false);
-        return;
-      }
       if (showPostReviewPopupRef.current) {
         setShowPostReviewPopup(false);
         return;
@@ -933,27 +952,6 @@ export default function App() {
     trackPageView(fullPath, title);
   }, [location.pathname, location.search, selectedItem]);
 
-  const handleAcceptAllCookies = () => {
-    acceptAllCookies();
-    setShowCookieBanner(false);
-    showToast('Cookie preferences saved: Analytics enabled');
-  };
-
-  const handleRejectAllCookies = () => {
-    rejectAllCookies();
-    setShowCookieBanner(false);
-    showToast('Non-essential cookies disabled');
-  };
-
-  const handleCookieConsentUpdated = (consent: CookieConsentSettings) => {
-    setShowCookieBanner(false);
-    if (consent.analytics) {
-      showToast('Cookie preferences updated: Analytics enabled');
-    } else {
-      showToast('Cookie preferences updated: Non-essential cookies disabled');
-    }
-  };
-
   const handleRefreshFeed = async () => {
     setIsFeedRefreshing(true);
     try {
@@ -1022,6 +1020,10 @@ export default function App() {
     };
 
     const syncRemoteNotifications = (userId?: string) => {
+      if (!userId || userId === 'guest') {
+        setNotifications([]);
+        return;
+      }
       fetchSupabaseNotifications(userId).then((remoteNotifs) => {
         if (remoteNotifs && remoteNotifs.length > 0) {
           setNotifications((prev) => {
@@ -1387,11 +1389,7 @@ export default function App() {
             const currentUserId = session?.user?.id;
             if (payload.new) {
               const row = payload.new as unknown as SupabaseNotificationRow;
-              const isTargeted =
-                !row.user_id ||
-                row.user_id === 'all' ||
-                row.user_id === 'broadcast' ||
-                (currentUserId && row.user_id === currentUserId);
+              const isTargeted = Boolean(currentUserId && row.user_id === currentUserId);
 
               if (isTargeted) {
                 const notif = mapSupabaseNotificationRow(row);
@@ -1411,78 +1409,15 @@ export default function App() {
                 }
               }
             }
-            syncRemoteNotifications(currentUserId);
+            if (currentUserId) {
+              syncRemoteNotifications(currentUserId);
+            }
           });
         }
       )
       .subscribe();
 
-    // Periodic poll every 4s to sync conversations, registered users, listing reviews, and notifications
-    const pollInterval = setInterval(() => {
-      // 1. Sync messages & conversations between real users
-      fetchAllConversations().then((convs) => {
-        if (convs) {
-          setConversations((prev) => {
-            if (prev.length === convs.length) {
-              const unchanged = prev.every((p, idx) => {
-                const c = convs[idx];
-                return (
-                  c &&
-                  p.id === c.id &&
-                  p.lastMessage === c.lastMessage &&
-                  p.lastMessageTime === c.lastMessageTime &&
-                  p.unread === c.unread &&
-                  p.messages.length === c.messages.length &&
-                  p.messages[p.messages.length - 1]?.isRead === c.messages[c.messages.length - 1]?.isRead
-                );
-              });
-              if (unchanged) return prev;
-            }
-            return convs;
-          });
-        }
-      });
-
-      // 2. Sync newly registered users for user search
-      fetchAllRegisteredUsers().then((users) => {
-        if (users) {
-          setRegisteredUsers((prev) => {
-            if (
-              prev.length === users.length &&
-              prev.every((u, idx) => users[idx] && u.id === users[idx].id && u.name === users[idx].name)
-            ) {
-              return prev;
-            }
-            return users;
-          });
-        }
-      });
-
-      // 3. Sync user listings & notifications
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        const currentUserId = session?.user?.id;
-        syncRemoteNotifications(currentUserId);
-        if (currentUserId) {
-          fetchUserListings(currentUserId).then((myListings) => {
-            if (myListings) {
-              setUserOwnListings((prev) => {
-                if (
-                  prev.length === myListings.length &&
-                  prev.every((p, idx) => myListings[idx] && p.id === myListings[idx].id && p.status === myListings[idx].status)
-                ) {
-                  return prev;
-                }
-                syncStatusNotifications(currentUserId, myListings);
-                return myListings;
-              });
-            }
-          });
-        }
-      });
-    }, 4000);
-
     return () => {
-      clearInterval(pollInterval);
       subscription.unsubscribe();
       supabase.removeChannel(channel);
     };
@@ -1518,6 +1453,37 @@ export default function App() {
 
   // Guard function to protect private pages & actions with supabase.auth.getSession()
   const requireAuth = async (actionCallback: () => void) => {
+    // 1. If user is already logged in, proceed immediately without server requirement
+    if (user && user.isLoggedIn && user.id && user.id !== 'guest') {
+      actionCallback();
+      return;
+    }
+
+    // 2. Check localStorage for user_data
+    try {
+      const storedUserData = localStorage.getItem('user_data');
+      if (storedUserData) {
+        const parsed = JSON.parse(storedUserData);
+        if (parsed && (parsed.id || parsed.email)) {
+          setUser((prev) => ({ ...prev, ...parsed, isLoggedIn: true }));
+          actionCallback();
+          return;
+        }
+      }
+    } catch {}
+
+    // 3. If offline, don't attempt network call to Supabase
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (localStorage.getItem('user_data')) {
+        actionCallback();
+        return;
+      }
+      setAuthMode('signin');
+      goTo('/auth?mode=signin');
+      showToast('Please sign in or register to continue');
+      return;
+    }
+
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (!error && session && session.user) {
@@ -1528,7 +1494,7 @@ export default function App() {
         showToast('Please sign in to access this page.');
       }
     } catch {
-      if (user.isLoggedIn) {
+      if (user.isLoggedIn || localStorage.getItem('user_data')) {
         actionCallback();
       } else {
         setAuthMode('signin');
@@ -2138,6 +2104,10 @@ export default function App() {
     if (user.isLoggedIn) {
       logoutUserFromOneSignal();
       try {
+        localStorage.removeItem('user_token');
+        localStorage.removeItem('user_data');
+      } catch {}
+      try {
         await supabase.auth.signOut();
       } catch {}
       setUser(INITIAL_USER);
@@ -2297,20 +2267,43 @@ export default function App() {
   const [messagesBadgeCleared, setMessagesBadgeCleared] = useState(false);
 
   const unreadMessagesCount = useMemo(() => {
-    if (messagesBadgeCleared) return 0;
+    // If not logged in, guest, or badge manually cleared, return 0
+    if (!user.isLoggedIn || !user.id || user.id === 'guest' || messagesBadgeCleared) return 0;
+
+    // If currently viewing messages page or in a chat room, clear badge
+    if (location.pathname === '/' || location.pathname === '/messages' || location.pathname.startsWith('/messages/')) {
+      return 0;
+    }
+
     return conversations.filter((c) => {
+      // Must be a conversation involving the current user
+      const isMyConv =
+        (c.buyerId && c.buyerId === user.id) ||
+        (c.sellerId && c.sellerId === user.id) ||
+        (user.name && c.sellerName && c.sellerName.trim().toLowerCase() === user.name.trim().toLowerCase()) ||
+        (user.name && c.buyerName && c.buyerName.trim().toLowerCase() === user.name.trim().toLowerCase());
+
+      if (!isMyConv) return false;
+
       if (c.messages && c.messages.length > 0) {
         const lastMsg = c.messages[c.messages.length - 1];
-        const isReceiverMe = !lastMsg.isMe || (user.id && (lastMsg as any).receiverId === user.id) || (lastMsg.senderId !== user.id);
+        // If the last message was sent by me, it's not unread for me
+        const isFromMe = lastMsg.isMe || lastMsg.senderId === user.id;
+        if (isFromMe) return false;
+
         const isUnread = (lastMsg as any).isRead === false || (lastMsg as any).is_read === false;
-        return isReceiverMe && isUnread;
+        return isUnread;
       }
-      return !!c.unread;
+      return false;
     }).length;
-  }, [conversations, messagesBadgeCleared, user.id]);
-  const unreadNotificationsCount = notifications.filter(
-    (n) => !n.read && ['system', 'listing_submitted', 'listing_approved', 'listing_rejected'].includes(n.type)
-  ).length;
+  }, [conversations, messagesBadgeCleared, user.id, user.isLoggedIn, user.name, location.pathname]);
+
+  const unreadNotificationsCount = useMemo(() => {
+    if (!user.isLoggedIn || !user.id || user.id === 'guest') return 0;
+    return notifications.filter(
+      (n) => !n.read && ['system', 'listing_submitted', 'listing_approved', 'listing_rejected'].includes(n.type)
+    ).length;
+  }, [notifications, user.isLoggedIn, user.id]);
 
   const savedFurnitureList = useMemo(() => {
     return furnitureList.filter((item) => user.savedItemIds.includes(item.id));
@@ -2357,7 +2350,7 @@ export default function App() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 selection:bg-[#0052FF]/20 selection:text-[#0052FF] relative overflow-x-hidden">
+    <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900 selection:bg-[#2D8EDE]/20 selection:text-[#2D8EDE] relative overflow-x-hidden">
       {/* Toast Feedback */}
       <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
 
@@ -2365,12 +2358,12 @@ export default function App() {
       {showPostReviewPopup && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl p-6 max-w-xs sm:max-w-sm w-full text-center shadow-2xl border-2 border-blue-200 flex flex-col items-center animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 rounded-full bg-blue-50 text-[#0052FF] flex items-center justify-center mb-3.5 ring-8 ring-blue-50/50">
+            <div className="w-16 h-16 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mb-3.5 ring-8 ring-blue-50/50">
               <svg className="w-8 h-8 animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-100 text-[#0052FF] text-[10px] font-extrabold tracking-wider uppercase mb-1.5">
+            <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-100 text-[#2D8EDE] text-[10px] font-extrabold tracking-wider uppercase mb-1.5">
               Submission Received
             </span>
             <h3 className="text-lg font-black text-gray-900 leading-tight mb-2">
@@ -2382,14 +2375,14 @@ export default function App() {
             <button
               type="button"
               onClick={() => setShowPostReviewPopup(false)}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#0052FF] hover:bg-blue-700 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 mb-3 cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-xl bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs shadow-md transition-all active:scale-95 mb-3 cursor-pointer"
             >
               Got it
             </button>
             {/* 4s countdown indicator */}
             <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
               <div
-                className="bg-[#0052FF] h-full rounded-full"
+                className="bg-[#2D8EDE] h-full rounded-full"
                 style={{
                   animation: 'shrinkWidth 4s linear forwards',
                 }}
@@ -2398,6 +2391,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Offline Internet Banner (Top small 30px grey banner) */}
+      <InternetBanner isOnline={isOnline} />
 
       {/* Menu Drawer */}
       <MenuDrawer
@@ -2432,10 +2428,6 @@ export default function App() {
           setIsMenuOpen(false);
           goTo('/contact');
         }}
-        onOpenCookieSettings={() => {
-          setIsMenuOpen(false);
-          setShowCookiePreferences(true);
-        }}
       />
 
       {/* Framer Motion Animated Routes */}
@@ -2448,18 +2440,91 @@ export default function App() {
           animate="center"
           exit="exit"
           transition={pageTransition}
-          className="w-full h-[100dvh] bg-gray-50 fixed inset-0 overflow-hidden"
+          className="w-full h-[100dvh] bg-white fixed inset-0 overflow-hidden"
         >
           <Routes location={location}>
-            {/* Default root path: Open in messages page by default */}
-            <Route path="/" element={<Navigate to="/messages" replace />} />
+            {/* 1. Initial screen: Messages Page directly as first screen in navigation config (no redirect, no flash) */}
+            <Route
+              path="/messages"
+              element={
+                <MessagesListView
+                  conversations={conversations}
+                  allUsers={allAppUsers}
+                  user={user}
+                  unreadMessagesCount={unreadMessagesCount}
+                  unreadNotificationsCount={unreadNotificationsCount}
+                  onClose={() => {
+                    if (window.history.state && window.history.state.idx > 0) {
+                      setDirection(-1);
+                      navigate(-1);
+                    } else {
+                      goTo('/marketplace', -1);
+                    }
+                  }}
+                  onSendMessage={handleSendMessage}
+                  onBlockUser={handleBlockUser}
+                  onUnblockUser={handleUnblockUser}
+                  onClearChat={handleClearChat}
+                  onStartNewConversationWithUser={handleStartNewConversationWithUser}
+                  onSelectConversation={(convId) => {
+                    if (convId) {
+                      goTo(`/messages/${convId}`, 1);
+                    }
+                  }}
+                  onOpenNotifications={() => goTo('/notifications', 1)}
+                  onOpenSearchPage={() => goTo('/search?type=messages')}
+                  onOpenHome={handleGoHome}
+                  onOpenAccount={() => requireAuth(() => goTo('/account'))}
+                  onClearBadgeCount={() => setMessagesBadgeCleared(true)}
+                  onOpenMenu={() => setIsMenuOpen(true)}
+                  onOpenUserProfile={handleOpenUserProfile}
+                />
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <MessagesListView
+                  conversations={conversations}
+                  allUsers={allAppUsers}
+                  user={user}
+                  unreadMessagesCount={unreadMessagesCount}
+                  unreadNotificationsCount={unreadNotificationsCount}
+                  onClose={() => {
+                    if (window.history.state && window.history.state.idx > 0) {
+                      setDirection(-1);
+                      navigate(-1);
+                    } else {
+                      goTo('/marketplace', -1);
+                    }
+                  }}
+                  onSendMessage={handleSendMessage}
+                  onBlockUser={handleBlockUser}
+                  onUnblockUser={handleUnblockUser}
+                  onClearChat={handleClearChat}
+                  onStartNewConversationWithUser={handleStartNewConversationWithUser}
+                  onSelectConversation={(convId) => {
+                    if (convId) {
+                      goTo(`/messages/${convId}`, 1);
+                    }
+                  }}
+                  onOpenNotifications={() => goTo('/notifications', 1)}
+                  onOpenSearchPage={() => goTo('/search?type=messages')}
+                  onOpenHome={handleGoHome}
+                  onOpenAccount={() => requireAuth(() => goTo('/account'))}
+                  onClearBadgeCount={() => setMessagesBadgeCleared(true)}
+                  onOpenMenu={() => setIsMenuOpen(true)}
+                  onOpenUserProfile={handleOpenUserProfile}
+                />
+              }
+            />
             <Route path="/home" element={<Navigate to="/marketplace" replace />} />
 
-            {/* 1. Home Marketplace Feed */}
+            {/* 2. Home Marketplace Feed */}
             <Route
               path="/marketplace"
               element={
-                <div className="h-[100dvh] max-h-[100dvh] flex flex-col font-sans text-gray-900 bg-gray-50 overflow-hidden">
+                <div className="h-[100dvh] max-h-[100dvh] flex flex-col font-sans text-gray-900 bg-white overflow-hidden">
                   {/* Pinned Top Header & Controls */}
                   <div className="shrink-0 z-30 bg-white border-b border-gray-200 shadow-2xs">
                     {/* Top Header: 1 = 3 bars, 2 = app name */}
@@ -2501,7 +2566,7 @@ export default function App() {
                             filters.categories.map((cat) => (
                               <span
                                 key={cat}
-                                className="bg-blue-100 text-[#0052FF] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0"
+                                className="bg-blue-100 text-[#2D8EDE] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0"
                               >
                                 <span className="capitalize">{cat.split('/')[0].trim()}</span>
                                 <button
@@ -2521,7 +2586,7 @@ export default function App() {
                               </span>
                             ))
                           ) : filters.category !== 'all' ? (
-                            <span className="bg-blue-100 text-[#0052FF] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                            <span className="bg-blue-100 text-[#2D8EDE] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
                               <span className="capitalize">{activeCategoryObj?.name || filters.category}</span>
                               <button
                                 type="button"
@@ -2533,7 +2598,7 @@ export default function App() {
                             </span>
                           ) : null}
                           {filters.location && filters.location.trim() && (
-                            <span className="bg-blue-50 text-[#0052FF] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-blue-200 shrink-0">
+                            <span className="bg-blue-50 text-[#2D8EDE] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-blue-200 shrink-0">
                               📍 <span className="truncate max-w-[120px]">{filters.location.replace(/\(Gauteng\)/gi, '')}</span>
                               <button
                                 type="button"
@@ -2560,7 +2625,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={handleGoHome}
-                          className="text-xs text-[#0052FF] hover:underline font-bold shrink-0 ml-auto cursor-pointer"
+                          className="text-xs text-[#2D8EDE] hover:underline font-bold shrink-0 ml-auto cursor-pointer"
                         >
                           Clear all
                         </button>
@@ -2569,7 +2634,7 @@ export default function App() {
                   </div>
 
                   {/* Scrollable Center Content Area */}
-                  <main id="home-main-scroll" className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain bg-gray-50 flex flex-col">
+                  <main id="home-main-scroll" className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain bg-white flex flex-col">
                     <div className="flex-1 flex flex-col justify-between min-h-full">
                       <div className="flex-1">
                         <FurnitureGrid
@@ -2587,9 +2652,8 @@ export default function App() {
                         />
                       </div>
 
-                      {/* Footer containing Manage Cookie Settings down at the bottom below listings */}
+                      {/* Footer containing quick links */}
                       <DesktopFooter
-                        onOpenCookieSettings={() => setShowCookiePreferences(true)}
                         onOpenPrivacyPolicy={() => goTo('/privacy')}
                         onOpenContactUs={() => goTo('/contact')}
                       />
@@ -2601,20 +2665,16 @@ export default function App() {
                     <BottomNav
                       activeTab={currentTab}
                       onNavigate={(tab) => {
-                        if (tab === 'search') {
+                        if (tab === 'search' || tab === 'marketplace') {
                           handleGoHome();
                         } else if (tab === 'sell') {
                           requireAuth(() => goTo('/sell'));
                         } else if (tab === 'messages') {
-                          requireAuth(() => goTo('/messages'));
+                          goTo('/messages');
                         } else if (tab === 'notifications') {
-                          requireAuth(() => handleOpenNotifications());
-                        } else if (tab === 'account') {
-                          if (user.isLoggedIn) {
-                            goTo('/account');
-                          } else {
-                            goTo('/auth?mode=signin');
-                          }
+                          handleOpenNotifications();
+                        } else if (tab === 'account' || tab === 'profile') {
+                          requireAuth(() => goTo('/account'));
                         }
                       }}
                       unreadMessagesCount={unreadMessagesCount}
@@ -2941,61 +3001,28 @@ export default function App() {
                   onToggleSave={handleToggleSave}
                   onViewAllResults={() => goTo('/results')}
                   onSelectUserForChat={(targetUser) => {
-                    const existing = conversations.find(
-                      (c) =>
-                        c.sellerName.toLowerCase() === targetUser.name.toLowerCase() ||
-                        c.sellerAvatar === targetUser.avatar ||
-                        c.id.includes(targetUser.id)
-                    );
-                    if (existing) {
-                      goTo(`/messages/${existing.id}`);
-                    } else {
-                      const newId = handleStartNewConversationWithUser(targetUser);
-                      goTo(`/messages/${newId}`);
-                    }
+                    requireAuth(() => {
+                      const existing = conversations.find(
+                        (c) =>
+                          c.sellerName.toLowerCase() === targetUser.name.toLowerCase() ||
+                          c.sellerAvatar === targetUser.avatar ||
+                          c.id.includes(targetUser.id)
+                      );
+                      if (existing) {
+                        goTo(`/messages/${existing.id}`);
+                      } else {
+                        const newId = handleStartNewConversationWithUser(targetUser);
+                        goTo(`/messages/${newId}`);
+                      }
+                    });
                   }}
+                  onRequireAuth={() => requireAuth(() => {})}
                   onSellItemWithTitle={handleSellWithTitle}
                 />
               }
             />
 
-            {/* 8. Messages & Chat Page */}
-            <Route
-              path="/messages"
-              element={
-                <MessagesListView
-                  conversations={conversations}
-                  allUsers={allAppUsers}
-                  user={user}
-                  unreadMessagesCount={unreadMessagesCount}
-                  unreadNotificationsCount={unreadNotificationsCount}
-                  onClose={() => {
-                    if (window.history.state && window.history.state.idx > 0) {
-                      setDirection(-1);
-                      navigate(-1);
-                    } else {
-                      goTo('/marketplace', -1);
-                    }
-                  }}
-                  onSendMessage={handleSendMessage}
-                  onBlockUser={handleBlockUser}
-                  onUnblockUser={handleUnblockUser}
-                  onClearChat={handleClearChat}
-                  onStartNewConversationWithUser={handleStartNewConversationWithUser}
-                  onSelectConversation={(convId) => {
-                    if (convId) {
-                      goTo(`/messages/${convId}`, 1);
-                    }
-                  }}
-                  onOpenNotifications={() => goTo('/notifications', 1)}
-                  onOpenSearchPage={() => goTo('/search?type=messages')}
-                  onOpenHome={handleGoHome}
-                  onClearBadgeCount={() => setMessagesBadgeCleared(true)}
-                  onOpenMenu={() => setIsMenuOpen(true)}
-                  onOpenUserProfile={handleOpenUserProfile}
-                />
-              }
-            />
+            {/* 8. Chat Box Page */}
             <Route
               path="/messages/:id"
               element={
@@ -3079,8 +3106,10 @@ export default function App() {
                   onDeleteNotification={handleDeleteNotification}
                   onOpenSearch={handleGoHome}
                   onOpenMessages={() => goTo('/messages')}
+                  onOpenAccount={() => requireAuth(() => goTo('/account'))}
                   unreadMessagesCount={unreadMessagesCount}
                   unreadNotificationsCount={unreadNotificationsCount}
+                  isLoggedIn={Boolean(user.isLoggedIn && user.id && user.id !== 'guest')}
                 />
               }
             />
@@ -3176,7 +3205,6 @@ export default function App() {
                 <PrivacyPolicyPage
                   isOpen={true}
                   onClose={() => goBack('/')}
-                  onOpenCookieSettings={() => setShowCookiePreferences(true)}
                 />
               }
             />
@@ -3234,21 +3262,6 @@ export default function App() {
           </Routes>
         </motion.div>
       </AnimatePresence>
-
-      {/* Cookie Consent Banner (Pops up for first-time visitors on websites like Chrome/Google, not in standalone app) */}
-      <CookieBanner
-        isOpen={showCookieBanner}
-        onAcceptAll={handleAcceptAllCookies}
-        onRejectAll={handleRejectAllCookies}
-        onOpenPreferences={() => setShowCookiePreferences(true)}
-      />
-
-      {/* Cookie Preferences Modal with live Visited Pages Log */}
-      <CookiePreferencesModal
-        isOpen={showCookiePreferences}
-        onClose={() => setShowCookiePreferences(false)}
-        onConsentUpdated={handleCookieConsentUpdated}
-      />
     </div>
   );
 }

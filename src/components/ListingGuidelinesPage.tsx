@@ -32,7 +32,7 @@ export const ListingGuidelinesPage: React.FC<ListingGuidelinesPageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -40,7 +40,7 @@ export const ListingGuidelinesPage: React.FC<ListingGuidelinesPageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -52,7 +52,7 @@ export const ListingGuidelinesPage: React.FC<ListingGuidelinesPageProps> = ({
       <main className="flex-1 w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto pb-16 flex flex-col px-4 md:px-6 lg:px-8 pt-4 space-y-4 text-left">
         {/* Page Title Card */}
         <div className="bg-white rounded-3xl border border-gray-200 p-4 sm:p-5 shadow-xs flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#0052FF] flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
             <HelpCircle className="w-6 h-6 stroke-[2.2]" />
           </div>
           <div>
@@ -246,7 +246,7 @@ export const ListingGuidelinesPage: React.FC<ListingGuidelinesPageProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-3.5 px-6 bg-[#0052FF] hover:bg-blue-700 active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-3.5 px-6 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-[0.99] text-white font-extrabold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
             <span>Back to Sell</span>

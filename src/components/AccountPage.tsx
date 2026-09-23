@@ -97,7 +97,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -105,7 +105,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -118,9 +118,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 setIsSettingsOpen((prev) => !prev);
               }}
               aria-label="Account settings"
-              className="p-2 -mr-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="p-2 -mr-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
-              <Settings className="w-5 h-5 text-gray-700 hover:text-[#0052FF]" />
+              <Settings className="w-5 h-5 text-gray-700 hover:text-[#2D8EDE]" />
             </button>
 
             {/* Settings Dropdown Menu */}
@@ -150,7 +150,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                         onOpenEditProfile();
                       }
                     }}
-                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-blue-50 hover:text-[#0052FF] flex items-center gap-2 transition-colors cursor-pointer"
+                    className="w-full px-3.5 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-blue-50 hover:text-[#2D8EDE] flex items-center gap-2 transition-colors cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4 text-gray-500" />
                     <span>Edit Profile &amp; Bio</span>
@@ -206,7 +206,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             user.location !== 'Gauteng, South Africa' &&
             user.location !== 'Sandton (Gauteng)' &&
             user.location !== 'Gauteng' ? (
-              <p className="text-xs md:text-sm font-bold text-[#0052FF] flex items-center justify-center md:justify-start gap-1">
+              <p className="text-xs md:text-sm font-bold text-[#2D8EDE] flex items-center justify-center md:justify-start gap-1">
                 <MapPin className="w-3.5 h-3.5" />
                 <span>{user.location}</span>
               </p>
@@ -224,7 +224,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#0052FF]" />
+              <span className="w-2 h-2 rounded-full bg-[#2D8EDE]" />
               <span>My Listings</span>
               <span className="text-gray-400 font-medium">
                 ({userListings.length})
@@ -265,7 +265,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
 
                       {/* Price Badge with Rand 'R' (No number 6 or number prefix) */}
                       <div className="absolute top-3 left-3 z-10">
-                        <div className="bg-[#0052FF] text-white text-xs sm:text-sm font-black px-3 py-1 rounded-xl shadow-md flex items-center">
+                        <div className="bg-[#2D8EDE] text-white text-xs sm:text-sm font-black px-3 py-1 rounded-xl shadow-md flex items-center">
                           <span>R{item.price}</span>
                         </div>
                       </div>
@@ -276,7 +276,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                           type="button"
                           onClick={(e) => handleOpenListingMenu(e, item.id)}
                           aria-label="Listing options"
-                          className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs text-gray-800 hover:text-[#0052FF] flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer"
+                          className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-xs text-gray-800 hover:text-[#2D8EDE] flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer"
                         >
                           <MoreVertical className="w-4 h-4 stroke-[2.5]" />
                         </button>
@@ -294,9 +294,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                                 setActiveMenuListingId(null);
                                 onShareListing(item);
                               }}
-                              className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-800 hover:bg-blue-50 hover:text-[#0052FF] flex items-center gap-2 transition-colors cursor-pointer"
+                              className="w-full px-3.5 py-2 text-left text-xs font-bold text-gray-800 hover:bg-blue-50 hover:text-[#2D8EDE] flex items-center gap-2 transition-colors cursor-pointer"
                             >
-                              <Share className="w-4 h-4 text-[#0052FF]" />
+                              <Share className="w-4 h-4 text-[#2D8EDE]" />
                               <span>Share listing</span>
                             </button>
 
@@ -327,12 +327,12 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                             {item.title}
                           </h3>
                           <p className="text-xs font-semibold text-gray-500 flex items-center gap-1 mt-0.5 truncate">
-                            <MapPin className="w-3.5 h-3.5 text-[#0052FF] shrink-0" />
+                            <MapPin className="w-3.5 h-3.5 text-[#2D8EDE] shrink-0" />
                             <span className="truncate">{item.location}</span>
                           </p>
                         </div>
 
-                        <span className="text-[11px] font-bold bg-blue-50 text-[#0052FF] px-2 py-0.5 rounded-lg shrink-0">
+                        <span className="text-[11px] font-bold bg-blue-50 text-[#2D8EDE] px-2 py-0.5 rounded-lg shrink-0">
                           {item.condition}
                         </span>
                       </div>
@@ -369,8 +369,8 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             </div>
           ) : (
             <div className="bg-white border-2 border-dashed border-gray-300 rounded-3xl p-8 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-blue-50 text-[#0052FF] flex items-center justify-center mx-auto">
-                <span className="text-xl font-black text-[#0052FF]">+</span>
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
+                <span className="text-xl font-black text-[#2D8EDE]">+</span>
               </div>
               <h3 className="text-sm font-extrabold text-gray-900">
                 You haven't listed any furniture yet
@@ -382,7 +382,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 <button
                   type="button"
                   onClick={onOpenSell}
-                  className="py-2.5 px-5 bg-[#0052FF] hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+                  className="py-2.5 px-5 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   List Furniture on PinIn
                 </button>
@@ -492,13 +492,13 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               onClose();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#0052FF] active:scale-95 transition-all group relative cursor-pointer"
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
             aria-label="Marketplace"
           >
             <div className="relative flex items-center justify-center">
-              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#0052FF]" />
+              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#0052FF]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
               Marketplace
             </span>
           </button>
@@ -513,14 +513,14 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             aria-label="Messages"
           >
             <div className="relative flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 stroke-[2] text-[#0052FF] fill-[#0052FF] transition-transform group-hover:scale-105" />
+              <MessageSquare className="w-5 h-5 stroke-[2] text-gray-600 group-hover:text-[#2D8EDE] transition-transform group-hover:scale-105" />
               {unreadMessagesCount > 0 && (
                 <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {unreadMessagesCount}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#0052FF]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
               messages
             </span>
           </button>
@@ -535,14 +535,14 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             aria-label="Notifications"
           >
             <div className="relative flex items-center justify-center">
-              <Bell className="w-5 h-5 stroke-[2] text-[#0052FF] fill-[#0052FF] transition-transform group-hover:scale-105" />
+              <Bell className="w-5 h-5 stroke-[2] text-gray-600 group-hover:text-[#2D8EDE] transition-transform group-hover:scale-105" />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-[#0052FF] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                <span className="absolute -top-1.5 -right-2 bg-[#2D8EDE] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {unreadNotificationsCount}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#0052FF]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
               Notifications
             </span>
           </button>

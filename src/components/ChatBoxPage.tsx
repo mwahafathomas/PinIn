@@ -251,7 +251,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Go back to messages"
-              className="p-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="p-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
               <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -260,7 +260,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -273,9 +273,9 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
                 setIsMenuOpen((prev) => !prev);
               }}
               aria-label="Chat options"
-              className="p-2 -mr-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="p-2 -mr-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
-              <MoreVertical className="w-5 h-5 stroke-[2.5] text-gray-700 hover:text-[#0052FF]" />
+              <MoreVertical className="w-5 h-5 stroke-[2.5] text-gray-700 hover:text-[#2D8EDE]" />
             </button>
 
             {/* Dropdown Menu */}
@@ -339,7 +339,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
       <main className="flex-1 w-full max-w-md md:max-w-4xl lg:max-w-5xl mx-auto flex flex-col min-h-0 bg-white overflow-hidden md:border-x md:border-gray-200">
         {/* Safety Header Banner: "Meet in public place & encourage buyers to go with someone" */}
         <div className="bg-blue-50/90 border-b border-blue-100 px-3.5 md:px-6 py-2 flex items-center gap-2 text-blue-900 shrink-0">
-          <div className="w-5 h-5 rounded-full bg-[#0052FF] text-white flex items-center justify-center shrink-0 shadow-2xs">
+          <div className="w-5 h-5 rounded-full bg-[#2D8EDE] text-white flex items-center justify-center shrink-0 shadow-2xs">
             <Users className="w-3 h-3" />
           </div>
           <p className="text-[11px] font-bold leading-tight flex-1">
@@ -368,13 +368,13 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
               <img
                 src={getOptimizedImageUrl(otherParty.avatar || DEFAULT_AVATAR_IMAGE, { width: 150, quality: 75, format: 'webp' })}
                 alt={otherParty.name}
-                className="w-14 h-14 rounded-full object-cover border border-gray-200 shadow-sm group-hover:border-[#0052FF] transition-colors"
+                className="w-14 h-14 rounded-full object-cover border border-gray-200 shadow-sm group-hover:border-[#2D8EDE] transition-colors"
                 loading="lazy"
                 decoding="async"
               />
             </div>
 
-            <h2 className="text-base font-black text-gray-900 tracking-tight group-hover:text-[#0052FF] transition-colors">
+            <h2 className="text-base font-black text-gray-900 tracking-tight group-hover:text-[#2D8EDE] transition-colors">
               {otherParty.name}
             </h2>
           </button>
@@ -384,7 +384,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
               <span className="truncate max-w-[240px] md:max-w-md">
                 {conversation.itemTitle}
               </span>
-              <span className="text-[#0052FF] font-black">
+              <span className="text-[#2D8EDE] font-black">
                 · R{conversation.itemPrice}
               </span>
             </div>
@@ -402,7 +402,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
         <div className="flex-1 p-4 md:p-6 space-y-4 bg-gray-50/60 overflow-y-auto">
           {groupedMessages.length === 0 && (
             <div className="py-10 px-4 text-center">
-              <div className="w-12 h-12 rounded-full bg-blue-50 text-[#0052FF] flex items-center justify-center mx-auto mb-3">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto mb-3">
                 <MessageSquare className="w-6 h-6 stroke-[2]" />
               </div>
               <p className="text-xs font-bold text-gray-800">
@@ -435,7 +435,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
                       key={msg.id}
                       className="flex flex-col items-end group/msg"
                     >
-                      <div className="max-w-[80%] bg-[#0052FF] text-white px-4 py-2.5 rounded-2xl rounded-tr-xs shadow-xs text-xs font-medium leading-relaxed break-words">
+                      <div className="max-w-[80%] bg-[#2D8EDE] text-white px-4 py-2.5 rounded-2xl rounded-tr-xs shadow-xs text-xs font-medium leading-relaxed break-words">
                         {msg.text}
                       </div>
 
@@ -456,7 +456,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
 
                         <CheckCheck
                           className={`w-3.5 h-3.5 ${
-                            isRead ? 'text-[#0052FF]' : 'text-gray-400'
+                            isRead ? 'text-[#2D8EDE]' : 'text-gray-400'
                           }`}
                           aria-label={isRead ? 'Read' : 'Sent'}
                         />
@@ -489,7 +489,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
                         <img
                           src={getOptimizedImageUrl(otherParty.avatar || DEFAULT_AVATAR_IMAGE, { width: 100, quality: 75, format: 'webp' })}
                           alt={otherParty.name}
-                          className="w-7 h-7 rounded-full object-cover mt-0.5 border border-gray-200 shadow-2xs hover:border-[#0052FF]"
+                          className="w-7 h-7 rounded-full object-cover mt-0.5 border border-gray-200 shadow-2xs hover:border-[#2D8EDE]"
                           loading="lazy"
                           decoding="async"
                         />
@@ -517,7 +517,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
 
                           <CheckCheck
                             className={`w-3.5 h-3.5 ${
-                              isRead ? 'text-[#0052FF]' : 'text-gray-400'
+                              isRead ? 'text-[#2D8EDE]' : 'text-gray-400'
                             }`}
                             aria-label={isRead ? 'Read by user' : 'Delivered'}
                           />
@@ -544,7 +544,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
         ) : (
           <form
             onSubmit={handleSend}
-            className="flex items-center gap-2 bg-gray-50 rounded-full border-2 border-gray-200 p-1.5 focus-within:border-[#0052FF] focus-within:bg-white transition-all shadow-xs"
+            className="flex items-center gap-2 bg-gray-50 rounded-full border-2 border-gray-200 p-1.5 focus-within:border-[#2D8EDE] focus-within:bg-white transition-all shadow-xs"
           >
             <input
               ref={inputRef}
@@ -558,7 +558,7 @@ export const ChatBoxPage: React.FC<ChatBoxPageProps> = ({
             <button
               type="submit"
               disabled={!inputText.trim()}
-              className="w-9 h-9 rounded-full bg-[#0052FF] hover:bg-blue-700 disabled:opacity-40 text-white flex items-center justify-center active:scale-95 transition-all shrink-0 shadow-xs cursor-pointer"
+              className="w-9 h-9 rounded-full bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-40 text-white flex items-center justify-center active:scale-95 transition-all shrink-0 shadow-xs cursor-pointer"
               aria-label="Send message"
             >
               <Send className="w-4 h-4 -translate-x-px" />
