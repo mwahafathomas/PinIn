@@ -411,7 +411,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     )}
                   </div>
                   <span className="text-xs sm:text-sm font-extrabold text-[#2D8EDE] tracking-wide uppercase">
-                    {mode === 'signin' ? 'Sign In Page' : 'Register'}
+                    {mode === 'signin' ? 'Sign In' : 'Register'}
                   </span>
                 </div>
               </>

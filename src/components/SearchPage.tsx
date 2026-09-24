@@ -370,8 +370,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             <div className="pb-2.5 mb-2 border-b border-gray-200">
               <span className="text-xs font-bold text-gray-500">
                 {localQuery.trim()
-                  ? `Users matching "${localQuery}" (${filteredUsers.length})`
-                  : `Users in the app (${filteredUsers.length})`}
+                  ? `Users matching "${localQuery}"`
+                  : 'Users in the app'}
               </span>
             </div>
 
@@ -407,10 +407,6 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                           <h4 className="font-bold text-xs sm:text-sm text-gray-900 truncate">
                             {targetUser.name}
                           </h4>
-                          <p className="text-[11px] text-gray-500 font-medium truncate flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-[#2D8EDE] shrink-0" />
-                            <span className="truncate">{targetUser.location || 'Gauteng'}</span>
-                          </p>
                         </div>
                       </div>
 

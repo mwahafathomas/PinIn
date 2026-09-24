@@ -199,16 +199,15 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
   const handleSendDirectMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim()) return;
-
-    if (!user?.isLoggedIn) {
+    const isUserLoggedIn = Boolean(user?.isLoggedIn && user.id && user.id !== 'guest');
+    if (!isUserLoggedIn) {
       if (onOpenAuth) {
         onOpenAuth('signin');
-      } else {
-        alert('Please sign in to message sellers.');
       }
       return;
     }
+
+    if (!messageInput.trim()) return;
 
     // Trigger Scam alert popup requirement before sending message
     setPendingMessage(messageInput.trim());
@@ -559,8 +558,25 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   <input
                     type="text"
                     value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder="message seller..."
+                    onChange={(e) => {
+                      if (!user?.isLoggedIn || user.id === 'guest') {
+                        if (onOpenAuth) onOpenAuth('signin');
+                        return;
+                      }
+                      setMessageInput(e.target.value);
+                    }}
+                    onClick={() => {
+                      if (!user?.isLoggedIn || user.id === 'guest') {
+                        if (onOpenAuth) onOpenAuth('signin');
+                      }
+                    }}
+                    onFocus={(e) => {
+                      if (!user?.isLoggedIn || user.id === 'guest') {
+                        e.target.blur();
+                        if (onOpenAuth) onOpenAuth('signin');
+                      }
+                    }}
+                    placeholder={user?.isLoggedIn && user.id !== 'guest' ? 'message seller...' : 'Sign in to message seller...'}
                     aria-label="Message seller"
                     className="w-full bg-transparent text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 font-semibold px-1 py-1 outline-none"
                   />
@@ -579,7 +595,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
                     <button
                       type="submit"
-                      disabled={!messageInput.trim()}
+                      disabled={user?.isLoggedIn && user.id !== 'guest' ? !messageInput.trim() : false}
                       className="py-1.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-40 text-white text-xs font-black rounded-xl active:scale-95 transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <span>Send</span>

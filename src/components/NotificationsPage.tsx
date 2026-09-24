@@ -293,25 +293,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
       {/* Bottom Navigation Dock */}
       <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-4 items-center">
-          {/* Marketplace Icon at bottom left */}
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              if (onOpenSearch) onOpenSearch();
-            }}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Marketplace"
-          >
-            <div className="relative flex items-center justify-center">
-              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
-            </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
-              Marketplace
-            </span>
-          </button>
-
-          {/* Messages Icon */}
+          {/* 1. Messages Icon (First at left) */}
           <button
             type="button"
             onClick={() => {
@@ -333,7 +315,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
             </span>
           </button>
 
-          {/* Profile Icon between Messages and Notifications */}
+          {/* 2. Profile Icon (Second) */}
           <button
             type="button"
             onClick={() => {
@@ -350,7 +332,25 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
             </span>
           </button>
 
-          {/* Notifications Icon (Active state) at bottom right */}
+          {/* 3. Marketplace Icon (Third) */}
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              if (onOpenSearch) onOpenSearch();
+            }}
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Marketplace"
+          >
+            <div className="relative flex items-center justify-center">
+              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
+            </div>
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+              Marketplace
+            </span>
+          </button>
+
+          {/* 4. Notifications Icon (Active state, last at right) */}
           <button
             type="button"
             className="flex flex-col items-center justify-center h-full active:scale-95 transition-all group relative cursor-pointer"

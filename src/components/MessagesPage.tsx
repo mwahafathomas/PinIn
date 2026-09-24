@@ -528,7 +528,46 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       {/* Bottom Navigation Dock */}
       <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-4 items-center">
-          {/* Marketplace Icon at left */}
+          {/* 1. Messages Icon (First at left, active) */}
+          <button
+            type="button"
+            onClick={() => {
+              onSelectConversation(null);
+            }}
+            className="flex flex-col items-center justify-center h-full active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Messages"
+          >
+            <div className="relative flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 stroke-[2] text-[#2D8EDE] transition-transform group-hover:scale-105" />
+              {unreadMessagesCount > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                  {unreadMessagesCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">
+              messages
+            </span>
+          </button>
+
+          {/* 2. Profile Icon (Second) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenAccount) onOpenAccount();
+            }}
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Profile"
+          >
+            <div className="relative flex items-center justify-center">
+              <UserIcon className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
+            </div>
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+              Profile
+            </span>
+          </button>
+
+          {/* 3. Marketplace Icon (Third) */}
           <button
             type="button"
             onClick={() => {
@@ -551,46 +590,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
             </span>
           </button>
 
-          {/* Messages Icon */}
-          <button
-            type="button"
-            onClick={() => {
-              onSelectConversation(null);
-            }}
-            className="flex flex-col items-center justify-center h-full active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Messages"
-          >
-            <div className="relative flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 stroke-[2] text-[#2D8EDE] transition-transform group-hover:scale-105" />
-              {unreadMessagesCount > 0 && (
-                <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
-                  {unreadMessagesCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">
-              messages
-            </span>
-          </button>
-
-          {/* Profile Icon between Messages and Notifications */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onOpenAccount) onOpenAccount();
-            }}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Profile"
-          >
-            <div className="relative flex items-center justify-center">
-              <UserIcon className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
-            </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
-              Profile
-            </span>
-          </button>
-
-          {/* Notification Icon at right */}
+          {/* 4. Notification Icon (Last at right) */}
           <button
             type="button"
             onClick={() => {

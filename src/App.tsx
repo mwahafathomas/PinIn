@@ -39,7 +39,6 @@ import { PullToRefresh } from './components/PullToRefresh';
 import { Toast } from './components/Toast';
 import { DesktopFooter } from './components/DesktopFooter';
 import { InternetBanner } from './components/InternetBanner';
-import NetInfo from '@react-native-community/netinfo';
 import {
   initGoogleAnalytics,
   trackPageView,
@@ -606,6 +605,7 @@ interface UserProfileRouteViewProps {
   onClose: () => void;
   onMessageUser: (targetUser: { id: string; name: string; avatar: string; location?: string }) => void;
   selectedProfile: { id: string; profile?: any } | null;
+  onRequireAuth?: () => void;
 }
 
 const UserProfileRouteView: React.FC<UserProfileRouteViewProps> = ({
@@ -613,6 +613,7 @@ const UserProfileRouteView: React.FC<UserProfileRouteViewProps> = ({
   onClose,
   onMessageUser,
   selectedProfile,
+  onRequireAuth,
 }) => {
   const { id } = useParams<{ id: string }>();
   const effectiveId = id || selectedProfile?.id || '';
@@ -625,6 +626,7 @@ const UserProfileRouteView: React.FC<UserProfileRouteViewProps> = ({
       currentUser={currentUser}
       onClose={onClose}
       onMessageUser={onMessageUser}
+      onRequireAuth={onRequireAuth}
     />
   );
 };
@@ -802,18 +804,25 @@ export default function App() {
   // Feed Refreshing State
   const [isFeedRefreshing, setIsFeedRefreshing] = useState(false);
 
-  // Offline detection using @react-native-community/netinfo at root
+  // Offline detection using navigator.onLine and window online/offline events
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     return typeof navigator !== 'undefined' ? navigator.onLine : true;
   });
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const online = state.isConnected !== false && state.isInternetReachable !== false;
-      setIsOnline(online);
-    });
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    if (typeof navigator !== 'undefined') {
+      setIsOnline(navigator.onLine);
+    }
+
     return () => {
-      unsubscribe();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -1491,7 +1500,7 @@ export default function App() {
       } else {
         setAuthMode('signin');
         goTo('/auth?mode=signin');
-        showToast('Please sign in to access this page.');
+        showToast('Sign in first to access this page');
       }
     } catch {
       if (user.isLoggedIn || localStorage.getItem('user_data')) {
@@ -1499,7 +1508,7 @@ export default function App() {
       } else {
         setAuthMode('signin');
         goTo('/auth?mode=signin');
-        showToast('Please sign in to access this page.');
+        showToast('Sign in first to access this page');
       }
     }
   };
@@ -3065,10 +3074,13 @@ export default function App() {
                     }
                   }}
                   onMessageUser={(target) => {
-                    const convId = handleStartNewConversationWithUser(target);
-                    goTo(`/messages/${convId}`, 1);
+                    requireAuth(() => {
+                      const convId = handleStartNewConversationWithUser(target);
+                      goTo(`/messages/${convId}`, 1);
+                    });
                   }}
                   selectedProfile={selectedUserProfile}
+                  onRequireAuth={() => handleOpenAuth('signin')}
                 />
               }
             />
@@ -3086,10 +3098,13 @@ export default function App() {
                     }
                   }}
                   onMessageUser={(target) => {
-                    const convId = handleStartNewConversationWithUser(target);
-                    goTo(`/messages/${convId}`, 1);
+                    requireAuth(() => {
+                      const convId = handleStartNewConversationWithUser(target);
+                      goTo(`/messages/${convId}`, 1);
+                    });
                   }}
                   selectedProfile={selectedUserProfile}
+                  onRequireAuth={() => handleOpenAuth('signin')}
                 />
               }
             />

@@ -21,6 +21,7 @@ interface UserProfilePageProps {
   currentUser: UserAccount;
   onClose: () => void;
   onMessageUser: (targetUser: { id: string; name: string; avatar: string; location?: string }) => void;
+  onRequireAuth?: () => void;
 }
 
 export const UserProfilePage: React.FC<UserProfilePageProps> = ({
@@ -29,6 +30,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
   currentUser,
   onClose,
   onMessageUser,
+  onRequireAuth,
 }) => {
   const [profile, setProfile] = useState<Partial<UserProfileData>>(() => {
     return initialProfile || { id: userId };
@@ -74,6 +76,12 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const isSelf = currentUser?.id && currentUser.id === userId;
 
   const handleMessage = () => {
+    if (!currentUser?.isLoggedIn || !currentUser.id || currentUser.id === 'guest') {
+      if (onRequireAuth) {
+        onRequireAuth();
+      }
+      return;
+    }
     onMessageUser({
       id: userId,
       name: displayName,
@@ -93,7 +101,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Go back"
-              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF] cursor-pointer"
+              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
               <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -102,7 +110,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
           {/* App Name at top (PinIn) */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-              Pin<span className="text-[#0052FF]">In</span>
+              Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
@@ -155,7 +163,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
               <button
                 type="button"
                 onClick={handleMessage}
-                className="w-full bg-[#0052FF] hover:bg-blue-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-md active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052FF]"
+                className="w-full bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-bold py-3.5 px-6 rounded-xl shadow-md active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE]"
               >
                 <MessageSquare className="w-5 h-5" />
                 <span>Message User</span>

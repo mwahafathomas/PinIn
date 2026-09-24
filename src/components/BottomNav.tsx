@@ -23,30 +23,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       className="w-full bg-white"
     >
       <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-4 items-center">
-        {/* 1. Marketplace Icon at bottom left */}
-        <button
-          type="button"
-          onClick={() => onNavigate('marketplace')}
-          aria-label="Marketplace"
-          className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
-        >
-          <div className="relative flex items-center justify-center">
-            <Store
-              className={`w-5 h-5 stroke-[2.2] transition-colors ${
-                isMarketplaceActive ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
-              }`}
-            />
-          </div>
-          <span
-            className={`text-[11px] font-bold mt-1 leading-none transition-colors ${
-              isMarketplaceActive ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
-            }`}
-          >
-            Marketplace
-          </span>
-        </button>
-
-        {/* 2. Messages Icon */}
+        {/* 1. Messages Icon (First at the left) */}
         <button
           type="button"
           onClick={() => onNavigate('messages')}
@@ -74,7 +51,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           </span>
         </button>
 
-        {/* 3. Profile Icon (Between messages and notifications) */}
+        {/* 2. Profile Icon (Second) */}
         <button
           type="button"
           onClick={() => onNavigate('profile')}
@@ -97,7 +74,30 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           </span>
         </button>
 
-        {/* 4. Notifications Icon at bottom right */}
+        {/* 3. Marketplace Icon (Third) */}
+        <button
+          type="button"
+          onClick={() => onNavigate('marketplace')}
+          aria-label="Marketplace"
+          className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+        >
+          <div className="relative flex items-center justify-center">
+            <Store
+              className={`w-5 h-5 stroke-[2.2] transition-colors ${
+                isMarketplaceActive ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
+              }`}
+            />
+          </div>
+          <span
+            className={`text-[11px] font-bold mt-1 leading-none transition-colors ${
+              isMarketplaceActive ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
+            }`}
+          >
+            Marketplace
+          </span>
+        </button>
+
+        {/* 4. Notifications Icon (Last at right) */}
         <button
           type="button"
           onClick={() => onNavigate('notifications')}

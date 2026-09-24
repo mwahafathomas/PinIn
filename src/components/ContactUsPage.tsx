@@ -127,9 +127,31 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-gray-50 overflow-y-auto no-scrollbar flex flex-col font-sans"
+      className="contact-us-page fixed inset-0 z-50 bg-gray-50 overflow-y-auto flex flex-col font-sans select-none"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
+      <style>{`
+        .contact-us-page {
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .contact-us-page::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+          background: transparent !important;
+        }
+        .contact-us-page * {
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .contact-us-page *::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+          background: transparent !important;
+        }
+      `}</style>
       {/* Centered Message Sent / Status Popup */}
       {toast && (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 pointer-events-auto">

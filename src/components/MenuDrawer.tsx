@@ -122,33 +122,25 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
 
         {/* Navigation list */}
         <div className="flex-1 overflow-y-auto py-2 px-3 space-y-1">
-          {/* Sign In / Sign Out */}
-          <button
-            type="button"
-            onClick={() => {
-              if (user.isLoggedIn) {
-                setShowSignOutConfirm(true);
-              } else {
-                onClose();
-                onOpenAuth('signin');
-              }
-            }}
-            className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-100 text-gray-700 font-medium text-sm transition-colors text-left cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              {user.isLoggedIn ? (
-                <LogOut className="w-5 h-5 text-red-500" />
-              ) : (
-                <LogIn className="w-5 h-5 text-[#2D8EDE]" />
-              )}
-              <span className={user.isLoggedIn ? 'text-red-600 font-semibold' : 'text-gray-900 font-semibold'}>
-                {user.isLoggedIn ? 'Sign Out' : 'Sign In'}
-              </span>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </button>
-
-          <div className="h-px bg-gray-100 my-1" />
+          {/* Sign Out (Only shown if logged in) */}
+          {user.isLoggedIn && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSignOutConfirm(true);
+                }}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-100 text-gray-700 font-medium text-sm transition-colors text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <LogOut className="w-5 h-5 text-red-500" />
+                  <span className="text-red-600 font-semibold">Sign Out</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </button>
+              <div className="h-px bg-gray-100 my-1" />
+            </>
+          )}
 
           {/* Sell */}
           <button
@@ -163,9 +155,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
               <PlusCircle className="w-5 h-5 text-[#2D8EDE] group-hover:scale-110 transition-transform" />
               <span className="font-bold text-gray-900">Sell</span>
             </div>
-            <span className="text-[10px] bg-blue-100 text-[#2D8EDE] px-2 py-0.5 rounded font-bold">
-              + Post
-            </span>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </button>
 
           {/* Account */}
@@ -240,7 +230,7 @@ export const MenuDrawer: React.FC<MenuDrawerProps> = ({
         </div>
 
         {/* Drawer footer */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50/50 text-center">
+        <div className="p-4 border-t border-gray-100 bg-white text-center">
           <p className="text-[11px] text-gray-400 font-medium">PinIn</p>
         </div>
       </div>
