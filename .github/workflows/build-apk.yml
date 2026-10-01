@@ -36,16 +36,15 @@ jobs:
         run: |
           npx @capacitor/cli add android
           npx @capacitor/cli copy android
-      - name: Fix compileSdk to 34
+      - name: Fix compileSdk and Gradle
         run: |
           sed -i "s/compileSdkVersion = .*/compileSdkVersion = 36/" android/variables.gradle
           sed -i "s/targetSdkVersion = .*/targetSdkVersion = 36/" android/variables.gradle
-          sed -i "s/com.android.tools.build:gradle:8.0.0/com.android.tools.build:gradle:8.7.3/" android/build.gradle
-          sed -i "s/com.android.tools.build:gradle:8.1.0/com.android.tools.build:gradle:8.7.3/" android/build.gradle
-          sed -i "s/com.android.tools.build:gradle:8.5.1/com.android.tools.build:gradle:8.7.3/" android/build.gradle
-          sed -i "s/gradle-.*-all.zip/gradle-8.9-all.zip/" android/gradle/wrapper/gradle-wrapper.properties
-          sed -i "s/androidxCoreKtxVersion = .*/androidxCoreKtxVersion = '1.12.0'/" android/variables.gradle
-          sed -i "s/core-ktx:.*/core-ktx:1.12.0'/" android/variables.gradle
+          sed -i "s/com.android.tools.build:gradle:.*/com.android.tools.build:gradle:8.9.1/" android/build.gradle
+          sed -i "s/gradle-.*-all.zip/gradle-8.11-all.zip/" android/gradle/wrapper/gradle-wrapper.properties
+      - name: Force old androidx core
+        run: |
+          echo "configurations.all { resolutionStrategy { force 'androidx.core:core:1.12.0'; force 'androidx.core:core-ktx:1.12.0' } }" >> android/app/build.gradle
       - name: Generate icons and splash
         run: |
           npm install @capacitor/assets --save-dev --legacy-peer-deps
