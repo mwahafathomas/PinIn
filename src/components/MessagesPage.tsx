@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Menu,
+  Home,
   Search,
-  Store,
   MessageSquare,
   Bell,
   User as UserIcon,
@@ -81,7 +80,6 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   onOpenMenu,
   onOpenUserProfile,
 }) => {
-  const [activeTab, setActiveTab] = useState<'all' | 'communities'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -206,23 +204,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       {/* Top Header Bar (White) */}
       <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
-          {/* 3 bars menu button */}
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenMenu) {
-                  onOpenMenu();
-                } else {
-                  onClose();
-                }
-              }}
-              aria-label="Open menu"
-              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
-            >
-              <Menu className="w-6 h-6 stroke-[2.5]" />
-            </button>
-          </div>
+          {/* Left spacer */}
+          <div className="w-8" aria-hidden="true" />
 
           {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
@@ -344,37 +327,6 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         ) : (
           /* Conversations List: Displays only users that a user has texted in listings or in search */
           <div className="flex-1 flex flex-col min-h-0">
-            {/* Containers for (All, Communities, The circle) styled like (Sell, Categories, Filters) boxes on home page */}
-            <div className="w-full bg-[#2D8EDE] text-white rounded-2xl grid grid-cols-3 divide-x divide-white/20 overflow-hidden shadow-xs mb-3 shrink-0">
-              <button
-                type="button"
-                onClick={() => setActiveTab('all')}
-                className={`flex items-center justify-center py-3 px-2 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer ${
-                  activeTab === 'all' ? 'bg-white/20 shadow-inner' : 'hover:bg-white/10 active:bg-white/20'
-                }`}
-              >
-                <span className="whitespace-nowrap">All</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('communities')}
-                className={`flex items-center justify-center py-3 px-2 text-white font-bold text-sm tracking-wide transition-colors cursor-pointer ${
-                  activeTab === 'communities' ? 'bg-white/20 shadow-inner' : 'hover:bg-white/10 active:bg-white/20'
-                }`}
-              >
-                <span className="whitespace-nowrap">Communities</span>
-              </button>
-
-              {/* The circle - not clickable yet */}
-              <div
-                aria-disabled="true"
-                className="flex items-center justify-center py-3 px-2 text-white/50 font-bold text-sm tracking-wide cursor-default select-none pointer-events-none"
-              >
-                <span className="whitespace-nowrap">The circle</span>
-              </div>
-            </div>
-
             <div className="bg-white border-2 border-gray-200 rounded-3xl overflow-hidden shadow-xs divide-y divide-gray-100 flex-1 overflow-y-auto">
               {!user || !user.isLoggedIn || !user.id || user.id === 'guest' ? (
                 <div className="p-8 text-center space-y-4 flex flex-col items-center justify-center my-auto">
@@ -396,18 +348,6 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                       Find users
                     </div>
                   </div>
-                </div>
-              ) : activeTab === 'communities' ? (
-                <div className="p-8 text-center text-gray-500">
-                  <div className="w-12 h-12 mx-auto mb-2.5 rounded-2xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <Users className="w-6 h-6 stroke-[2.2]" />
-                  </div>
-                  <p className="text-xs font-bold text-gray-800">
-                    No community channels yet
-                  </p>
-                  <p className="text-[11px] text-gray-400 mt-1 max-w-xs mx-auto">
-                    Local furniture & neighborhood community chats will appear here.
-                  </p>
                 </div>
               ) : activeConversations.length > 0 ? (
                 activeConversations.map((conv) => {
@@ -527,8 +467,31 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
       {/* Bottom Navigation Dock */}
       <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
-        <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-4 items-center">
-          {/* 1. Messages Icon (First at left, active) */}
+        <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-3 items-center">
+          {/* 1. Home Icon (First at left) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenHome) {
+                onOpenHome();
+              } else if (onOpenSearch) {
+                onOpenSearch();
+              } else {
+                onClose();
+              }
+            }}
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Home"
+          >
+            <div className="relative flex items-center justify-center">
+              <Home className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
+            </div>
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+              Home
+            </span>
+          </button>
+
+          {/* 2. Messages Icon (Second, active) */}
           <button
             type="button"
             onClick={() => {
@@ -550,47 +513,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
             </span>
           </button>
 
-          {/* 2. Profile Icon (Second) */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onOpenAccount) onOpenAccount();
-            }}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Profile"
-          >
-            <div className="relative flex items-center justify-center">
-              <UserIcon className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
-            </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
-              Profile
-            </span>
-          </button>
-
-          {/* 3. Marketplace Icon (Third) */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onOpenHome) {
-                onOpenHome();
-              } else if (onOpenSearch) {
-                onOpenSearch();
-              } else {
-                onClose();
-              }
-            }}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Marketplace"
-          >
-            <div className="relative flex items-center justify-center">
-              <Store className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
-            </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
-              Marketplace
-            </span>
-          </button>
-
-          {/* 4. Notification Icon (Last at right) */}
+          {/* 3. Notification Icon (Last at right) */}
           <button
             type="button"
             onClick={() => {

@@ -19,6 +19,36 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'Pinin Marketplace Server' });
 });
 
+// 1.5 Current User / Token Refresh Handler
+app.get('/api/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: Missing bearer token' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://vryfivnkgfbbmsogjptj.supabase.co';
+    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyeWZpdm5rZ2ZiYm1zb2dqcHRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAxNzgzMTAsImV4cCI6MjA1NTc1NDMxMH0.KffWv4t0D75u1325qJ5R5k4PfvZ7u32d4vA';
+
+    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: supabaseAnonKey,
+      },
+    });
+
+    if (!userRes.ok) {
+      return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+    }
+
+    const userData = await userRes.json();
+    return res.json({ success: true, user: userData });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Internal error' });
+  }
+});
+
 // 2. Contact Message Backend Handler
 app.post('/api/contact', async (req, res) => {
   try {
@@ -73,8 +103,8 @@ app.post('/api/contact', async (req, res) => {
         subject: `[Support Inquiry] ${userSubject} - from ${userName}`,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; color: #111827; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px;">
-            <div style="border-bottom: 2px solid #0052FF; padding-bottom: 16px; margin-bottom: 20px;">
-              <h1 style="color: #0052FF; font-size: 22px; font-weight: 800; margin: 0;">Pin<span style="color: #111827;">In</span> Support</h1>
+            <div style="border-bottom: 2px solid #2D8EDE; padding-bottom: 16px; margin-bottom: 20px;">
+              <h1 style="color: #2D8EDE; font-size: 22px; font-weight: 800; margin: 0;">Pin<span style="color: #111827;">In</span> Support</h1>
               <p style="color: #6b7280; font-size: 13px; margin: 4px 0 0 0;">New Contact Us message received from customer</p>
             </div>
 
@@ -91,8 +121,8 @@ app.post('/api/contact', async (req, res) => {
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-weight: 600;">User Email:</td>
-                <td style="padding: 8px 0; color: #0052FF; font-weight: 700;">
-                  <a href="mailto:${userEmail}" style="color: #0052FF; text-decoration: none;">${userEmail}</a>
+                <td style="padding: 8px 0; color: #2D8EDE; font-weight: 700;">
+                  <a href="mailto:${userEmail}" style="color: #2D8EDE; text-decoration: none;">${userEmail}</a>
                 </td>
               </tr>
               <tr>
@@ -133,7 +163,7 @@ app.post('/api/contact', async (req, res) => {
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #111827; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px;">
             <div style="margin-bottom: 20px;">
-              <h1 style="color: #0052FF; font-size: 24px; font-weight: 800; margin: 0;">Pin<span style="color: #111827;">In</span></h1>
+              <h1 style="color: #2D8EDE; font-size: 24px; font-weight: 800; margin: 0;">Pin<span style="color: #111827;">In</span></h1>
               <p style="color: #6b7280; font-size: 13px; margin: 4px 0 0 0;">South Africa's Trusted Second-Hand Furniture Marketplace</p>
             </div>
 
@@ -157,14 +187,14 @@ app.post('/api/contact', async (req, res) => {
 
             <div style="background-color: #eff6ff; border: 1px solid #dbeafe; border-radius: 10px; padding: 14px; margin-bottom: 24px;">
               <p style="margin: 0; font-size: 13px; color: #1e40af;">
-                Direct inquiries or additional info: <a href="mailto:${PININ_SUPPORT_INBOX}" style="color: #0052FF; font-weight: 600; text-decoration: none;">${PININ_SUPPORT_INBOX}</a>
+                Direct inquiries or additional info: <a href="mailto:${PININ_SUPPORT_INBOX}" style="color: #2D8EDE; font-weight: 600; text-decoration: none;">${PININ_SUPPORT_INBOX}</a>
               </p>
             </div>
 
             <p style="font-size: 12px; color: #9ca3af; margin: 0;">
               Best regards,<br />
               <strong>Pinin Support Team</strong><br />
-              <a href="https://pinin.co.za" style="color: #0052FF; text-decoration: none;">pinin.co.za</a>
+              <a href="https://pinin.co.za" style="color: #2D8EDE; text-decoration: none;">pinin.co.za</a>
             </p>
           </div>
         `,

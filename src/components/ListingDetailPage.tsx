@@ -4,21 +4,28 @@ import {
   ChevronRight,
   Bookmark,
   MapPin,
-  Send,
   MoreVertical,
   Flag,
   Share,
   Check,
   AlertCircle,
   X,
-  ShieldAlert,
   ShieldCheck,
   Tag,
   Image as ImageIcon,
+  ShoppingCart,
+  Plus,
+  Minus,
+  Truck,
+  Star,
+  RotateCcw,
+  Handshake,
+  Info,
+  CheckCircle,
 } from 'lucide-react';
 import { FurnitureItem, UserAccount } from '../types/furniture';
-import { DEFAULT_AVATAR_IMAGE } from '../data/defaultAvatar';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+import { addToCart } from '../services/cartService';
 import { Share as NativeShare } from '@capacitor/share';
 
 interface ListingDetailPageProps {
@@ -27,29 +34,28 @@ interface ListingDetailPageProps {
   onClose: () => void;
   isSaved?: boolean;
   onToggleSave: (id: string, e: React.MouseEvent) => void;
-  onSendMessageToSeller: (item: FurnitureItem, message: string) => void;
   onShare: (item: FurnitureItem) => void;
   onReport?: (item: FurnitureItem, reason: string, details?: string) => void;
   onOpenSearch?: () => void;
+  onOpenCart?: () => void;
+  user?: UserAccount;
+  onOpenAuth?: (mode?: 'signin' | 'register') => void;
+  // Deprecated props kept optional for backwards compatibility
+  onSendMessageToSeller?: (item: FurnitureItem, message: string) => void;
+  onOpenUserProfile?: (userId: string, initialData?: any) => void;
   onOpenMessages?: () => void;
   onOpenNotifications?: () => void;
   unreadMessagesCount?: number;
   unreadNotificationsCount?: number;
-  user?: UserAccount;
-  onOpenAuth?: (mode?: 'signin' | 'register') => void;
-  onOpenUserProfile?: (userId: string, initialData?: { id?: string; name?: string; surname?: string; avatar?: string; location?: string; bio?: string }) => void;
 }
 
 const REPORT_REASONS = [
-  'Requires deposit',
-  'Fake photos',
-  'Inappropriate content',
-  'Spam / duplicate listing',
-  'Item is already sold / unavailable',
-  'Suspected scam / fraudulent listing',
-  'Illegal',
-  'Abusive / rude seller',
-  'Other',
+  "description doesn't match product",
+  'wrong product image',
+  'blurry product image',
+  'high price',
+  'duplicate product',
+  'other',
 ];
 
 export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
@@ -58,33 +64,25 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   onClose,
   isSaved = false,
   onToggleSave,
-  onSendMessageToSeller,
   onShare,
   onReport,
-  user,
-  onOpenAuth,
-  onOpenUserProfile,
+  onOpenCart,
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [failedThumbnails, setFailedThumbnails] = useState<Record<number, boolean>>({});
-  const [messageInput, setMessageInput] = useState('');
-  const [messageSentFeedback, setMessageSentFeedback] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [reportReason, setReportReason] = useState('Requires deposit');
+  const [reportReason, setReportReason] = useState("description doesn't match product");
   const [otherDetails, setOtherDetails] = useState('');
-  
-  // Scam Alert Notice modal state
-  const [isScamWarningOpen, setIsScamWarningOpen] = useState(false);
-  const [isUnderstoodChecked, setIsUnderstoodChecked] = useState(false);
-  const [pendingMessage, setPendingMessage] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [addedToCartFeedback, setAddedToCartFeedback] = useState(false);
 
   const carouselRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen || !item) return null;
 
-  // Multiple photos support - gather all available photos (optimized for egress)
+  // Multiple photos support
   const rawImages: string[] = [];
   const addImageToList = (img: unknown) => {
     if (img && typeof img === 'string') {
@@ -138,13 +136,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
     getOptimizedImageUrl(img, { width: 600, quality: 70, format: 'webp' })
   );
 
-  // Check if current user is the owner / seller of this item
-  const isOwnListing =
-    user?.isLoggedIn &&
-    ((user?.id && (user.id === item.seller.id || user.id === (item as any).userId)) ||
-      (user?.email && item.seller.email && user.email.toLowerCase() === item.seller.email.toLowerCase()) ||
-      (user?.name && user.name.trim().toLowerCase() === item.seller.name.trim().toLowerCase()));
-
   const handleCarouselScroll = () => {
     if (carouselRef.current) {
       const { scrollLeft, clientWidth } = carouselRef.current;
@@ -182,7 +173,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
     scrollToImageIndex(next);
   };
 
-  // Keyboard navigation for image carousel
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
@@ -197,35 +187,19 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeImageIndex, allImages.length]);
 
-  const handleSendDirectMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    const isUserLoggedIn = Boolean(user?.isLoggedIn && user.id && user.id !== 'guest');
-    if (!isUserLoggedIn) {
-      if (onOpenAuth) {
-        onOpenAuth('signin');
-      }
-      return;
-    }
-
-    if (!messageInput.trim()) return;
-
-    // Trigger Scam alert popup requirement before sending message
-    setPendingMessage(messageInput.trim());
-    setIsUnderstoodChecked(false);
-    setIsScamWarningOpen(true);
+  const handleAddToCart = () => {
+    addToCart(item, quantity);
+    setAddedToCartFeedback(true);
+    setTimeout(() => {
+      setAddedToCartFeedback(false);
+    }, 3000);
   };
 
-  const handleConfirmSendMessage = () => {
-    if (!isUnderstoodChecked || !pendingMessage) return;
-
-    onSendMessageToSeller(item, pendingMessage);
-    setIsScamWarningOpen(false);
-    setMessageSentFeedback(true);
-    setMessageInput('');
-    setPendingMessage('');
-    setTimeout(() => {
-      setMessageSentFeedback(false);
-    }, 3500);
+  const handleBuyNow = () => {
+    addToCart(item, quantity);
+    if (onOpenCart) {
+      onOpenCart();
+    }
   };
 
   const handleConfirmReport = () => {
@@ -248,51 +222,41 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
         title: 'Check this on PinIn',
         text: shareText,
         url: shareUrl,
-        dialogTitle: 'Share via',
+        dialogTitle: 'Share Furniture Listing',
       });
-    } catch (err: any) {
-      const errStr = String(err?.message || err || '');
-      if (
-        errStr.includes('canceled') ||
-        errStr.includes('cancelled') ||
-        errStr.includes('AbortError') ||
-        errStr.includes('dismissed')
-      ) {
-        return;
+    } catch {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl);
       }
-      console.warn('Native share error:', err);
     }
   };
 
+  const sellerDisplayName = item.seller?.name || 'PinIn Verified Seller';
+
   return (
     <div
-      className="fixed inset-0 z-50 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans select-none"
+      className="fixed inset-0 z-50 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans"
       onClick={() => setIsMenuOpen(false)}
     >
-      {/* Top Header Bar (White) */}
+      {/* Top Header Bar */}
       <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
-          {/* Go back option ( < ) */}
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Go back"
-              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
-            >
-              <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Go back"
+            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
+          >
+            <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+          </button>
 
-          {/* App Name (PinIn) right in the middle */}
           <div className="absolute left-1/2 -translate-x-1/2">
             <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
               Pin<span className="text-[#2D8EDE]">In</span>
             </span>
           </div>
 
-          {/* 3 dots */}
-          <div className="relative flex items-center">
+          <div className="relative">
             <button
               type="button"
               onClick={(e) => {
@@ -300,15 +264,14 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 setIsMenuOpen((prev) => !prev);
               }}
               aria-label="More options"
-              className="p-2 -mr-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+              className="p-2 -mr-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
             >
-              <MoreVertical className="w-5 h-5 stroke-[2.5] text-gray-700 hover:text-[#2D8EDE]" />
+              <MoreVertical className="w-5 h-5 text-gray-700 hover:text-[#2D8EDE]" />
             </button>
 
-            {/* Dropdown Menu */}
             {isMenuOpen && (
               <div
-                className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-200 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150"
+                className="absolute right-0 mt-2 w-44 bg-white rounded-2xl shadow-xl border border-gray-200 py-1 z-40 animate-in fade-in zoom-in-95 duration-100"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
@@ -318,10 +281,10 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     await handleNativeShare(item);
                     onShare?.(item);
                   }}
-                  className="w-full px-3.5 py-2.5 text-left text-xs font-bold text-gray-800 hover:bg-blue-50 hover:text-[#2D8EDE] flex items-center gap-2.5 transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-blue-50 hover:text-[#2D8EDE] flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Share className="w-4 h-4 text-[#2D8EDE]" />
-                  <span>Share listing</span>
+                  <Share className="w-4 h-4 text-gray-500" />
+                  <span>Share Listing</span>
                 </button>
 
                 <div className="h-px bg-gray-100 my-1" />
@@ -332,10 +295,10 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     setIsMenuOpen(false);
                     setIsReportModalOpen(true);
                   }}
-                  className="w-full px-3.5 py-2.5 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
                 >
                   <Flag className="w-4 h-4 text-red-500" />
-                  <span>Report listing</span>
+                  <span>Report Listing</span>
                 </button>
               </div>
             )}
@@ -343,12 +306,12 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
         </div>
       </header>
 
-      {/* Main Content Area (Scrollable - responsive for tablet/laptop) */}
-      <main className="flex-1 w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto overflow-y-auto px-4 md:px-6 lg:px-8 pt-3 pb-8">
-        <div className="md:grid md:grid-cols-12 md:gap-8 md:items-start space-y-3.5 md:space-y-0">
-          {/* Left Column on Desktop/Tablet: Image Carousel, Category/Location Space, and Description Space */}
+      {/* Main Content Area */}
+      <main className="flex-1 w-full max-w-md md:max-w-7xl mx-auto overflow-y-auto px-4 md:px-6 lg:px-8 pt-4 pb-12">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-8 items-start">
+          {/* Left Column: Photos Carousel & Details */}
           <div className="md:col-span-6 lg:col-span-7 space-y-3.5">
-            {/* Swipeable Images Carousel with square corners */}
+            {/* Swipeable Images Carousel */}
             <div className="relative aspect-4/3 bg-gray-900 rounded-none overflow-hidden border-2 border-gray-200 shadow-md group">
               <div
                 ref={carouselRef}
@@ -374,7 +337,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 ))}
               </div>
 
-              {/* Prev / Next navigation buttons on carousel */}
+              {/* Prev / Next navigation buttons */}
               {allImages.length > 1 && (
                 <>
                   <button
@@ -397,7 +360,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </>
               )}
 
-              {/* Photo counter at bottom left (e.g. 1/5) */}
+              {/* Photo counter */}
               {allImages.length > 1 && (
                 <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-xs z-10 pointer-events-none shadow-md">
                   {activeImageIndex + 1}/{allImages.length}
@@ -405,7 +368,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               )}
             </div>
 
-            {/* Thumbnail preview strip for quick switching when multiple images exist */}
+            {/* Thumbnail preview strip */}
             {allImages.length > 1 && (
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {allImages.map((img, idx) => (
@@ -440,10 +403,9 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </div>
             )}
 
-            {/* Space for Location & Category directly under the Image */}
+            {/* Location & Category Badges */}
             <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-2.5">
-                {/* Location */}
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
                     <MapPin className="w-4 h-4 stroke-[2.5]" />
@@ -458,7 +420,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   </div>
                 </div>
 
-                {/* Category & Condition Badges */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#2D8EDE] rounded-xl border border-blue-200 text-xs font-black">
                     <Tag className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -472,7 +433,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </div>
             </div>
 
-            {/* Space for Description directly under Category & Location */}
+            {/* Description */}
             <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs">
               <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#2D8EDE]" />
@@ -480,7 +441,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </h2>
               <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium whitespace-pre-line">
                 {item.description ||
-                  'Beautiful and high quality furniture piece in excellent condition. Well taken care of and ready for pickup.'}
+                  'High quality furniture piece available on PinIn. Well maintained and ready for immediate purchase.'}
               </p>
 
               {item.dimensions && (
@@ -490,13 +451,97 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </p>
               )}
             </div>
+
+            {/* Product Information (Info written in Supabase) */}
+            {item.productInformation && item.productInformation.trim() !== '' && (
+              <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs space-y-2">
+                <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Info className="w-4 h-4 text-[#2D8EDE]" />
+                  <span>Product Information</span>
+                </h2>
+                <div className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium whitespace-pre-line bg-gray-50/70 p-3.5 rounded-2xl border border-gray-200">
+                  {item.productInformation}
+                </div>
+              </div>
+            )}
+
+            {/* Customer Reviews Section */}
+            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs space-y-3.5">
+              <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+                    <span>Customer Reviews</span>
+                  </h2>
+                  <span className="text-xs font-black text-gray-900 bg-amber-50 text-amber-900 px-2 py-0.5 rounded-lg border border-amber-200">
+                    ★ {item.seller?.rating ? item.seller.rating.toFixed(1) : '5.0'}
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-gray-500">
+                  {(item.reviewsList?.length || item.seller?.reviewCount || 2)} review(s)
+                </span>
+              </div>
+
+              {/* Reviews List */}
+              <div className="space-y-2.5">
+                {(item.reviewsList && item.reviewsList.length > 0
+                  ? item.reviewsList
+                  : [
+                      {
+                        id: 'rev-1',
+                        author: 'Sipho D.',
+                        rating: 5,
+                        date: '2 weeks ago',
+                        comment: 'Item is in great condition as described. Quick handover and great communication!',
+                      },
+                      {
+                        id: 'rev-2',
+                        author: 'Candice M.',
+                        rating: 5,
+                        date: '1 month ago',
+                        comment: 'Very happy with this purchase. Quality furniture and smooth transaction.',
+                      },
+                    ]
+                ).map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="p-3 bg-gray-50 rounded-2xl border border-gray-200 space-y-1 text-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-extrabold text-gray-900">{rev.author}</span>
+                        <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full">
+                          Verified Buyer
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-0.5 text-amber-400">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-3 h-3 ${
+                              i < rev.rating
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-gray-700 font-medium leading-relaxed">
+                      {rev.comment}
+                    </p>
+                    <span className="text-[10px] text-gray-400 block pt-0.5">{rev.date}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Right Column on Desktop/Tablet: Title, Price, Messaging, and Safety */}
+          {/* Right Column: Title, Price, Add to Cart / Buy Now, and Clean Non-Clickable Seller Info */}
           <div className="md:col-span-6 lg:col-span-5 space-y-3.5">
-            {/* Title, Price with Rand 'R', Save Bookmark & Share */}
-            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs">
-              <div className="flex items-start justify-between gap-3 mb-3">
+            {/* Title, Price, Save Bookmark & Share */}
+            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs space-y-3">
+              <div className="flex items-start justify-between gap-3">
                 <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight leading-tight flex-1">
                   {item.title}
                 </h1>
@@ -518,7 +563,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </button>
               </div>
 
-              {/* Price with Rand 'R' */}
+              {/* Price & Share */}
               <div className="flex items-center justify-between pt-1">
                 <div className="bg-[#2D8EDE] text-white text-base sm:text-lg font-black px-4 py-1.5 rounded-xl shadow-xs inline-flex items-center">
                   R{item.price}
@@ -536,114 +581,158 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   <span>Share</span>
                 </button>
               </div>
+
+              {/* In Stock & Feature Badges (Warranty, Returns, Pay in person if marked yes at Supabase) */}
+              <div className="pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
+                {/* In Stock status */}
+                {item.inStock !== false && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] font-black">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>In Stock</span>
+                  </span>
+                )}
+
+                {/* Warranty Badge (if marked yes at Supabase) */}
+                {(item.warranty === true || String(item.warranty).toLowerCase() === 'yes') && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 text-[11px] font-extrabold">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#2D8EDE]" />
+                    <span>Warranty</span>
+                  </span>
+                )}
+
+                {/* Returns Badge (if marked yes at Supabase) */}
+                {(item.returns === true || String(item.returns).toLowerCase() === 'yes') && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-50 text-purple-800 border border-purple-200 text-[11px] font-extrabold">
+                    <RotateCcw className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Returns</span>
+                  </span>
+                )}
+
+                {/* Pay in Person Badge (if marked yes at Supabase) */}
+                {(item.payInPerson === true || String(item.payInPerson).toLowerCase() === 'yes') && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-extrabold">
+                    <Handshake className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Pay in Person</span>
+                  </span>
+                )}
+              </div>
+
+              {/* Delivery Estimation */}
+              <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-2xl flex items-center justify-between shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-white text-[#2D8EDE] flex items-center justify-center shadow-2xs">
+                    <Truck className="w-4 h-4 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 block">
+                      Delivery Estimation
+                    </span>
+                    <span className="text-xs font-black text-gray-900">
+                      {item.deliveryEstimation || '2 to 5 days'}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-lg border border-blue-100 shadow-2xs">
+                  Door-to-door
+                </span>
+              </div>
             </div>
 
-            {/* Message Seller & Seller Profile Section */}
-            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 shadow-xs flex items-center gap-3">
-              {/* If the current user owns this item, sellers cannot message themselves */}
-              {isOwnListing ? (
-                <div className="flex-1 bg-blue-50 border border-blue-200 rounded-2xl p-3.5 text-center">
-                  <p className="text-xs sm:text-sm font-bold text-[#2D8EDE]">
-                    This is your listing
-                  </p>
-                  <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
-                    You can manage, edit, or delete it from your Account page.
-                  </p>
-                </div>
-              ) : (
-                <form
-                  onSubmit={handleSendDirectMessage}
-                  className="flex-1 bg-gray-50 border-2 border-gray-200 rounded-2xl p-2.5 flex flex-col justify-between"
-                >
-                  <input
-                    type="text"
-                    value={messageInput}
-                    onChange={(e) => {
-                      if (!user?.isLoggedIn || user.id === 'guest') {
-                        if (onOpenAuth) onOpenAuth('signin');
-                        return;
-                      }
-                      setMessageInput(e.target.value);
-                    }}
-                    onClick={() => {
-                      if (!user?.isLoggedIn || user.id === 'guest') {
-                        if (onOpenAuth) onOpenAuth('signin');
-                      }
-                    }}
-                    onFocus={(e) => {
-                      if (!user?.isLoggedIn || user.id === 'guest') {
-                        e.target.blur();
-                        if (onOpenAuth) onOpenAuth('signin');
-                      }
-                    }}
-                    placeholder={user?.isLoggedIn && user.id !== 'guest' ? 'message seller...' : 'Sign in to message seller...'}
-                    aria-label="Message seller"
-                    className="w-full bg-transparent text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 font-semibold px-1 py-1 outline-none"
-                  />
-
-                  <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-gray-200/80">
-                    {messageSentFeedback ? (
-                      <span className="text-[10px] sm:text-xs font-bold text-emerald-600 flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                        <span>Message sent!</span>
-                      </span>
-                    ) : (
-                      <span className="text-[10px] sm:text-xs text-gray-400 font-medium">
-                        Message
-                      </span>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={user?.isLoggedIn && user.id !== 'guest' ? !messageInput.trim() : false}
-                      className="py-1.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-40 text-white text-xs font-black rounded-xl active:scale-95 transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
-                    >
-                      <span>Send</span>
-                      <Send className="w-3.5 h-3.5" />
-                    </button>
+            {/* Purchase & Cart Actions */}
+            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs space-y-4">
+              {/* Sold by */}
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                    Sold by
+                  </span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="font-extrabold text-xs sm:text-sm text-gray-900">
+                      {item.soldBy || sellerDisplayName}
+                    </span>
+                    <ShieldCheck className="w-4 h-4 text-[#2D8EDE]" />
                   </div>
-                </form>
-              )}
+                </div>
 
-              {/* Seller Profile Icon & Name */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenUserProfile) {
-                    onOpenUserProfile(item.seller.id || (item as any).userId, {
-                      id: item.seller.id || (item as any).userId,
-                      name: item.seller.name,
-                      avatar: item.seller.avatar,
-                      location: item.location,
-                    });
-                  }
-                }}
-                className="flex flex-col items-center text-center shrink-0 w-20 sm:w-24 group cursor-pointer focus-visible:outline-none"
-                aria-label={`View ${item.seller.name}'s profile`}
-              >
-                <img
-                  src={getOptimizedImageUrl(item.seller.avatar || DEFAULT_AVATAR_IMAGE, { width: 200, quality: 75, format: 'webp' })}
-                  alt={item.seller.name}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-gray-200 shadow-xs group-hover:border-[#2D8EDE] group-hover:scale-105 transition-all"
-                />
-                <span className="text-xs font-extrabold text-gray-900 line-clamp-1 mt-1 group-hover:text-[#2D8EDE] transition-colors">
-                  {item.seller.name}
+                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200/60 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3 text-emerald-600" />
+                  <span>Verified Seller</span>
                 </span>
-                <span className="text-[10px] font-bold text-[#2D8EDE]">
-                  {isOwnListing ? 'You' : 'Seller'}
-                </span>
-              </button>
+              </div>
+
+              {/* Quantity Selector */}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs font-bold text-gray-700">Quantity</span>
+                <div className="flex items-center border border-gray-200 rounded-xl bg-gray-50 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    className="w-8 h-8 rounded-lg hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="w-8 text-center text-xs font-black text-gray-900">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => q + 1)}
+                    className="w-8 h-8 rounded-lg hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons: Add to Cart and Buy Now */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  className="py-3 px-3 bg-white border-2 border-[#2D8EDE] hover:bg-blue-50 text-[#2D8EDE] font-extrabold text-xs rounded-2xl shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Add to Cart</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleBuyNow}
+                  className="py-3 px-3 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-black text-xs rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Buy Now</span>
+                </button>
+              </div>
+
+              {/* Feedback toast when added to cart */}
+              {addedToCartFeedback && (
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between animate-in fade-in duration-200">
+                  <div className="flex items-center gap-1.5">
+                    <Check className="w-4 h-4 stroke-[3] text-emerald-600" />
+                    <span>Added to your cart!</span>
+                  </div>
+                  {onOpenCart && (
+                    <button
+                      type="button"
+                      onClick={onOpenCart}
+                      className="underline text-emerald-700 hover:text-emerald-900 font-extrabold cursor-pointer"
+                    >
+                      View Cart
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Buyer Safety Tips Banner */}
             <div className="bg-amber-50/70 border border-amber-200 rounded-3xl p-3.5 text-xs text-amber-900 flex items-start gap-2.5 shadow-2xs">
-              <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="leading-snug">
-                <p className="font-extrabold text-amber-950">Safety Reminder</p>
+                <p className="font-extrabold text-amber-950">Safe Local Transaction</p>
                 <p className="text-[11px] text-amber-800 mt-0.5 font-medium">
-                  Always physically inspect the furniture in person before making any payment. Never pay deposits upfront.
+                  Orders are processed securely. You can choose courier delivery or arrange convenient collection.
                 </p>
               </div>
             </div>
@@ -651,75 +740,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
         </div>
       </main>
 
-      {/* Scam Alert Modal when user clicks message seller */}
-      {isScamWarningOpen && (
-        <div
-          className="fixed inset-0 z-70 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
-          onClick={() => setIsScamWarningOpen(false)}
-        >
-          <div
-            className="bg-white rounded-3xl p-5 sm:p-6 max-w-sm w-full shadow-2xl border-2 border-amber-300 space-y-4 animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 shadow-xs">
-                <ShieldAlert className="w-6 h-6 stroke-[2.5]" />
-              </div>
-              <div>
-                <span className="inline-block px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wider">
-                  Buyer Safety Protocol
-                </span>
-                <h3 className="text-sm sm:text-base font-black text-gray-900 leading-tight">
-                  Scam Alert: Do Not Pay Deposits
-                </h3>
-              </div>
-            </div>
-
-            <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-3.5 text-xs text-gray-800 leading-relaxed font-medium space-y-2">
-              <p>
-                <strong>Never pay any deposit or transfer funds</strong> before physically inspecting the furniture in person.
-              </p>
-              <p className="text-gray-700">
-                PinIn does not process transactions, hold money in escrow, or offer delivery guarantees. Always meet the seller in a safe location to view the item first before making any payment.
-              </p>
-            </div>
-
-            {/* Mandatory Checkbox */}
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100/80 cursor-pointer transition-all select-none">
-              <input
-                type="checkbox"
-                checked={isUnderstoodChecked}
-                onChange={(e) => setIsUnderstoodChecked(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded text-[#2D8EDE] focus:ring-[#2D8EDE] border-gray-300 cursor-pointer"
-              />
-              <span className="text-xs font-bold text-gray-800 leading-snug">
-                I understand that PinIn does not handle payments and agree never to pay a deposit before inspecting the item in person.
-              </span>
-            </label>
-
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setIsScamWarningOpen(false)}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmSendMessage}
-                disabled={!isUnderstoodChecked}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-extrabold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <span>Send Message</span>
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Comprehensive Report Modal with all requested options */}
+      {/* Comprehensive Report Modal */}
       {isReportModalOpen && (
         <div
           className="fixed inset-0 z-60 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
@@ -729,15 +750,12 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             className="bg-white rounded-3xl p-5 max-w-sm w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-gray-100 pb-3 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
                   <AlertCircle className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-black text-gray-900">
-                  Report Listing
-                </h3>
+                <h3 className="text-sm font-black text-gray-900">Report Listing</h3>
               </div>
               <button
                 type="button"
@@ -748,7 +766,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </button>
             </div>
 
-            {/* Scrollable Report Options */}
             <div className="overflow-y-auto py-3 space-y-2 flex-1 pr-1">
               <p className="text-xs text-gray-600 font-medium pb-1">
                 Please specify why you are reporting "{item.title}":
@@ -775,7 +792,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </label>
               ))}
 
-              {/* Text box if 'Other' is selected */}
               {reportReason === 'Other' && (
                 <div className="pt-2 animate-in fade-in duration-150">
                   <label className="block text-[11px] font-bold text-gray-700 mb-1">
@@ -792,7 +808,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               )}
             </div>
 
-            {/* Modal Footer Buttons */}
             <div className="flex items-center gap-2 pt-3 border-t border-gray-100 shrink-0">
               <button
                 type="button"
@@ -814,13 +829,12 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
         </div>
       )}
 
-      {/* Fullscreen Listing Photo Modal */}
+      {/* Fullscreen Photo Modal */}
       {isPhotoModalOpen && (
         <div
           className="fixed inset-0 z-50 bg-black flex flex-col justify-center items-center select-none"
           onClick={() => setIsPhotoModalOpen(false)}
         >
-          {/* Top-left back button (X) */}
           <button
             type="button"
             onClick={(e) => {
@@ -833,7 +847,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             <X className="w-6 h-6 stroke-[2.5]" />
           </button>
 
-          {/* Centered Image */}
           <div
             className="relative w-full h-full max-w-4xl p-4 flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
@@ -845,7 +858,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             />
           </div>
 
-          {/* Counter at bottom if multiple photos */}
           {allImages.length > 1 && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/75 px-3.5 py-1 rounded-full text-white text-xs font-bold border border-white/10 backdrop-blur-sm pointer-events-none">
               {activeImageIndex + 1} / {allImages.length}

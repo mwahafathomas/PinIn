@@ -156,9 +156,9 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
             </p>
           </div>
 
-          {/* Avatar Section without blue circle/ring */}
+          {/* Avatar Section without upload option */}
           <div className="flex flex-col items-center">
-            <div className="relative group">
+            <div className="relative">
               <img
                 src={getOptimizedImageUrl(avatar, { width: 200, quality: 75, format: 'webp' })}
                 alt="Profile preview"
@@ -166,37 +166,6 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
                 loading="lazy"
                 decoding="async"
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                aria-label="Upload new photo"
-                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#2D8EDE] hover:bg-[#2579BE] text-white flex items-center justify-center shadow-md border-2 border-white transition-all active:scale-90 cursor-pointer"
-              >
-                <Camera className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="mt-2.5 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="text-xs font-bold text-[#2D8EDE] hover:underline cursor-pointer"
-              >
-                {hasCustomPhoto ? 'Change Photo' : 'Upload Photo'}
-              </button>
-              {hasCustomPhoto && (
-                <>
-                  <span className="text-gray-300 text-xs">•</span>
-                  <button
-                    type="button"
-                    onClick={handleRemovePhoto}
-                    className="text-xs font-bold text-red-500 hover:text-red-700 hover:underline cursor-pointer flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Remove Photo</span>
-                  </button>
-                </>
-              )}
             </div>
           </div>
 

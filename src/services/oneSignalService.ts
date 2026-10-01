@@ -23,7 +23,7 @@ export function getOneSignalAppId(): string {
     const saved = localStorage.getItem(ONESIGNAL_APP_ID_KEY);
     if (saved && saved.trim()) return saved.trim();
   } catch {}
-  return '';
+  return '47242cd4-ecdc-4348-82aa-0274bee57d27';
 }
 
 export function getOneSignalRestApiKey(): string {

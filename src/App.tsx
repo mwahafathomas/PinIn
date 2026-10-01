@@ -16,29 +16,25 @@ import { ActionNav } from './components/ActionNav';
 import { HeroSearch } from './components/HeroSearch';
 import { FurnitureGrid } from './components/FurnitureGrid';
 import { BottomNav } from './components/BottomNav';
-import { MenuDrawer } from './components/MenuDrawer';
 import { ListingDetailPage } from './components/ListingDetailPage';
-import { NotificationsPage } from './components/NotificationsPage';
+import { CartPage } from './components/CartPage';
 import { SavedItemsPage } from './components/SavedItemsPage';
 import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
 import { ContactUsPage } from './components/ContactUsPage';
 import { DeleteAccountPage } from './components/DeleteAccountPage';
 import { EditProfilePage } from './components/EditProfilePage';
 import { AuthPage } from './components/AuthPage';
-import { SellPage } from './components/SellPage';
 import { CategoriesPage } from './components/CategoriesPage';
 import { FiltersPage } from './components/FiltersPage';
 import { LocationPage } from './components/LocationPage';
 import { FilterResultsPage } from './components/FilterResultsPage';
 import { AccountPage } from './components/AccountPage';
-import { MessagesPage } from './components/MessagesPage';
 import { SearchPage } from './components/SearchPage';
-import { ChatBoxPage } from './components/ChatBoxPage';
-import { UserProfilePage } from './components/UserProfilePage';
 import { PullToRefresh } from './components/PullToRefresh';
 import { Toast } from './components/Toast';
 import { DesktopFooter } from './components/DesktopFooter';
 import { InternetBanner } from './components/InternetBanner';
+import { getCartCount, subscribeToCart } from './services/cartService';
 import {
   initGoogleAnalytics,
   trackPageView,
@@ -317,15 +313,16 @@ interface ListingDetailViewProps {
   unreadMessagesCount: number;
   unreadNotificationsCount: number;
   onToggleSave: (itemId: string, e?: React.MouseEvent) => void;
-  onSendMessageToSeller: (item: FurnitureItem, messageText: string) => void;
   onShare: (item: FurnitureItem, e?: React.MouseEvent) => void;
   onReport: (item: FurnitureItem, reason: string, details?: string) => void;
   onOpenSearch: () => void;
-  onOpenMessages: () => void;
-  onOpenNotifications: () => void;
+  onOpenCart?: () => void;
   onOpenAuth: (mode?: 'signin' | 'signup') => void;
-  onOpenUserProfile?: (userId: string, initialData?: any) => void;
   onClose: () => void;
+  onSendMessageToSeller?: any;
+  onOpenMessages?: any;
+  onOpenNotifications?: any;
+  onOpenUserProfile?: any;
 }
 
 const ListingDetailView: React.FC<ListingDetailViewProps> = ({
@@ -334,17 +331,12 @@ const ListingDetailView: React.FC<ListingDetailViewProps> = ({
   userOwnListings,
   user,
   savedItemIds,
-  unreadMessagesCount,
-  unreadNotificationsCount,
   onToggleSave,
-  onSendMessageToSeller,
   onShare,
   onReport,
   onOpenSearch,
-  onOpenMessages,
-  onOpenNotifications,
+  onOpenCart,
   onOpenAuth,
-  onOpenUserProfile,
   onClose,
 }) => {
   const { id } = useParams<{ id: string }>();
@@ -385,17 +377,12 @@ const ListingDetailView: React.FC<ListingDetailViewProps> = ({
       onClose={onClose}
       isSaved={item ? savedItemIds.includes(item.id) : false}
       onToggleSave={onToggleSave}
-      onSendMessageToSeller={onSendMessageToSeller}
       onShare={onShare}
       onReport={onReport}
       onOpenSearch={onOpenSearch}
-      onOpenMessages={onOpenMessages}
-      onOpenNotifications={onOpenNotifications}
-      unreadMessagesCount={unreadMessagesCount}
-      unreadNotificationsCount={unreadNotificationsCount}
+      onOpenCart={onOpenCart}
       user={user}
       onOpenAuth={onOpenAuth}
-      onOpenUserProfile={onOpenUserProfile}
     />
   );
 };
@@ -454,178 +441,6 @@ const SearchPageView: React.FC<SearchPageViewProps> = ({
       onSelectUserForChat={onSelectUserForChat}
       currentUser={currentUser}
       onSellItemWithTitle={onSellItemWithTitle}
-      onRequireAuth={onRequireAuth}
-    />
-  );
-};
-
-interface MessagesListViewProps {
-  conversations: ChatConversation[];
-  allUsers: Array<{ id: string; name: string; avatar: string; location?: string; role?: string }>;
-  user: UserAccount;
-  unreadMessagesCount: number;
-  unreadNotificationsCount: number;
-  onClose: () => void;
-  onSendMessage: (conversationId: string, text: string) => void;
-  onBlockUser: (conversationId: string) => void;
-  onUnblockUser: (conversationId: string) => void;
-  onClearChat: (conversationId: string) => void;
-  onStartNewConversationWithUser: (user: { id: string; name: string; avatar: string; location?: string }, msg?: string) => string;
-  onSelectConversation: (convId: string | null) => void;
-  onOpenNotifications: () => void;
-  onOpenSearchPage: () => void;
-  onOpenHome?: () => void;
-  onOpenAccount?: () => void;
-  onClearBadgeCount?: () => void;
-  onOpenMenu?: () => void;
-  onOpenUserProfile?: (userId: string, initialData?: any) => void;
-}
-
-const MessagesListView: React.FC<MessagesListViewProps> = ({
-  conversations,
-  allUsers,
-  user,
-  unreadMessagesCount,
-  unreadNotificationsCount,
-  onClose,
-  onSendMessage,
-  onBlockUser,
-  onUnblockUser,
-  onClearChat,
-  onStartNewConversationWithUser,
-  onSelectConversation,
-  onOpenNotifications,
-  onOpenSearchPage,
-  onOpenHome,
-  onOpenAccount,
-  onClearBadgeCount,
-  onOpenMenu,
-  onOpenUserProfile,
-}) => {
-  return (
-    <MessagesPage
-      isOpen={true}
-      onClose={onClose}
-      conversations={conversations}
-      onSendMessage={onSendMessage}
-      onBlockUser={onBlockUser}
-      onUnblockUser={onUnblockUser}
-      onClearChat={onClearChat}
-      onStartNewConversationWithUser={onStartNewConversationWithUser}
-      activeConversationId={null}
-      onSelectConversation={onSelectConversation}
-      user={user}
-      allUsers={allUsers}
-      onOpenNotifications={onOpenNotifications}
-      onOpenSearchPage={onOpenSearchPage}
-      onOpenHome={onOpenHome}
-      onOpenAccount={onOpenAccount}
-      unreadMessagesCount={unreadMessagesCount}
-      unreadNotificationsCount={unreadNotificationsCount}
-      onClearBadgeCount={onClearBadgeCount}
-      onOpenMenu={onOpenMenu}
-      onOpenUserProfile={onOpenUserProfile}
-    />
-  );
-};
-
-interface ChatBoxViewProps {
-  conversations: ChatConversation[];
-  user: UserAccount;
-  unreadMessagesCount: number;
-  allUsers?: Array<{ id: string; name: string; avatar: string; location?: string; role?: string }>;
-  onClose: () => void;
-  onSendMessage: (conversationId: string, text: string) => void;
-  onBlockUser: (conversationId: string) => void;
-  onUnblockUser: (conversationId: string) => void;
-  onClearChat: (conversationId: string) => void;
-  onMarkAsRead: (conversationId: string) => void;
-  onGoToMessages: () => void;
-  onOpenUserProfile?: (userId: string, initialData?: any) => void;
-}
-
-const ChatBoxView: React.FC<ChatBoxViewProps> = ({
-  conversations,
-  user,
-  unreadMessagesCount,
-  allUsers,
-  onClose,
-  onSendMessage,
-  onBlockUser,
-  onUnblockUser,
-  onClearChat,
-  onMarkAsRead,
-  onGoToMessages,
-  onOpenUserProfile,
-}) => {
-  const { id } = useParams<{ id: string }>();
-  const conv = conversations.find((c) => c.id === id);
-
-  if (!conv) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center font-sans">
-        <div className="w-14 h-14 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mb-4 text-2xl font-bold">
-          💬
-        </div>
-        <h2 className="text-lg font-black text-gray-900 mb-1">Conversation Not Found</h2>
-        <p className="text-xs text-gray-500 max-w-xs mb-6 font-medium">
-          This chat might have been removed or you opened an expired link.
-        </p>
-        <button
-          type="button"
-          onClick={onGoToMessages}
-          className="px-5 py-2.5 bg-[#2D8EDE] hover:bg-[#2579BE] text-white text-xs font-black rounded-2xl shadow-md transition-all active:scale-95 cursor-pointer"
-        >
-          Back to Messages
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <ChatBoxPage
-      conversation={conv}
-      isOpen={true}
-      onClose={onClose}
-      onSendMessage={onSendMessage}
-      onBlockUser={onBlockUser}
-      onUnblockUser={onUnblockUser}
-      onClearChat={onClearChat}
-      onMarkAsRead={onMarkAsRead}
-      unreadMessagesCount={unreadMessagesCount}
-      user={user}
-      allUsers={allUsers}
-      onOpenUserProfile={onOpenUserProfile}
-    />
-  );
-};
-
-interface UserProfileRouteViewProps {
-  currentUser: UserAccount;
-  onClose: () => void;
-  onMessageUser: (targetUser: { id: string; name: string; avatar: string; location?: string }) => void;
-  selectedProfile: { id: string; profile?: any } | null;
-  onRequireAuth?: () => void;
-}
-
-const UserProfileRouteView: React.FC<UserProfileRouteViewProps> = ({
-  currentUser,
-  onClose,
-  onMessageUser,
-  selectedProfile,
-  onRequireAuth,
-}) => {
-  const { id } = useParams<{ id: string }>();
-  const effectiveId = id || selectedProfile?.id || '';
-  const initial = selectedProfile?.id === effectiveId ? selectedProfile.profile : null;
-
-  return (
-    <UserProfilePage
-      userId={effectiveId}
-      initialProfile={initial}
-      currentUser={currentUser}
-      onClose={onClose}
-      onMessageUser={onMessageUser}
       onRequireAuth={onRequireAuth}
     />
   );
@@ -793,6 +608,15 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
 
+  // Cart State (live updated)
+  const [cartCount, setCartCount] = useState<number>(() => getCartCount());
+  useEffect(() => {
+    const unsub = subscribeToCart(() => {
+      setCartCount(getCartCount());
+    });
+    return unsub;
+  }, []);
+
   const showToast = (msg: string) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToastMessage(msg);
@@ -860,8 +684,8 @@ export default function App() {
 
       const currentPath = locationRef.current.pathname;
 
-      // 3. If current route is / (home/search) then show "Press again to exit", don't exit instantly on first press
-      if (currentPath === '/') {
+      // 3. If current route is / (home/marketplace) then show "Press again to exit", don't exit instantly on first press
+      if (currentPath === '/' || currentPath === '/marketplace' || currentPath === '/home') {
         const now = Date.now();
         if (now - lastBackPressTimeRef.current < 2000) {
           try {
@@ -1067,10 +891,26 @@ export default function App() {
     // 0. Initialize OneSignal Push Notifications
     initOneSignal();
 
-    // 1. Fetch listings from Supabase & offline cache
-    fetchAllListings().then((items) => {
+    // 1. Fetch fresh listings from Supabase
+    fetchAllListings(true).then((items) => {
       setFurnitureList(items || []);
     });
+
+    // Auto-refresh listings when returning to the app window/tab
+    const handleWindowFocus = () => {
+      fetchAllListings(true).then((items) => {
+        if (items && items.length > 0) setFurnitureList(items);
+      });
+    };
+    window.addEventListener('focus', handleWindowFocus);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAllListings(true).then((items) => {
+          if (items && items.length > 0) setFurnitureList(items);
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // 2. Fetch conversations & messages from Supabase & offline cache
     fetchAllConversations().then((convs) => {
@@ -1489,7 +1329,6 @@ export default function App() {
       }
       setAuthMode('signin');
       goTo('/auth?mode=signin');
-      showToast('Please sign in or register to continue');
       return;
     }
 
@@ -1500,7 +1339,6 @@ export default function App() {
       } else {
         setAuthMode('signin');
         goTo('/auth?mode=signin');
-        showToast('Sign in first to access this page');
       }
     } catch {
       if (user.isLoggedIn || localStorage.getItem('user_data')) {
@@ -1508,7 +1346,6 @@ export default function App() {
       } else {
         setAuthMode('signin');
         goTo('/auth?mode=signin');
-        showToast('Sign in first to access this page');
       }
     }
   };
@@ -1531,7 +1368,7 @@ export default function App() {
       location: '',
       locationQuery: '',
     });
-    goTo('/marketplace', -1);
+    goTo('/', -1);
   };
 
   // Sell item with initial title from empty search
@@ -2351,11 +2188,11 @@ export default function App() {
     return Array.from(userMap.values());
   }, [registeredUsers, user.id, user.email]);
 
-  // Active tab determination for BottomNav
+  // Active tab determination for BottomNav (Home, Cart, Account)
   const currentTab = useMemo(() => {
-    if (location.pathname.startsWith('/messages')) return 'messages';
-    if (location.pathname.startsWith('/notifications')) return 'notifications';
-    return 'marketplace';
+    if (location.pathname.startsWith('/cart')) return 'cart';
+    if (location.pathname.startsWith('/account')) return 'account';
+    return 'home';
   }, [location.pathname]);
 
   return (
@@ -2404,41 +2241,6 @@ export default function App() {
       {/* Offline Internet Banner (Top small 30px grey banner) */}
       <InternetBanner isOnline={isOnline} />
 
-      {/* Menu Drawer */}
-      <MenuDrawer
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        user={user}
-        onOpenAuth={(mode) => {
-          setIsMenuOpen(false);
-          handleOpenAuth(mode);
-        }}
-        onToggleAuth={() => {
-          setIsMenuOpen(false);
-          handleToggleAuth();
-        }}
-        onOpenSell={() => {
-          setIsMenuOpen(false);
-          requireAuth(() => goTo('/sell'));
-        }}
-        onOpenAccount={() => {
-          setIsMenuOpen(false);
-          requireAuth(() => goTo('/account'));
-        }}
-        onOpenSavedItems={() => {
-          setIsMenuOpen(false);
-          requireAuth(() => goTo('/saved'));
-        }}
-        onOpenPrivacyPolicy={() => {
-          setIsMenuOpen(false);
-          goTo('/privacy');
-        }}
-        onOpenContactUs={() => {
-          setIsMenuOpen(false);
-          goTo('/contact');
-        }}
-      />
-
       {/* Framer Motion Animated Routes */}
       <AnimatePresence initial={false} custom={direction} mode="popLayout">
         <motion.div
@@ -2452,97 +2254,16 @@ export default function App() {
           className="w-full h-[100dvh] bg-white fixed inset-0 overflow-hidden"
         >
           <Routes location={location}>
-            {/* 1. Initial screen: Messages Page directly as first screen in navigation config (no redirect, no flash) */}
-            <Route
-              path="/messages"
-              element={
-                <MessagesListView
-                  conversations={conversations}
-                  allUsers={allAppUsers}
-                  user={user}
-                  unreadMessagesCount={unreadMessagesCount}
-                  unreadNotificationsCount={unreadNotificationsCount}
-                  onClose={() => {
-                    if (window.history.state && window.history.state.idx > 0) {
-                      setDirection(-1);
-                      navigate(-1);
-                    } else {
-                      goTo('/marketplace', -1);
-                    }
-                  }}
-                  onSendMessage={handleSendMessage}
-                  onBlockUser={handleBlockUser}
-                  onUnblockUser={handleUnblockUser}
-                  onClearChat={handleClearChat}
-                  onStartNewConversationWithUser={handleStartNewConversationWithUser}
-                  onSelectConversation={(convId) => {
-                    if (convId) {
-                      goTo(`/messages/${convId}`, 1);
-                    }
-                  }}
-                  onOpenNotifications={() => goTo('/notifications', 1)}
-                  onOpenSearchPage={() => goTo('/search?type=messages')}
-                  onOpenHome={handleGoHome}
-                  onOpenAccount={() => requireAuth(() => goTo('/account'))}
-                  onClearBadgeCount={() => setMessagesBadgeCleared(true)}
-                  onOpenMenu={() => setIsMenuOpen(true)}
-                  onOpenUserProfile={handleOpenUserProfile}
-                />
-              }
-            />
+            {/* 1. Home Marketplace Feed (App opens here by default) */}
             <Route
               path="/"
-              element={
-                <MessagesListView
-                  conversations={conversations}
-                  allUsers={allAppUsers}
-                  user={user}
-                  unreadMessagesCount={unreadMessagesCount}
-                  unreadNotificationsCount={unreadNotificationsCount}
-                  onClose={() => {
-                    if (window.history.state && window.history.state.idx > 0) {
-                      setDirection(-1);
-                      navigate(-1);
-                    } else {
-                      goTo('/marketplace', -1);
-                    }
-                  }}
-                  onSendMessage={handleSendMessage}
-                  onBlockUser={handleBlockUser}
-                  onUnblockUser={handleUnblockUser}
-                  onClearChat={handleClearChat}
-                  onStartNewConversationWithUser={handleStartNewConversationWithUser}
-                  onSelectConversation={(convId) => {
-                    if (convId) {
-                      goTo(`/messages/${convId}`, 1);
-                    }
-                  }}
-                  onOpenNotifications={() => goTo('/notifications', 1)}
-                  onOpenSearchPage={() => goTo('/search?type=messages')}
-                  onOpenHome={handleGoHome}
-                  onOpenAccount={() => requireAuth(() => goTo('/account'))}
-                  onClearBadgeCount={() => setMessagesBadgeCleared(true)}
-                  onOpenMenu={() => setIsMenuOpen(true)}
-                  onOpenUserProfile={handleOpenUserProfile}
-                />
-              }
-            />
-            <Route path="/home" element={<Navigate to="/marketplace" replace />} />
-
-            {/* 2. Home Marketplace Feed */}
-            <Route
-              path="/marketplace"
               element={
                 <div className="h-[100dvh] max-h-[100dvh] flex flex-col font-sans text-gray-900 bg-white overflow-hidden">
                   {/* Pinned Top Header & Controls */}
                   <div className="shrink-0 z-30 bg-white border-b border-gray-200 shadow-2xs">
-                    {/* Top Header: 1 = 3 bars, 2 = app name */}
+                    {/* Top Header: PinIn centered logo */}
                     <Header
-                      onOpenMenu={() => setIsMenuOpen(true)}
                       onGoHome={handleGoHome}
-                      user={user}
-                      onOpenAuth={handleOpenAuth}
-                      onOpenAccount={() => requireAuth(() => goTo('/account'))}
                     />
 
                     {/* 3 = Search */}
@@ -2558,9 +2279,8 @@ export default function App() {
                       onOpenSearchPage={() => goTo('/search?type=furniture')}
                     />
 
-                    {/* 4 = + sell, 5 = categories, 6 = filters */}
+                    {/* Categories & Filters only at top, remove + sell */}
                     <ActionNav
-                      onOpenSell={() => requireAuth(() => goTo('/sell'))}
                       onOpenCategories={() => goTo('/categories')}
                       onOpenFilters={() => goTo('/filters')}
                       activeCategoryName={activeCategoryDisplayName}
@@ -2669,32 +2389,51 @@ export default function App() {
                     </div>
                   </main>
 
-                  {/* Pinned Bottom Navigation Dock */}
+                  {/* Pinned Bottom Navigation Dock (Home, Cart, Account) */}
                   <footer className="shrink-0 z-30 bg-white border-t border-gray-200 shadow-lg">
                     <BottomNav
                       activeTab={currentTab}
                       onNavigate={(tab) => {
-                        if (tab === 'search' || tab === 'marketplace') {
+                        if (tab === 'home') {
                           handleGoHome();
-                        } else if (tab === 'sell') {
-                          requireAuth(() => goTo('/sell'));
-                        } else if (tab === 'messages') {
-                          goTo('/messages');
-                        } else if (tab === 'notifications') {
-                          handleOpenNotifications();
-                        } else if (tab === 'account' || tab === 'profile') {
-                          requireAuth(() => goTo('/account'));
+                        } else if (tab === 'cart') {
+                          goTo('/cart');
+                        } else if (tab === 'account') {
+                          goTo('/account');
                         }
                       }}
-                      unreadMessagesCount={unreadMessagesCount}
-                      unreadNotificationsCount={unreadNotificationsCount}
+                      cartCount={cartCount}
                     />
                   </footer>
                 </div>
               }
             />
+            <Route path="/home" element={<Navigate to="/" replace />} />
+            <Route path="/marketplace" element={<Navigate to="/" replace />} />
 
-            {/* 2. Item Inspection Detail Route */}
+            {/* Cart Page Route */}
+            <Route
+              path="/cart"
+              element={
+                <CartPage
+                  isOpen={true}
+                  onClose={() => {
+                    if (window.history.state && window.history.state.idx > 0) {
+                      setDirection(-1);
+                      navigate(-1);
+                    } else {
+                      goTo('/', -1);
+                    }
+                  }}
+                  user={user}
+                  onGoHome={handleGoHome}
+                  onOpenAccount={() => goTo('/account')}
+                  onOpenAuth={handleOpenAuth}
+                />
+              }
+            />
+
+            {/* Item Detail Route */}
             <Route
               path="/item/:id"
               element={
@@ -2706,15 +2445,12 @@ export default function App() {
                   unreadMessagesCount={unreadMessagesCount}
                   unreadNotificationsCount={unreadNotificationsCount}
                   onToggleSave={(itemId, e) => handleToggleSave(itemId, e)}
-                  onSendMessageToSeller={handleDirectMessageFromListing}
                   onShare={handleShareItem}
                   onReport={handleReportListing}
                   onOpenSearch={() => goTo('/search?type=furniture')}
-                  onOpenMessages={() => goTo('/messages')}
-                  onOpenNotifications={() => goTo('/notifications')}
+                  onOpenCart={() => goTo('/cart')}
                   user={user}
                   onOpenAuth={handleOpenAuth}
-                  onOpenUserProfile={handleOpenUserProfile}
                   onClose={() => {
                     setDirection(-1);
                     if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
@@ -2722,59 +2458,15 @@ export default function App() {
                     } else if (window.history.length > 1 && location.pathname !== '/marketplace' && location.pathname !== '/') {
                       navigate(-1);
                     } else {
-                      navigate('/marketplace');
+                      navigate('/');
                     }
                   }}
                 />
               }
             />
 
-            {/* 3. Sell / List Furniture Page */}
-            <Route
-              path="/sell"
-              element={
-                <SellPage
-                  isOpen={true}
-                  onClose={() => {
-                    setIsMenuOpen(false);
-                    if (location.search.includes('from=account')) {
-                      goTo('/account', -1);
-                    } else {
-                      goTo('/', -1);
-                    }
-                  }}
-                  onAddListing={(item) => {
-                    handleAddListing(item);
-                    setSellFormData({
-                      ...initialSellFormData,
-                      location: user.location || 'Sandton (Gauteng)',
-                    });
-                  }}
-                  onDiscardListing={() => {
-                    setSellFormData({
-                      ...initialSellFormData,
-                      location: user.location || 'Sandton (Gauteng)',
-                    });
-                  }}
-                  onOpenEditProfile={() => {
-                    setEditProfileSource('sell');
-                    goTo('/edit-profile?from=sell');
-                  }}
-                  user={user}
-                  onOpenAuth={handleOpenAuth}
-                  formData={sellFormData}
-                  onUpdateFormData={setSellFormData}
-                  onOpenCategories={() => {
-                    const fromAcc = location.search.includes('from=account') ? '&origin=account' : '';
-                    goTo(`/categories?from=sell${fromAcc}`);
-                  }}
-                  onOpenLocation={() => {
-                    const fromAcc = location.search.includes('from=account') ? '&origin=account' : '';
-                    goTo(`/location?from=sell${fromAcc}`);
-                  }}
-                />
-              }
-            />
+            {/* Sell Route (Removed, redirects to home) */}
+            <Route path="/sell" element={<Navigate to="/" replace />} />
 
             {/* 4. Categories Page */}
             <Route
@@ -3031,103 +2723,11 @@ export default function App() {
               }
             />
 
-            {/* 8. Chat Box Page */}
-            <Route
-              path="/messages/:id"
-              element={
-                <ChatBoxView
-                  conversations={conversations}
-                  allUsers={allAppUsers}
-                  user={user}
-                  unreadMessagesCount={unreadMessagesCount}
-                  onClose={() => {
-                    if (window.history.state && window.history.state.idx > 0) {
-                      setDirection(-1);
-                      navigate(-1);
-                    } else {
-                      goTo('/messages', -1);
-                    }
-                  }}
-                  onSendMessage={handleSendMessage}
-                  onBlockUser={handleBlockUser}
-                  onUnblockUser={handleUnblockUser}
-                  onClearChat={handleClearChat}
-                  onMarkAsRead={handleMarkConversationAsRead}
-                  onGoToMessages={() => goTo('/messages', -1)}
-                  onOpenUserProfile={handleOpenUserProfile}
-                />
-              }
-            />
-
-            {/* 8b. User Profile Routes */}
-            <Route
-              path="/user/:id"
-              element={
-                <UserProfileRouteView
-                  currentUser={user}
-                  onClose={() => {
-                    if (window.history.state && window.history.state.idx > 0) {
-                      setDirection(-1);
-                      navigate(-1);
-                    } else {
-                      goTo('/messages', -1);
-                    }
-                  }}
-                  onMessageUser={(target) => {
-                    requireAuth(() => {
-                      const convId = handleStartNewConversationWithUser(target);
-                      goTo(`/messages/${convId}`, 1);
-                    });
-                  }}
-                  selectedProfile={selectedUserProfile}
-                  onRequireAuth={() => handleOpenAuth('signin')}
-                />
-              }
-            />
-            <Route
-              path="/profile/:id"
-              element={
-                <UserProfileRouteView
-                  currentUser={user}
-                  onClose={() => {
-                    if (window.history.state && window.history.state.idx > 0) {
-                      setDirection(-1);
-                      navigate(-1);
-                    } else {
-                      goTo('/messages', -1);
-                    }
-                  }}
-                  onMessageUser={(target) => {
-                    requireAuth(() => {
-                      const convId = handleStartNewConversationWithUser(target);
-                      goTo(`/messages/${convId}`, 1);
-                    });
-                  }}
-                  selectedProfile={selectedUserProfile}
-                  onRequireAuth={() => handleOpenAuth('signin')}
-                />
-              }
-            />
-
-            {/* 9. Notifications Page */}
-            <Route
-              path="/notifications"
-              element={
-                <NotificationsPage
-                  isOpen={true}
-                  onClose={() => goBack('/marketplace')}
-                  notifications={notifications}
-                  onMarkAllRead={handleMarkAllNotificationsRead}
-                  onDeleteNotification={handleDeleteNotification}
-                  onOpenSearch={handleGoHome}
-                  onOpenMessages={() => goTo('/messages')}
-                  onOpenAccount={() => requireAuth(() => goTo('/account'))}
-                  unreadMessagesCount={unreadMessagesCount}
-                  unreadNotificationsCount={unreadNotificationsCount}
-                  isLoggedIn={Boolean(user.isLoggedIn && user.id && user.id !== 'guest')}
-                />
-              }
-            />
+            {/* Removed routes (messages, user profiles, notifications) redirect to home */}
+            <Route path="/messages/:id" element={<Navigate to="/" replace />} />
+            <Route path="/user/:id" element={<Navigate to="/" replace />} />
+            <Route path="/profile/:id" element={<Navigate to="/" replace />} />
+            <Route path="/notifications" element={<Navigate to="/" replace />} />
 
             {/* 10. Account Page */}
             <Route
@@ -3137,22 +2737,17 @@ export default function App() {
                   isOpen={true}
                   onClose={() => goBack('/')}
                   user={user}
-                  userListings={userListings}
-                  onDeleteListing={handleDeleteListing}
-                  onShareListing={handleShareListing}
                   onDeleteAccount={handleDeleteAccount}
                   onOpenDeleteAccount={() => goTo('/delete-account')}
                   onOpenEditProfile={() => goTo('/edit-profile')}
-                  onUpdateBio={handleUpdateBio}
-                  onOpenSell={() => goTo('/sell')}
-                  onSelectItem={(item) => {
-                    setSelectedItem(item);
-                    goTo(`/item/${item.id}`);
-                  }}
-                  onOpenMessages={() => goTo('/messages')}
-                  onOpenNotifications={handleOpenNotifications}
-                  unreadMessagesCount={unreadMessagesCount}
-                  unreadNotificationsCount={unreadNotificationsCount}
+                  onOpenSavedItems={() => goTo('/saved')}
+                  onOpenPolicies={() => goTo('/privacy')}
+                  onOpenPrivacyPolicy={() => goTo('/privacy')}
+                  onOpenContactUs={() => goTo('/contact')}
+                  onOpenAuth={handleOpenAuth}
+                  onSignOut={handleToggleAuth}
+                  onOpenCart={() => goTo('/cart')}
+                  onGoHome={handleGoHome}
                 />
               }
             />

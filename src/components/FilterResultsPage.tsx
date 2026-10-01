@@ -211,20 +211,11 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
             <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
               We couldn't find any furniture matching these active filters.
             </p>
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
-              {onOpenSell && (
-                <button
-                  type="button"
-                  onClick={onOpenSell}
-                  className="w-full sm:w-auto py-2.5 px-5 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer text-center"
-                >
-                  Be the first one to sell
-                </button>
-              )}
+            <div className="pt-2 flex items-center justify-center">
               <button
                 type="button"
                 onClick={onEditFilters}
-                className="w-full sm:w-auto py-2 px-4 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+                className="py-2.5 px-6 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer text-center"
               >
                 Modify Filters
               </button>
