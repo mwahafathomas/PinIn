@@ -42,6 +42,7 @@ jobs:
           sed -i "s/targetSdkVersion = .*/targetSdkVersion = 34/" android/variables.gradle
           sed -i "s/com.android.tools.build:gradle:8.0.0/com.android.tools.build:gradle:8.5.1/" android/build.gradle
           sed -i "s/com.android.tools.build:gradle:8.1.0/com.android.tools.build:gradle:8.5.1/" android/build.gradle
+          sed -i "s/gradle-.*-all.zip/gradle-8.7-all.zip/" android/gradle/wrapper/gradle-wrapper.properties
       - name: Generate icons and splash
         run: |
           npm install @capacitor/assets --save-dev --legacy-peer-deps
