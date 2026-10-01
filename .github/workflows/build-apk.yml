@@ -41,7 +41,7 @@ jobs:
           sed -i "s/compileSdkVersion = .*/compileSdkVersion = 36/" android/variables.gradle
           sed -i "s/targetSdkVersion = .*/targetSdkVersion = 36/" android/variables.gradle
           sed -i -E "s/(com.android.tools.build:gradle:)[0-9.]+/\18.9.1/" android/build.gradle
-          sed -i "s/gradle-.*-all.zip/gradle-8.11-all.zip/" android/gradle/wrapper/gradle-wrapper.properties
+          sed -i "s/gradle-.*-all.zip/gradle-8.11.1-all.zip/" android/gradle/wrapper/gradle-wrapper.properties
       - name: Force old androidx core
         run: |
           sed -i "s/androidxCoreKtxVersion = .*/androidxCoreKtxVersion = '1.12.0'/" android/variables.gradle
