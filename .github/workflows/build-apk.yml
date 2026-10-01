@@ -47,10 +47,17 @@ jobs:
         run: |
           sed -i "s/androidxCoreKtxVersion = .*/androidxCoreKtxVersion = '1.12.0'/" android/variables.gradle
           sed -i "s/androidxCoreVersion = .*/androidxCoreVersion = '1.12.0'/" android/variables.gradle
+      - name: Use your public icons for APK
+        run: |
+          mkdir -p resources
+          cp public/pwa-512x512.png resources/icon.png
+          cp public/pwa-maskable-512x512.png resources/icon.png
+          cp public/splash.png resources/splash.png
+          ls -lh resources/
       - name: Generate icons and splash
         run: |
           npm install @capacitor/assets --save-dev --legacy-peer-deps
-          npx capacitor-assets generate --android
+          npx capacitor-assets generate --android --iconBackgroundColor "#ffffff" --splashBackgroundColor "#ffffff"
       - name: Build APK
         run: |
           cd android
