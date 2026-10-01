@@ -36,8 +36,8 @@ jobs:
         run: |
           npx @capacitor/cli add android
           npx @capacitor/cli copy android
-                - name: Fix compileSdk to 34
-         run: |
+      - name: Fix compileSdk to 34
+        run: |
           sed -i "s/compileSdkVersion = .*/compileSdkVersion = 34/" android/variables.gradle
           sed -i "s/targetSdkVersion = .*/targetSdkVersion = 34/" android/variables.gradle
       - name: Generate icons and splash
