@@ -3,6 +3,7 @@ name: Build APK
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,7 +13,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -22,8 +23,8 @@ jobs:
         run: rm -rf android
       - name: Install dependencies
         run: |
-          npm install
-          npm install @capacitor/core@5 @capacitor/cli@5 @capacitor/android@5
+          npm install --legacy-peer-deps
+          npm install @capacitor/core@5 @capacitor/cli@5 @capacitor/android@5 @capacitor/camera @capacitor/network @capacitor/share --legacy-peer-deps
       - name: Build web
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -37,15 +38,15 @@ jobs:
           npx @capacitor/cli copy android
       - name: Generate icons and splash
         run: |
-          npm install @capacitor/assets --save-dev
+          npm install @capacitor/assets --save-dev --legacy-peer-deps
           npx capacitor-assets generate --android
       - name: Build APK
-        working-directory: android
         run: |
+          cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: pinin-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: app-release
+          path: android/app/build/outputs/apk/debug/app-debug.apk
