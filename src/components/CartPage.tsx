@@ -23,8 +23,12 @@ import {
   CartItem,
 } from '../services/cartService';
 import { createOrder, OrderRecord } from '../services/ordersService';
-import { UserAccount } from '../types/furniture';
+import { UserAccount, DeliveryAddress } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+import {
+  DeliveryAddressPage,
+  getSavedDeliveryAddress,
+} from './DeliveryAddressPage';
 
 interface CartPageProps {
   isOpen: boolean;
@@ -45,6 +49,8 @@ export const CartPage: React.FC<CartPageProps> = ({
   const [items, setItems] = useState<CartItem[]>(getCartItems());
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'collection'>('delivery');
   const [deliveryAddress, setDeliveryAddress] = useState(user?.location || '');
+  const [isAddressPageOpen, setIsAddressPageOpen] = useState(false);
+  const [currentAddress, setCurrentAddress] = useState<DeliveryAddress | null>(() => getSavedDeliveryAddress());
   const [buyerName, setBuyerName] = useState(
     user?.isLoggedIn ? (user.surname ? `${user.name} ${user.surname}` : user.name) : ''
   );
@@ -52,6 +58,30 @@ export const CartPage: React.FC<CartPageProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<OrderRecord | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 2400); // 2.4s artificial delay showing shimmer skeleton
+
+      // Retrieve saved delivery address to show it at the top
+      const saved = getSavedDeliveryAddress();
+      if (saved) {
+        setCurrentAddress(saved);
+        setDeliveryAddress(
+          `${saved.streetAddressLine1}${saved.streetAddressLine2 ? `, ${saved.streetAddressLine2}` : ''}, ${saved.cityTown}, ${saved.province}`
+        );
+        if (!buyerName && saved.recipientName) {
+          setBuyerName(saved.recipientName);
+        }
+      }
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Subscribe to live cart changes
   useEffect(() => {
@@ -95,8 +125,9 @@ export const CartPage: React.FC<CartPageProps> = ({
       return;
     }
 
-    if (deliveryMethod === 'delivery' && !deliveryAddress.trim()) {
-      setErrorMessage('Please enter a delivery suburb or address.');
+    if (deliveryMethod === 'delivery' && !currentAddress && !deliveryAddress.trim()) {
+      setErrorMessage('Please add a delivery address to proceed.');
+      setIsAddressPageOpen(true);
       return;
     }
 
@@ -110,7 +141,11 @@ export const CartPage: React.FC<CartPageProps> = ({
       const mainListingId = items[0]?.listingId;
       const deliveryText =
         deliveryMethod === 'delivery'
-          ? `Courier Delivery to: ${deliveryAddress.trim()}`
+          ? currentAddress
+            ? `Courier Delivery to: ${currentAddress.streetAddressLine1}${
+                currentAddress.streetAddressLine2 ? `, ${currentAddress.streetAddressLine2}` : ''
+              }, ${currentAddress.cityTown}, ${currentAddress.province} (${currentAddress.postalCode})`
+            : `Courier Delivery to: ${deliveryAddress.trim()}`
           : `Self Collection / Pickup in ${items[0]?.location || 'Gauteng'}`;
 
       const totalQuantity = items.reduce((acc, i) => acc + (i.quantity || 1), 0);
@@ -128,6 +163,14 @@ export const CartPage: React.FC<CartPageProps> = ({
         price: grandTotal,
         quantity: totalQuantity,
         delivery: deliveryText,
+        recipientName: currentAddress?.recipientName || buyerName,
+        recipientPhone: currentAddress?.recipientPhone || '',
+        streetAddressLine1: currentAddress?.streetAddressLine1 || deliveryAddress,
+        streetAddressLine2: currentAddress?.streetAddressLine2 || undefined,
+        cityTown: currentAddress?.cityTown || 'Johannesburg',
+        province: currentAddress?.province || 'Gauteng',
+        postalCode: currentAddress?.postalCode || '',
+        deliveryInstructions: currentAddress?.deliveryInstructions || '',
         imageUrl: items[0]?.imageUrl,
         items: items.map((i) => ({
           listingId: i.listingId,
@@ -283,6 +326,50 @@ export const CartPage: React.FC<CartPageProps> = ({
                 View in Account
               </button>
             </div>
+          </div>
+        ) : isLoading ? (
+          /* Shimmer Skeleton Loader for Cart Page */
+          <div className="space-y-4 animate-pulse mt-2">
+            {/* Delivery banner shimmer */}
+            <div className="h-12 w-full bg-gray-200 rounded-2xl" />
+
+            {/* Cart item shimmers */}
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-200 p-3 flex gap-3 items-center">
+                  <div className="w-18 h-18 bg-gray-200 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-3/4 bg-gray-200 rounded" />
+                    <div className="h-3 w-1/3 bg-gray-200 rounded" />
+                    <div className="flex justify-between items-center pt-1">
+                      <div className="h-4 w-1/4 bg-gray-200 rounded" />
+                      <div className="h-6 w-16 bg-gray-200 rounded-lg" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Order summary card shimmer */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+              <div className="h-4 w-1/3 bg-gray-200 rounded" />
+              <div className="flex justify-between">
+                <div className="h-3 w-1/4 bg-gray-200 rounded" />
+                <div className="h-3 w-1/6 bg-gray-200 rounded" />
+              </div>
+              <div className="flex justify-between">
+                <div className="h-3 w-1/4 bg-gray-200 rounded" />
+                <div className="h-3 w-1/6 bg-gray-200 rounded" />
+              </div>
+              <div className="h-px bg-gray-100 my-2" />
+              <div className="flex justify-between">
+                <div className="h-5 w-1/3 bg-gray-200 rounded" />
+                <div className="h-5 w-1/4 bg-gray-200 rounded" />
+              </div>
+            </div>
+
+            {/* Place Order button shimmer */}
+            <div className="h-12 w-full bg-gray-200 rounded-2xl" />
           </div>
         ) : items.length === 0 ? (
           /* Empty Cart State */

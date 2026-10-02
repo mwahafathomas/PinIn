@@ -34,6 +34,8 @@ import { PullToRefresh } from './components/PullToRefresh';
 import { Toast } from './components/Toast';
 import { DesktopFooter } from './components/DesktopFooter';
 import { InternetBanner } from './components/InternetBanner';
+import { OfflineScreen } from './components/OfflineScreen';
+import { Network } from '@capacitor/network';
 import { getCartCount, subscribeToCart } from './services/cartService';
 import {
   initGoogleAnalytics,
@@ -625,28 +627,101 @@ export default function App() {
     }, 2800);
   };
 
-  // Feed Refreshing State
+  // Feed Refreshing & Loading State (with 2.4s artificial shimmer skeleton delay)
   const [isFeedRefreshing, setIsFeedRefreshing] = useState(false);
+  const [isFeedLoading, setIsFeedLoading] = useState(true);
 
-  // Offline detection using navigator.onLine and window online/offline events
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsFeedLoading(false);
+    }, 2400); // 2.4s smooth artificial loading delay
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Real-time network connectivity checking (Capacitor Network + browser online/offline + ping)
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     return typeof navigator !== 'undefined' ? navigator.onLine : true;
   });
 
+  const checkConnectivity = async (): Promise<boolean> => {
+    try {
+      let connected = true;
+      try {
+        const status = await Network.getStatus();
+        connected = status.connected;
+      } catch {
+        connected = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      }
+
+      if (!connected) {
+        setIsOnline(false);
+        return false;
+      }
+
+      // Validate data capability with timeout ping
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const res = await fetch('/api/health?t=' + Date.now(), {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          setIsOnline(true);
+          return true;
+        }
+      } catch {
+        // Fallback to navigator.onLine
+        const fallback = typeof navigator !== 'undefined' ? navigator.onLine : false;
+        setIsOnline(fallback);
+        return fallback;
+      }
+
+      setIsOnline(true);
+      return true;
+    } catch {
+      const fallback = typeof navigator !== 'undefined' ? navigator.onLine : false;
+      setIsOnline(fallback);
+      return fallback;
+    }
+  };
+
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      checkConnectivity();
+    };
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    if (typeof navigator !== 'undefined') {
-      setIsOnline(navigator.onLine);
+    // Capacitor Network real-time listener
+    let networkListenerHandle: any = null;
+    try {
+      Network.addListener('networkStatusChange', (status) => {
+        if (!status.connected) {
+          setIsOnline(false);
+        } else {
+          checkConnectivity();
+        }
+      }).then((handle) => {
+        networkListenerHandle = handle;
+      });
+      checkConnectivity();
+    } catch {
+      if (typeof navigator !== 'undefined') {
+        setIsOnline(navigator.onLine);
+      }
     }
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if (networkListenerHandle && typeof networkListenerHandle.remove === 'function') {
+        networkListenerHandle.remove();
+      }
     };
   }, []);
 
@@ -2238,6 +2313,19 @@ export default function App() {
         </div>
       )}
 
+      {/* Dedicated Offline Screen: automatically displays whenever offline, blocking main content gracefully with Retry button */}
+      {!isOnline && (
+        <OfflineScreen
+          onRetry={async () => {
+            const success = await checkConnectivity();
+            if (success) {
+              await fetchAllListings(true);
+            }
+            return success;
+          }}
+        />
+      )}
+
       {/* Offline Internet Banner (Top small 30px grey banner) */}
       <InternetBanner isOnline={isOnline} />
 
@@ -2378,6 +2466,7 @@ export default function App() {
                           onMessageSeller={handleMessageSeller}
                           onResetFilters={handleGoHome}
                           showDistance={hasLocationPermission && !!userCoords}
+                          isLoading={isFeedLoading || isFeedRefreshing}
                         />
                       </div>
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { FurnitureItem } from '../types/furniture';
 import { FurnitureCard } from './FurnitureCard';
-import { Sparkles, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 interface FurnitureGridProps {
   items: FurnitureItem[];
@@ -12,7 +12,32 @@ interface FurnitureGridProps {
   onMessageSeller: (item: FurnitureItem, e: React.MouseEvent) => void;
   onResetFilters?: () => void;
   showDistance?: boolean;
+  isLoading?: boolean;
 }
+
+/**
+ * Modern shimmer skeleton placeholder for listing cards.
+ */
+export const FurnitureCardShimmer: React.FC = () => {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-2xs animate-pulse">
+      {/* Shimmer Image Box */}
+      <div className="aspect-4/3 w-full bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 relative overflow-hidden">
+        <div className="absolute top-2 left-2 w-14 h-5 bg-gray-300 rounded-md" />
+      </div>
+      {/* Shimmer Details */}
+      <div className="p-3 space-y-2.5">
+        <div className="h-4 w-4/5 bg-gray-200 rounded" />
+        <div className="h-3 w-1/2 bg-gray-200 rounded" />
+        <div className="h-5 w-1/3 bg-gray-200 rounded-md pt-1" />
+        <div className="flex justify-between items-center pt-1 border-t border-gray-100">
+          <div className="h-3 w-1/3 bg-gray-200 rounded" />
+          <div className="h-3 w-8 bg-gray-200 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const FurnitureGrid: React.FC<FurnitureGridProps> = ({
   items,
@@ -23,7 +48,20 @@ export const FurnitureGrid: React.FC<FurnitureGridProps> = ({
   onMessageSeller,
   onResetFilters,
   showDistance = false,
+  isLoading = false,
 }) => {
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-md md:max-w-7xl mx-auto px-3.5 md:px-6 lg:px-8 pt-3.5 pb-6 md:pt-6 md:pb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 md:gap-6">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <FurnitureCardShimmer key={idx} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="w-full max-w-md md:max-w-xl mx-auto px-4 py-16 text-center">
