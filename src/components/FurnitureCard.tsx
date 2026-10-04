@@ -186,17 +186,9 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
           {item.title}
         </h3>
 
-        {/* Location & Distance */}
+        {/* Category & Condition */}
         <div className="mt-0.5 flex items-center justify-between gap-1 text-gray-500 text-[11px]">
-          <div className="flex items-center gap-1 min-w-0 truncate">
-            <MapPin className="w-3 h-3 shrink-0 text-[#2D8EDE]" />
-            <span className="truncate">{item.location}</span>
-          </div>
-          {showDistance && item.distanceText && (
-            <span className="shrink-0 font-bold text-[#2D8EDE] bg-blue-50 px-1.5 py-0.2 rounded text-[10px]">
-              {item.distanceText}
-            </span>
-          )}
+          <span className="truncate">{item.category} • {item.condition}</span>
         </div>
       </div>
     </div>

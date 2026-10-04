@@ -3,14 +3,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Bookmark,
-  MapPin,
   MoreVertical,
   Flag,
   Share,
   Check,
-  AlertCircle,
   X,
-  ShieldCheck,
   Tag,
   Image as ImageIcon,
   ShoppingCart,
@@ -18,10 +15,7 @@ import {
   Minus,
   Truck,
   Star,
-  RotateCcw,
-  Handshake,
   Info,
-  CheckCircle,
 } from 'lucide-react';
 import { FurnitureItem, UserAccount } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
@@ -58,6 +52,22 @@ const REPORT_REASONS = [
   'other',
 ];
 
+function getEstimatedDeliveryDateRange(): string {
+  const now = new Date();
+  const start = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+  const end = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+
+  const startDay = String(start.getDate()).padStart(2, '0');
+  const endDay = String(end.getDate()).padStart(2, '0');
+  const endMonth = end.toLocaleDateString('en-US', { month: 'long' });
+
+  if (start.getMonth() !== end.getMonth()) {
+    const startMonth = start.toLocaleDateString('en-US', { month: 'long' });
+    return `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
+  }
+  return `${startDay} - ${endDay} ${endMonth}`;
+}
+
 export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   item,
   isOpen,
@@ -77,15 +87,13 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   const [otherDetails, setOtherDetails] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [addedToCartFeedback, setAddedToCartFeedback] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // Scroll carousel to top on open
     if (isOpen) {
-      setIsLoading(true);
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 2400); // 2.4s artificial loading delay with shimmering skeleton
-      return () => clearTimeout(timer);
+      setActiveImageIndex(0);
+      setIsLoading(false);
     }
   }, [isOpen, item?.id]);
 
@@ -216,7 +224,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   const handleConfirmReport = () => {
     if (onReport) {
       const finalReason = reportReason;
-      const customText = reportReason === 'Other' ? otherDetails : undefined;
+      const customText = reportReason.toLowerCase() === 'other' ? otherDetails.trim() : undefined;
       onReport(item, finalReason, customText);
     }
     setIsReportModalOpen(false);
@@ -363,24 +371,24 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-8 items-start">
           {/* Left Column: Photos Carousel & Details */}
           <div className="md:col-span-6 lg:col-span-7 space-y-3.5">
-            {/* Swipeable Images Carousel */}
-            <div className="relative aspect-4/3 bg-gray-900 rounded-none overflow-hidden border-2 border-gray-200 shadow-md group">
+            {/* Swipeable Images Carousel - Full Size Edge-to-Edge Without White Corners */}
+            <div className="-mx-4 -mt-4 md:mx-0 md:mt-0 relative w-[calc(100%+2rem)] md:w-full h-[380px] sm:h-[480px] overflow-hidden group rounded-none">
               <div
                 ref={carouselRef}
                 onScroll={handleCarouselScroll}
-                className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-none touch-pan-x"
+                className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-none touch-pan-x rounded-none"
                 style={{ scrollBehavior: 'smooth' }}
               >
                 {allImages.map((imgUrl, idx) => (
                   <div
                     key={idx}
                     onClick={() => setIsPhotoModalOpen(true)}
-                    className="w-full h-full shrink-0 snap-center snap-always relative flex items-center justify-center bg-gray-950 cursor-pointer"
+                    className="w-full h-full shrink-0 snap-center snap-always relative flex items-center justify-center cursor-pointer rounded-none"
                   >
                     <img
                       src={imgUrl}
                       alt={`${item.title} photo ${idx + 1}`}
-                      className="w-full h-full object-cover select-none"
+                      className="w-full h-full object-cover select-none rounded-none"
                       loading="lazy"
                       decoding="async"
                       draggable={false}
@@ -455,33 +463,15 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </div>
             )}
 
-            {/* Location & Category Badges */}
-            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
-                    <MapPin className="w-4 h-4 stroke-[2.5]" />
-                  </div>
-                  <div>
-                    <span className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
-                      Location
-                    </span>
-                    <span className="text-xs sm:text-sm font-extrabold text-gray-900 truncate">
-                      {item.location}
-                    </span>
-                  </div>
-                </div>
+            {/* Category & Condition Badges (No location) */}
+            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 shadow-xs flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#2D8EDE] rounded-xl border border-blue-200 text-xs font-black">
+                <Tag className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>{item.category}</span>
+              </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#2D8EDE] rounded-xl border border-blue-200 text-xs font-black">
-                    <Tag className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>{item.category}</span>
-                  </div>
-
-                  <div className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-xl text-xs font-extrabold">
-                    {item.condition}
-                  </div>
-                </div>
+              <div className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-xl text-xs font-extrabold">
+                {item.condition}
               </div>
             </div>
 
@@ -520,71 +510,51 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             {/* Customer Reviews Section */}
             <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs space-y-3.5">
               <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
-                    <span>Customer Reviews</span>
-                  </h2>
-                  <span className="text-xs font-black text-gray-900 bg-amber-50 text-amber-900 px-2 py-0.5 rounded-lg border border-amber-200">
-                    ★ {item.seller?.rating ? item.seller.rating.toFixed(1) : '5.0'}
+                <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+                  <span>Customer Reviews</span>
+                </h2>
+                {item.reviewsList && item.reviewsList.length > 0 && (
+                  <span className="text-[11px] font-bold text-gray-500">
+                    {item.reviewsList.length} review(s)
                   </span>
-                </div>
-                <span className="text-[11px] font-bold text-gray-500">
-                  {(item.reviewsList?.length || item.seller?.reviewCount || 2)} review(s)
-                </span>
+                )}
               </div>
 
               {/* Reviews List */}
               <div className="space-y-2.5">
-                {(item.reviewsList && item.reviewsList.length > 0
-                  ? item.reviewsList
-                  : [
-                      {
-                        id: 'rev-1',
-                        author: 'Sipho D.',
-                        rating: 5,
-                        date: '2 weeks ago',
-                        comment: 'Item is in great condition as described. Quick handover and great communication!',
-                      },
-                      {
-                        id: 'rev-2',
-                        author: 'Candice M.',
-                        rating: 5,
-                        date: '1 month ago',
-                        comment: 'Very happy with this purchase. Quality furniture and smooth transaction.',
-                      },
-                    ]
-                ).map((rev) => (
-                  <div
-                    key={rev.id}
-                    className="p-3 bg-gray-50 rounded-2xl border border-gray-200 space-y-1 text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
+                {item.reviewsList && item.reviewsList.length > 0 ? (
+                  item.reviewsList.map((rev) => (
+                    <div
+                      key={rev.id}
+                      className="p-3 bg-gray-50 rounded-2xl border border-gray-200 space-y-1 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
                         <span className="font-extrabold text-gray-900">{rev.author}</span>
-                        <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full">
-                          Verified Buyer
-                        </span>
+                        <div className="flex items-center gap-0.5 text-amber-400">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-3 h-3 ${
+                                i < rev.rating
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-0.5 text-amber-400">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-3 h-3 ${
-                              i < rev.rating
-                                ? 'fill-amber-400 text-amber-400'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
+                      <p className="text-[11px] text-gray-700 font-medium leading-relaxed">
+                        {rev.comment}
+                      </p>
+                      {rev.date && <span className="text-[10px] text-gray-400 block pt-0.5">{rev.date}</span>}
                     </div>
-                    <p className="text-[11px] text-gray-700 font-medium leading-relaxed">
-                      {rev.comment}
-                    </p>
-                    <span className="text-[10px] text-gray-400 block pt-0.5">{rev.date}</span>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500 font-medium italic py-2">
+                    No reviews made yet
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -634,39 +604,20 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </button>
               </div>
 
-              {/* In Stock & Feature Badges (Warranty, Returns, Pay in person if marked yes at Supabase) */}
-              <div className="pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
-                {/* In Stock status */}
-                {item.inStock !== false && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] font-black">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>In Stock</span>
-                  </span>
-                )}
-
-                {/* Warranty Badge (if marked yes at Supabase) */}
-                {(item.warranty === true || String(item.warranty).toLowerCase() === 'yes') && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 text-[11px] font-extrabold">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#2D8EDE]" />
-                    <span>Warranty</span>
-                  </span>
-                )}
-
-                {/* Returns Badge (if marked yes at Supabase) */}
-                {(item.returns === true || String(item.returns).toLowerCase() === 'yes') && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-50 text-purple-800 border border-purple-200 text-[11px] font-extrabold">
-                    <RotateCcw className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Returns</span>
-                  </span>
-                )}
-
-                {/* Pay in Person Badge (if marked yes at Supabase) */}
-                {(item.payInPerson === true || String(item.payInPerson).toLowerCase() === 'yes') && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-extrabold">
-                    <Handshake className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Pay in Person</span>
-                  </span>
-                )}
+              {/* Value Highlights: in stock, warranty, returns, pay in person each in their own blue box */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="bg-[#2D8EDE] text-white text-xs sm:text-sm font-extrabold py-2 px-2.5 rounded-xl shadow-xs flex items-center justify-center text-center">
+                  In stock
+                </div>
+                <div className="bg-[#2D8EDE] text-white text-xs sm:text-sm font-extrabold py-2 px-2.5 rounded-xl shadow-xs flex items-center justify-center text-center">
+                  Warranty
+                </div>
+                <div className="bg-[#2D8EDE] text-white text-xs sm:text-sm font-extrabold py-2 px-2.5 rounded-xl shadow-xs flex items-center justify-center text-center">
+                  Returns
+                </div>
+                <div className="bg-[#2D8EDE] text-white text-xs sm:text-sm font-extrabold py-2 px-2.5 rounded-xl shadow-xs flex items-center justify-center text-center">
+                  Pay in person
+                </div>
               </div>
 
               {/* Delivery Estimation */}
@@ -680,7 +631,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                       Delivery Estimation
                     </span>
                     <span className="text-xs font-black text-gray-900">
-                      {item.deliveryEstimation || '2 to 5 days'}
+                      {getEstimatedDeliveryDateRange()}
                     </span>
                   </div>
                 </div>
@@ -692,24 +643,14 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
             {/* Purchase & Cart Actions */}
             <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs space-y-4">
-              {/* Sold by */}
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
-                    Sold by
-                  </span>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="font-extrabold text-xs sm:text-sm text-gray-900">
-                      {item.soldBy || sellerDisplayName}
-                    </span>
-                    <ShieldCheck className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                </div>
-
-                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200/60 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3 text-emerald-600" />
-                  <span>Verified Seller</span>
+              {/* Sold by (without sign icon and without verified seller) */}
+              <div className="pb-3 border-b border-gray-100">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                  Sold by
                 </span>
+                <p className="font-extrabold text-xs sm:text-sm text-gray-900 mt-0.5">
+                  {item.soldBy || sellerDisplayName}
+                </p>
               </div>
 
               {/* Quantity Selector */}
@@ -738,23 +679,15 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons: Add to Cart and Buy Now */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              {/* Action Button: Add to Cart only (no Buy Now) */}
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  className="py-3 px-3 bg-white border-2 border-[#2D8EDE] hover:bg-blue-50 text-[#2D8EDE] font-extrabold text-xs rounded-2xl shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-black text-sm rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <ShoppingCart className="w-4 h-4" />
                   <span>Add to Cart</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleBuyNow}
-                  className="py-3 px-3 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-black text-xs rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <span>Buy Now</span>
                 </button>
               </div>
 
@@ -777,17 +710,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </div>
               )}
             </div>
-
-            {/* Buyer Safety Tips Banner */}
-            <div className="bg-amber-50/70 border border-amber-200 rounded-3xl p-3.5 text-xs text-amber-900 flex items-start gap-2.5 shadow-2xs">
-              <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div className="leading-snug">
-                <p className="font-extrabold text-amber-950">Safe Local Transaction</p>
-                <p className="text-[11px] text-amber-800 mt-0.5 font-medium">
-                  Orders are processed securely. You can choose courier delivery or arrange convenient collection.
-                </p>
-              </div>
-            </div>
           </div>
         </div>
         )}
@@ -804,12 +726,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 pb-3 shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
-                  <AlertCircle className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm font-black text-gray-900">Report Listing</h3>
-              </div>
+              <h3 className="text-sm font-black text-gray-900">Report Listing</h3>
               <button
                 type="button"
                 onClick={() => setIsReportModalOpen(false)}
@@ -845,16 +762,17 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </label>
               ))}
 
-              {reportReason === 'Other' && (
+              {reportReason.toLowerCase() === 'other' && (
                 <div className="pt-2 animate-in fade-in duration-150">
                   <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Describe the issue in detail:
+                    Write your reason:
                   </label>
                   <textarea
                     value={otherDetails}
                     onChange={(e) => setOtherDetails(e.target.value)}
-                    placeholder="Provide additional context to help our moderation team..."
+                    placeholder="Write your reason here..."
                     rows={3}
+                    autoFocus
                     className="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:border-[#2D8EDE] focus:ring-1 focus:ring-[#2D8EDE] outline-none font-medium text-gray-900 placeholder:text-gray-400 resize-none bg-gray-50/50"
                   />
                 </div>
@@ -872,7 +790,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               <button
                 type="button"
                 onClick={handleConfirmReport}
-                disabled={reportReason === 'Other' && !otherDetails.trim()}
+                disabled={reportReason.toLowerCase() === 'other' && !otherDetails.trim()}
                 className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm cursor-pointer"
               >
                 Submit Report
@@ -907,7 +825,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             <img
               src={allImages[activeImageIndex] || item.imageUrl}
               alt={item.title}
-              className="max-w-full max-h-[85vh] w-auto h-auto object-contain mx-auto shadow-2xl rounded-lg"
+              className="max-w-full max-h-[85vh] w-auto h-auto object-contain mx-auto shadow-2xl rounded-none"
             />
           </div>
 

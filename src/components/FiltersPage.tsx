@@ -19,7 +19,7 @@ interface FiltersPageProps {
   onApplyFilters: (filters: FilterState) => void;
   onResetFilters: () => void;
   onOpenCategoriesPage: () => void;
-  onOpenLocationPage: () => void;
+  onOpenLocationPage?: () => void;
   onOpenMessages?: () => void;
   onOpenNotifications?: () => void;
   unreadMessagesCount?: number;
@@ -33,7 +33,6 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
   onApplyFilters,
   onResetFilters,
   onOpenCategoriesPage,
-  onOpenLocationPage,
   onOpenMessages,
   onOpenNotifications,
   unreadMessagesCount = 0,
@@ -57,12 +56,6 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
       ? 'Used'
       : 'All'
   );
-  const [localLocation, setLocalLocation] = useState<string>(filters.location || '');
-
-  // Keep state synced when props change (e.g. returning from /location or /categories)
-  React.useEffect(() => {
-    setLocalLocation(filters.location || '');
-  }, [filters.location]);
 
   React.useEffect(() => {
     setSelectedCategory(filters.category || 'all');
@@ -90,7 +83,6 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
     if (localPrice && Number(localPrice) > 0) count++;
     if (selectedCategories.length > 0 || (selectedCategory && selectedCategory !== 'all')) count++;
     if (conditionType !== 'All') count++;
-    if (localLocation.trim()) count++;
     return count;
   };
 
@@ -101,7 +93,6 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
     setSelectedCategory('all');
     setSelectedCategories([]);
     setConditionType('All');
-    setLocalLocation('');
     onResetFilters();
   };
 
@@ -121,7 +112,7 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
       category: selectedCategories.length > 0 ? selectedCategories.join(', ') : selectedCategory,
       categories: selectedCategories,
       condition: updatedConditions,
-      location: localLocation.trim(),
+      location: '',
     };
 
     onApplyFilters(updatedFilters);
@@ -266,29 +257,6 @@ export const FiltersPage: React.FC<FiltersPageProps> = ({
                 ))}
               </div>
             </div>
-
-            {/* Add Location Blue Bar */}
-            <button
-              type="button"
-              onClick={onOpenLocationPage}
-              className="w-full bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-[0.99] rounded-2xl px-4 py-3 shadow-md flex items-center justify-between text-white transition-all text-left group cursor-pointer"
-            >
-              <div>
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-100 block mb-0.5">
-                  Add Location
-                </span>
-                <span className="text-sm font-extrabold capitalize text-white flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-blue-200 shrink-0" />
-                  <span className="truncate max-w-[220px] md:max-w-xs">
-                    {localLocation || 'Select Gauteng Locations'}
-                  </span>
-                </span>
-              </div>
-              <div className="flex items-center gap-1 text-blue-100 group-hover:text-white group-hover:translate-x-0.5 transition-all">
-                <span className="text-xs font-bold">Choose</span>
-                <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-              </div>
-            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">

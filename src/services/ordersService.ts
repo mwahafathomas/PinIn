@@ -13,6 +13,14 @@ export interface OrderRecord {
   sellerId?: string;
   delivery: string;
   deliveryEstimation: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  streetAddressLine1?: string;
+  streetAddressLine2?: string;
+  cityTown?: string;
+  province?: string;
+  postalCode?: string;
+  deliveryInstructions?: string;
   itemBought: string;
   itemPrice: number;
   price: number;
@@ -21,23 +29,6 @@ export interface OrderRecord {
   status: string;
   imageUrl?: string;
   created_at?: string;
-}
-
-export interface PopularSearchItem {
-  id?: string;
-  query: string;
-  search_count: number;
-  category?: string;
-  last_searched_at?: string;
-}
-
-export interface PopularBoughtItem {
-  id?: string;
-  item_title: string;
-  listing_id?: string;
-  total_sold: number;
-  total_revenue: number;
-  last_bought_at?: string;
 }
 
 const ORDERS_STORAGE_KEY = 'pinin_orders_history_v1';
@@ -114,6 +105,14 @@ export async function createOrder(data: {
   listingId?: string;
   delivery: string;
   deliveryEstimation?: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  streetAddressLine1?: string;
+  streetAddressLine2?: string;
+  cityTown?: string;
+  province?: string;
+  postalCode?: string;
+  deliveryInstructions?: string;
   itemBought?: string;
   itemPrice?: number;
   price?: number;
@@ -172,6 +171,14 @@ export async function createOrder(data: {
       sellerId: item.sellerId,
       delivery: data.delivery.trim(),
       deliveryEstimation,
+      recipientName: data.recipientName?.trim(),
+      recipientPhone: data.recipientPhone?.trim(),
+      streetAddressLine1: data.streetAddressLine1?.trim(),
+      streetAddressLine2: data.streetAddressLine2?.trim(),
+      cityTown: data.cityTown?.trim(),
+      province: data.province?.trim() || 'Gauteng',
+      postalCode: data.postalCode?.trim(),
+      deliveryInstructions: data.deliveryInstructions?.trim(),
       itemBought: item.itemBought.trim(),
       itemPrice: Number(item.itemPrice) || 0,
       price: lineTotal,
@@ -207,6 +214,14 @@ export async function createOrder(data: {
       quantity: rec.quantity,
       delivery_estimation: rec.deliveryEstimation,
       delivery: rec.delivery,
+      recipient_name: rec.recipientName || null,
+      recipient_phone: rec.recipientPhone || null,
+      street_address_line1: rec.streetAddressLine1 || null,
+      street_address_line2: rec.streetAddressLine2 || null,
+      city_town: rec.cityTown || null,
+      province: rec.province || 'Gauteng',
+      postal_code: rec.postalCode || null,
+      delivery_instructions: rec.deliveryInstructions || null,
       date_bought: rec.dateBought,
       status: rec.status,
     }));
@@ -354,77 +369,6 @@ export async function recordSearchQuery(query: string, category?: string): Promi
   }
 }
 
-// Fetch most searched items from Supabase
-export async function getMostSearchedItems(limit: number = 8): Promise<PopularSearchItem[]> {
-  try {
-    const { data, error } = await supabase
-      .from('most_searched_items')
-      .select('*')
-      .order('search_count', { ascending: false })
-      .limit(limit);
-
-    if (error || !data || data.length === 0) {
-      return [
-        { query: 'L-shape couch', search_count: 42, category: 'Sofas' },
-        { query: 'Dining table 6 seater', search_count: 36, category: 'Dining' },
-        { query: 'Oak coffee table', search_count: 28, category: 'Living Room' },
-        { query: 'Queen bed base', search_count: 24, category: 'Beds' },
-        { query: 'Office swivel chair', search_count: 19, category: 'Office' },
-      ];
-    }
-
-    return data.map((d) => ({
-      id: d.id,
-      query: d.query,
-      search_count: d.search_count || 1,
-      category: d.category,
-      last_searched_at: d.last_searched_at,
-    }));
-  } catch {
-    return [
-      { query: 'L-shape couch', search_count: 42, category: 'Sofas' },
-      { query: 'Dining table 6 seater', search_count: 36, category: 'Dining' },
-      { query: 'Oak coffee table', search_count: 28, category: 'Living Room' },
-      { query: 'Queen bed base', search_count: 24, category: 'Beds' },
-    ];
-  }
-}
-
-// Fetch most bought items from Supabase
-export async function getMostBoughtItems(limit: number = 8): Promise<PopularBoughtItem[]> {
-  try {
-    const { data, error } = await supabase
-      .from('most_bought_items')
-      .select('*')
-      .order('total_sold', { ascending: false })
-      .limit(limit);
-
-    if (error || !data || data.length === 0) {
-      return [
-        { item_title: 'Scandinavian Fabric 3-Seater Sofa', total_sold: 14, total_revenue: 63000 },
-        { item_title: 'Solid Oak Round Dining Table', total_sold: 11, total_revenue: 41800 },
-        { item_title: 'Industrial Minimalist Bookshelf', total_sold: 9, total_revenue: 16200 },
-        { item_title: 'Queen Size Upholstered Bed Frame', total_sold: 8, total_revenue: 44000 },
-      ];
-    }
-
-    return data.map((d) => ({
-      id: d.id,
-      item_title: d.item_title,
-      listing_id: d.listing_id,
-      total_sold: d.total_sold || 1,
-      total_revenue: Number(d.total_revenue) || 0,
-      last_bought_at: d.last_bought_at,
-    }));
-  } catch {
-    return [
-      { item_title: 'Scandinavian Fabric 3-Seater Sofa', total_sold: 14, total_revenue: 63000 },
-      { item_title: 'Solid Oak Round Dining Table', total_sold: 11, total_revenue: 41800 },
-      { item_title: 'Industrial Minimalist Bookshelf', total_sold: 9, total_revenue: 16200 },
-    ];
-  }
-}
-
 // Fetch user's orders from Supabase (or local cache fallback)
 export async function getUserOrders(userEmail?: string, buyerId?: string): Promise<OrderRecord[]> {
   const localOrders = getLocalOrders();
@@ -481,5 +425,3 @@ export async function getUserOrders(userEmail?: string, buyerId?: string): Promi
 
 // Aliases for compatibility
 export const fetchUserOrders = getUserOrders;
-export const fetchMostSearchedItems = getMostSearchedItems;
-export const fetchMostBoughtItems = getMostBoughtItems;

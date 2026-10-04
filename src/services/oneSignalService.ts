@@ -125,15 +125,20 @@ export async function initOneSignal(customAppId?: string): Promise<boolean> {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async (OneSignal: any) => {
       try {
-        await OneSignal.init({
-          appId: appId,
-          allowLocalhostAsSecureOrigin: true,
-          notifyButton: {
-            enable: false,
-          },
-          serviceWorkerPath: '/OneSignalSDKWorker.js',
-          serviceWorkerParam: { scope: '/' },
-        });
+        // OneSignal init: OneSignal.init(appId) with fallback to object options
+        try {
+          await OneSignal.init(appId);
+        } catch {
+          await OneSignal.init({
+            appId: appId,
+            allowLocalhostAsSecureOrigin: true,
+            notifyButton: {
+              enable: false,
+            },
+            serviceWorkerPath: '/OneSignalSDKWorker.js',
+            serviceWorkerParam: { scope: '/' },
+          });
+        }
         isInitialized = true;
         resolve(true);
       } catch (err) {
@@ -142,6 +147,35 @@ export async function initOneSignal(customAppId?: string): Promise<boolean> {
       }
     });
   });
+}
+
+/**
+ * Initialize OneSignal and request permission with a 3-second delay after launch
+ */
+export async function initOneSignalWithDelayedPermission(customAppId?: string, delayMs: number = 3000): Promise<void> {
+  const appId = customAppId || getOneSignalAppId();
+  if (!appId) return;
+
+  await initOneSignal(appId);
+
+  setTimeout(async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (window.OneSignal?.Notifications?.requestPermission) {
+        await window.OneSignal.Notifications.requestPermission(true);
+      } else if (window.OneSignalDeferred) {
+        window.OneSignalDeferred.push(async (OneSignal: any) => {
+          try {
+            await OneSignal.Notifications?.requestPermission(true);
+          } catch (e) {
+            console.warn('OneSignal requestPermission error:', e);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Notification permission request error:', e);
+    }
+  }, delayMs);
 }
 
 /**

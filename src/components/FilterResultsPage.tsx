@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   SlidersHorizontal,
@@ -37,6 +37,18 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
   onToggleSave,
   onOpenSell,
 }) => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -116,7 +128,27 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
 
       {/* Main Grid Area (Scrollable in middle) */}
       <main className="flex-1 w-full max-w-md md:max-w-7xl mx-auto overflow-y-auto px-3 md:px-6 lg:px-8 pt-3 pb-6">
-        {items.length > 0 ? (
+        {isLoading ? (
+          /* Shimmer Skeleton Grid Loader */
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4 animate-pulse">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div
+                key={i}
+                className="bg-white border border-gray-200 overflow-hidden shadow-xs flex flex-col"
+              >
+                <div className="aspect-4/3 bg-gray-200" />
+                <div className="p-2.5 space-y-2">
+                  <div className="h-3.5 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                  <div className="pt-2 border-t border-gray-100 flex justify-between">
+                    <div className="h-3 bg-gray-200 rounded w-1/3" />
+                    <div className="h-3 bg-gray-200 rounded w-1/4" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : items.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
             {items.map((item) => {
               const isSaved = savedItemIds.includes(item.id);

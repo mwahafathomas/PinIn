@@ -258,22 +258,7 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         } catch {}
       }
-      return [
-        {
-          id: 'rev-1',
-          author: 'Sipho D.',
-          rating: 5,
-          date: '2 weeks ago',
-          comment: 'Item is in great condition as described. Quick handover and great communication!',
-        },
-        {
-          id: 'rev-2',
-          author: 'Candice M.',
-          rating: 5,
-          date: '1 month ago',
-          comment: 'Very happy with this purchase. Quality furniture and smooth transaction.',
-        },
-      ];
+      return [];
     })(),
   };
 }

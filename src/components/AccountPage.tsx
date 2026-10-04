@@ -38,10 +38,6 @@ import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import {
   fetchUserOrders,
   OrderRecord,
-  fetchMostSearchedItems,
-  fetchMostBoughtItems,
-  PopularSearchItem,
-  PopularBoughtItem,
 } from '../services/ordersService';
 import { getCartCount } from '../services/cartService';
 import { DeliveryAddressPage } from './DeliveryAddressPage';
@@ -96,14 +92,13 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [cartItemCount, setCartItemCount] = useState(getCartCount());
-  const [showPopularStats, setShowPopularStats] = useState(false);
-  const [popularSearches, setPopularSearches] = useState<PopularSearchItem[]>([]);
-  const [popularBought, setPopularBought] = useState<PopularBoughtItem[]>([]);
 
-  // Sub-modals for requested items
+  // Full sub-pages for requested items
   const [activeModal, setActiveModal] = useState<
-    'settings' | 'returns' | 'invoices' | 'address-book' | 'help' | 'credits-refunds' | null
+    'settings' | 'returns' | 'invoices' | 'address-book' | 'help' | 'credits-refunds' | 'my-orders' | null
   >(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubpageLoading, setIsSubpageLoading] = useState(false);
 
   // Invoices state
   const [selectedInvoice, setSelectedInvoice] = useState<OrderRecord | null>(null);
@@ -130,12 +125,25 @@ export const AccountPage: React.FC<AccountPageProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setIsLoading(true);
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 1200);
       setCartItemCount(getCartCount());
       fetchUserOrders(user.email, user.id).then(setOrders);
-      fetchMostSearchedItems().then(setPopularSearches);
-      fetchMostBoughtItems().then(setPopularBought);
+      return () => clearTimeout(timer);
     }
   }, [isOpen, user.email, user.id]);
+
+  useEffect(() => {
+    if (activeModal) {
+      setIsSubpageLoading(true);
+      const timer = setTimeout(() => {
+        setIsSubpageLoading(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeModal]);
 
   if (!isOpen) return null;
 
@@ -154,7 +162,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             aria-label="Go back"
             className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
           >
-            <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+            <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
           </button>
 
           <div className="absolute left-1/2 -translate-x-1/2">
@@ -172,513 +180,535 @@ export const AccountPage: React.FC<AccountPageProps> = ({
 
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-4 space-y-4 pb-12">
-        {/* User Profile Card (Without upload photo option) */}
-        {user.isLoggedIn ? (
-          <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs flex items-center gap-4">
-            <div className="relative shrink-0">
-              <img
-                src={getOptimizedImageUrl(userAvatar, { width: 160, quality: 75, format: 'webp' })}
-                alt={fullName}
-                className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 shadow-xs"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <h1 className="text-base md:text-lg font-black text-gray-900 truncate">
-                {fullName}
-              </h1>
-              {user.email && (
-                <p className="text-xs text-gray-500 truncate">{user.email}</p>
-              )}
-
-              {user.location && user.location.trim() !== '' && (
-                <p className="text-xs font-bold text-[#2D8EDE] flex items-center gap-1 mt-1 truncate">
-                  <MapPin className="w-3 h-3 shrink-0" />
-                  <span className="truncate">{user.location}</span>
-                </p>
-              )}
-
-              {userBio.trim() !== '' && (
-                <p className="text-xs text-gray-600 line-clamp-2 mt-1 leading-snug">
-                  {userBio}
-                </p>
-              )}
+        {isLoading ? (
+          /* Shimmer Skeleton Loader for Account Page */
+          <div className="space-y-4 animate-pulse pt-1">
+            <div className="bg-white rounded-3xl border border-gray-200 p-5 h-20 bg-gray-200" />
+            <div className="bg-white rounded-3xl border border-gray-200 p-4 space-y-3">
+              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-none">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gray-200" />
+                    <div className="space-y-1.5">
+                      <div className="h-4 w-32 bg-gray-200 rounded" />
+                      <div className="h-3 w-48 bg-gray-200 rounded" />
+                    </div>
+                  </div>
+                  <div className="w-4 h-4 bg-gray-200 rounded" />
+                </div>
+              ))}
             </div>
           </div>
         ) : (
-          /* Logged out state */
-          <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
-              <UserIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-sm font-extrabold text-gray-900">Welcome to PinIn</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Sign in to view your orders, save furniture, and manage your account.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 pt-1 max-w-xs mx-auto">
-              <button
-                type="button"
-                onClick={() => onOpenAuth?.('signin')}
-                className="py-2.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Sign In</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onOpenAuth?.('register')}
-                className="py-2.5 px-4 bg-white border border-gray-300 text-gray-800 font-extrabold text-xs rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                Register
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Account Menu Navigation */}
-        <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs divide-y divide-gray-100">
-          {/* 1. Account Settings (Contains Delete Account inside) */}
-          <button
-            type="button"
-            onClick={() => setActiveModal('settings')}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                <Settings className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-gray-900">Account Settings</p>
-                <p className="text-[11px] text-gray-400">Security, preferences &amp; account removal</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </button>
-
-          {/* 2. Returns */}
-          <button
-            type="button"
-            onClick={() => setActiveModal('returns')}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                <RotateCcw className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-gray-900">Returns</p>
-                <p className="text-[11px] text-gray-400">7-day guarantee, track &amp; request return</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </button>
-
-          {/* 3. Invoices */}
-          <button
-            type="button"
-            onClick={() => setActiveModal('invoices')}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <FileText className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-gray-900">Invoices</p>
-                <p className="text-[11px] text-gray-400">View receipts &amp; download tax invoices</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </button>
-
-          {/* 4. Address Book */}
-          <button
-            type="button"
-            onClick={() => setActiveModal('address-book')}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <BookOpen className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-gray-900">Address Book</p>
-                <p className="text-[11px] text-gray-400">Manage delivery locations &amp; defaults</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </button>
-
-          {/* 5. Help */}
-          <button
-            type="button"
-            onClick={() => setActiveModal('help')}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
-                <HelpCircle className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-gray-900">Help &amp; Support</p>
-                <p className="text-[11px] text-gray-400">FAQs, ordering guides &amp; contact</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </button>
-
-          {/* 6. Credits & Refunds */}
-          <button
-            type="button"
-            onClick={() => setActiveModal('credits-refunds')}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                <Coins className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-gray-900">Credits &amp; Refunds</p>
-                <p className="text-[11px] text-gray-400">Wallet balance &amp; refund status</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </button>
-
-          {/* 7. Edit Profile & Bio */}
-          {user.isLoggedIn && (
-            <button
-              type="button"
-              onClick={onOpenEditProfile}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">
-                  <Edit3 className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-bold text-gray-900">Edit Profile &amp; Bio</p>
-                  <p className="text-[11px] text-gray-400">Update name, location and about you</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </button>
-          )}
-
-          {/* 8. My Orders */}
-          <div className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <Package className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-bold text-gray-900">My Orders</p>
-                  <p className="text-[11px] text-gray-400">
-                    {orders.length > 0 ? `${orders.length} order(s) placed` : 'No orders yet'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Orders list */}
-            {orders.length > 0 ? (
-              <div className="space-y-2 pt-1">
-                {orders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="p-3 bg-gray-50 border border-gray-200 rounded-2xl space-y-1.5 text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-black text-[#2D8EDE]">{order.orderNumber}</span>
-                      <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <CheckCircle className="w-2.5 h-2.5" />
-                        <span>{order.status || 'Completed'}</span>
-                      </span>
-                    </div>
-
-                    <p className="font-extrabold text-gray-900 line-clamp-1">{order.itemBought}</p>
-
-                    <div className="flex items-center justify-between text-[11px] text-gray-600 pt-0.5">
-                      <span>
-                        R{order.price}{' '}
-                        {order.quantity && order.quantity > 1 ? `(Qty: ${order.quantity})` : ''}
-                      </span>
-                      <span className="flex items-center gap-1 text-gray-400">
-                        <Clock className="w-3 h-3" />
-                        {order.dateBought}
-                      </span>
-                    </div>
-
-                    {order.deliveryEstimation && (
-                      <div className="text-[10px] font-bold text-blue-700 bg-blue-50/70 px-2 py-0.5 rounded-lg border border-blue-100 flex items-center justify-between">
-                        <span>Est. Delivery:</span>
-                        <span>{order.deliveryEstimation}</span>
-                      </div>
-                    )}
-
-                    <p className="text-[10px] text-gray-500 truncate pt-0.5 border-t border-gray-200">
-                      {order.delivery}
-                    </p>
-                  </div>
-                ))}
+          <>
+            {/* User Profile Card - Only User Email */}
+            {user.isLoggedIn ? (
+              <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs">
+                <p className="text-sm sm:text-base font-extrabold text-gray-900 truncate">
+                  {user.email}
+                </p>
               </div>
             ) : (
-              <div className="p-3 bg-gray-50 rounded-2xl text-center text-xs text-gray-500">
-                You haven't placed any orders yet. Browse furniture to get started!
-              </div>
-            )}
-          </div>
-
-          {/* 9. Saved Items */}
-          <button
-            type="button"
-            onClick={onOpenSavedItems}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                <Bookmark className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-gray-900">Saved Items</p>
-                <p className="text-[11px] text-gray-400">View bookmarks &amp; favorited furniture</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </button>
-
-          {/* 10. Popular Items & Search Stats */}
-          <div className="p-4 space-y-3">
-            <button
-              type="button"
-              onClick={() => setShowPopularStats((prev) => !prev)}
-              className="w-full flex items-center justify-between text-left cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4" />
+              /* Logged out state */
+              <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
+                  <UserIcon className="w-6 h-6 text-[#2D8EDE]" />
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm font-bold text-gray-900">
-                    Most Searched &amp; Most Bought Items
+                  <h2 className="text-sm font-extrabold text-gray-900">Welcome to PinIn</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Sign in to view your orders, save furniture, and manage your account.
                   </p>
-                  <p className="text-[11px] text-gray-400">Trends and popular listings</p>
                 </div>
-              </div>
-              <ChevronRight
-                className={`w-4 h-4 text-gray-400 transition-transform ${
-                  showPopularStats ? 'rotate-90' : ''
-                }`}
-              />
-            </button>
-
-            {showPopularStats && (
-              <div className="space-y-3 pt-2 animate-in fade-in duration-150">
-                {/* Most Searched */}
-                <div className="bg-gray-50 rounded-2xl p-3 border border-gray-200 space-y-2">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-purple-700">
-                    Most Searched Items
-                  </span>
-                  <div className="divide-y divide-gray-200">
-                    {popularSearches.map((s, idx) => (
-                      <div key={idx} className="py-1.5 flex items-center justify-between text-xs">
-                        <span className="font-semibold text-gray-800">{s.query}</span>
-                        <span className="text-gray-500 font-bold">{s.search_count} searches</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Most Bought */}
-                <div className="bg-gray-50 rounded-2xl p-3 border border-gray-200 space-y-2">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700">
-                    Most Bought Items
-                  </span>
-                  <div className="divide-y divide-gray-200">
-                    {popularBought.map((b, idx) => (
-                      <div key={idx} className="py-1.5 flex items-center justify-between text-xs">
-                        <span className="font-semibold text-gray-800 truncate max-w-[200px]">
-                          {b.item_title}
-                        </span>
-                        <span className="text-gray-500 font-bold">{b.total_sold} sold</span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-2 gap-2 pt-1 max-w-xs mx-auto">
+                  <button
+                    type="button"
+                    onClick={() => onOpenAuth?.('signin')}
+                    className="py-2.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Sign In</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onOpenAuth?.('register')}
+                    className="py-2.5 px-4 bg-white border border-gray-300 text-gray-800 font-extrabold text-xs rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    Register
+                  </button>
                 </div>
               </div>
             )}
-          </div>
 
-          {/* 11. Policies & Contact */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onOpenPolicies) onOpenPolicies();
-              else if (onOpenPrivacyPolicy) onOpenPrivacyPolicy();
-            }}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-gray-900">Policies &amp; Guidelines</p>
-                <p className="text-[11px] text-gray-400">Terms, privacy policy, and safety</p>
-              </div>
+            {/* Account Menu Navigation */}
+            <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs divide-y divide-gray-100">
+              {/* 1. Account Settings (Contains Account Profile, Edit Profile & Delete Account) */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user.isLoggedIn) {
+                    onOpenAuth?.('signin');
+                    return;
+                  }
+                  setActiveModal('settings');
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                    <Settings className="w-4 h-4 text-[#2D8EDE]" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Account Settings</p>
+                    <p className="text-[11px] text-gray-400">Profile, edit details &amp; delete account</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+              </button>
+
+              {/* 2. My Orders */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user.isLoggedIn) {
+                    onOpenAuth?.('signin');
+                    return;
+                  }
+                  setActiveModal('my-orders');
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                    <Package className="w-4 h-4 text-[#2D8EDE]" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">My Orders</p>
+                    <p className="text-[11px] text-gray-400">
+                      {orders.length > 0 ? `${orders.length} order(s) placed` : 'View order history & status'}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+              </button>
+
+              {/* 3. Returns */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user.isLoggedIn) {
+                    onOpenAuth?.('signin');
+                    return;
+                  }
+                  setActiveModal('returns');
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                    <RotateCcw className="w-4 h-4 text-[#2D8EDE]" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Returns</p>
+                    <p className="text-[11px] text-gray-400">7-day guarantee, track &amp; request return</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+              </button>
+
+              {/* 4. Invoices */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user.isLoggedIn) {
+                    onOpenAuth?.('signin');
+                    return;
+                  }
+                  setActiveModal('invoices');
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-[#2D8EDE]" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Invoices</p>
+                    <p className="text-[11px] text-gray-400">View receipts &amp; download tax invoices</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+              </button>
+
+              {/* 5. Address Book */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user.isLoggedIn) {
+                    onOpenAuth?.('signin');
+                    return;
+                  }
+                  setActiveModal('address-book');
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                    <BookOpen className="w-4 h-4 text-[#2D8EDE]" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Address Book</p>
+                    <p className="text-[11px] text-gray-400">Manage delivery locations &amp; defaults</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+              </button>
+
+              {/* 6. Help & Support */}
+              <button
+                type="button"
+                onClick={() => setActiveModal('help')}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                    <HelpCircle className="w-4 h-4 text-[#2D8EDE]" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Help &amp; Support</p>
+                    <p className="text-[11px] text-gray-400">FAQs, ordering guides &amp; contact</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+              </button>
+
+              {/* 7. Credits & Refunds */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user.isLoggedIn) {
+                    onOpenAuth?.('signin');
+                    return;
+                  }
+                  setActiveModal('credits-refunds');
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                    <Coins className="w-4 h-4 text-[#2D8EDE]" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Credits &amp; Refunds</p>
+                    <p className="text-[11px] text-gray-400">Wallet balance &amp; refund status</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+              </button>
+
+              {/* 8. Saved Items */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user.isLoggedIn) {
+                    onOpenAuth?.('signin');
+                    return;
+                  }
+                  if (onOpenSavedItems) onOpenSavedItems();
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                    <Bookmark className="w-4 h-4 text-[#2D8EDE]" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Saved Items</p>
+                    <p className="text-[11px] text-gray-400">View bookmarks &amp; favorited furniture</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+              </button>
+
+              {/* 9. Policies */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenPolicies) onOpenPolicies();
+                  else if (onOpenPrivacyPolicy) onOpenPrivacyPolicy();
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4 text-[#2D8EDE]" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Policies</p>
+                    <p className="text-[11px] text-gray-400">Terms, privacy policy, and safety</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+              </button>
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </>
+        )}
+            <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
           </button>
 
+          {/* 10. Contact Us */}
           <button
             type="button"
             onClick={onOpenContactUs}
             className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center">
-                <Headphones className="w-4 h-4" />
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                <Headphones className="w-4 h-4 text-[#2D8EDE]" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-bold text-gray-900">Contact Us</p>
                 <p className="text-[11px] text-gray-400">24/7 customer support &amp; inquiries</p>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
           </button>
 
-          {/* 12. Sign Out (Logged in only) */}
+          {/* 11. Sign Out (Logged in only) */}
           {user.isLoggedIn && (
             <button
               type="button"
               onClick={() => setShowSignOutConfirm(true)}
-              className="w-full flex items-center justify-between p-4 hover:bg-red-50 text-red-600 text-left transition-colors cursor-pointer"
+              className="w-full flex items-center justify-between p-4 hover:bg-blue-50/50 text-gray-800 text-left transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
-                  <LogOut className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                  <LogOut className="w-4 h-4 text-[#2D8EDE]" />
                 </div>
-                <span className="text-xs sm:text-sm font-bold">Sign Out</span>
+                <span className="text-xs sm:text-sm font-bold text-gray-900">Sign Out</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-red-400" />
+              <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
             </button>
           )}
         </div>
       </main>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: ACCOUNT SETTINGS (With Delete Account inside)                     */}
+      {/* FULL PAGE 1: ACCOUNT SETTINGS (Account Profile, Edit Profile, Delete)       */}
       {/* ========================================================================= */}
       {activeModal === 'settings' && (
-        <div
-          className="fixed inset-0 z-60 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setActiveModal(null)}
-        >
-          <div
-            className="bg-white rounded-3xl p-5 max-w-sm w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-150 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                  <Settings className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm font-black text-gray-900">Account Settings</h3>
+        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
+          {/* Header */}
+          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
+            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  aria-label="Go back"
+                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+                >
+                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Profile Overview */}
-            <div className="bg-gray-50 rounded-2xl p-3 border border-gray-200 space-y-1 text-xs">
-              <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Account Profile</p>
-              <p className="font-extrabold text-gray-900">{fullName}</p>
-              <p className="text-gray-500">{user.email || 'No email attached'}</p>
-              <p className="text-[#2D8EDE] font-bold pt-1">Region: South Africa (ZAR • R)</p>
-            </div>
-
-            {/* Preferences */}
-            <div className="space-y-2 text-xs">
-              <p className="text-[11px] font-black text-gray-700 uppercase tracking-wider">Preferences</p>
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-gray-800">Push Notifications</p>
-                  <p className="text-[10px] text-gray-500">Receive order &amp; listing updates</p>
-                </div>
-                <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                  Enabled
+              <div className="absolute left-1/2 -translate-x-1/2">
+                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
+                  Pin<span className="text-[#2D8EDE]">In</span>
                 </span>
               </div>
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-gray-800">Security &amp; Privacy</p>
-                  <p className="text-[10px] text-gray-500">Verified session protection</p>
-                </div>
-                <span className="text-[10px] font-extrabold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
-                  Protected
-                </span>
-              </div>
-            </div>
 
-            {/* Danger Zone: Delete Account inside Account Settings */}
-            <div className="pt-2 border-t border-gray-200 space-y-2">
-              <p className="text-[11px] font-black text-red-600 uppercase tracking-wider">Danger Zone</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveModal(null);
-                  if (onOpenDeleteAccount) onOpenDeleteAccount();
-                  else setShowDeleteConfirm(true);
-                }}
-                className="w-full py-2.5 px-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <UserX className="w-4 h-4" />
-                <span>Delete Account</span>
-              </button>
+              <div className="w-8" aria-hidden="true" />
             </div>
-          </div>
+          </header>
+
+          {/* Main Content Area: Only Account Profile and Delete Account */}
+          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
+            {isSubpageLoading ? (
+              <div className="space-y-4 animate-pulse pt-1">
+                <div className="bg-white rounded-3xl border border-gray-200 p-5 space-y-3">
+                  <div className="h-3.5 w-24 bg-gray-200 rounded" />
+                  <div className="h-4 w-40 bg-gray-200 rounded" />
+                  <div className="h-3.5 w-52 bg-gray-200 rounded" />
+                  <div className="h-10 w-full bg-gray-200 rounded-xl mt-3" />
+                </div>
+                <div className="bg-white rounded-3xl border border-gray-200 p-5">
+                  <div className="h-10 w-full bg-gray-200 rounded-xl" />
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Account Profile (name & user email) with Edit Profile button */}
+                <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs space-y-3">
+                  <p className="text-xs font-black uppercase tracking-wider text-gray-500">
+                    Account Profile
+                  </p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-gray-900">{fullName}</p>
+                    <p className="text-xs text-gray-500">{user.email || 'No email attached'}</p>
+                  </div>
+
+                  {/* Edit Profile placed under account settings */}
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveModal(null);
+                        if (onOpenEditProfile) onOpenEditProfile();
+                      }}
+                      className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 font-extrabold text-xs rounded-xl transition-colors cursor-pointer text-center"
+                    >
+                      Edit Profile
+                    </button>
+                  </div>
+                </div>
+
+                {/* Delete Account */}
+                <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!user.isLoggedIn) {
+                        setActiveModal(null);
+                        onOpenAuth?.('signin');
+                        return;
+                      }
+                      setActiveModal(null);
+                      if (onOpenDeleteAccount) onOpenDeleteAccount();
+                      else setShowDeleteConfirm(true);
+                    }}
+                    className="w-full py-3 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <UserX className="w-4 h-4 text-red-600" />
+                    <span>Delete Account</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </main>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: RETURNS                                                          */}
+      {/* FULL PAGE 2: MY ORDERS                                                    */}
+      {/* ========================================================================= */}
+      {activeModal === 'my-orders' && (
+        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
+          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
+            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  aria-label="Go back"
+                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+                >
+                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
+                </button>
+              </div>
+
+              <div className="absolute left-1/2 -translate-x-1/2">
+                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
+                  Pin<span className="text-[#2D8EDE]">In</span>
+                </span>
+              </div>
+
+              <div className="w-8" aria-hidden="true" />
+            </div>
+          </header>
+
+          <main className="flex-1 w-full max-w-md md:max-w-3xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
+            <div className="border-b border-gray-200 pb-3 flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">My Orders</h1>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {orders.length > 0 ? `${orders.length} order(s) placed` : 'No orders placed yet'}
+                </p>
+              </div>
+            </div>
+
+            {orders.length > 0 ? (
+              <div className="space-y-3">
+                {orders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="bg-white p-4 border border-gray-200 rounded-3xl space-y-2.5 text-xs shadow-xs"
+                  >
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                      <span className="font-black text-[#2D8EDE] text-sm">{order.orderNumber}</span>
+                      <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        <span>{order.status || 'Completed'}</span>
+                      </span>
+                    </div>
+
+                    <p className="font-extrabold text-sm text-gray-900">{order.itemBought}</p>
+
+                    <div className="flex items-center justify-between text-xs text-gray-600">
+                      <span className="font-bold text-gray-900">
+                        R{order.price}{' '}
+                        {order.quantity && order.quantity > 1 ? `(Qty: ${order.quantity})` : ''}
+                      </span>
+                      <span className="flex items-center gap-1 text-gray-400">
+                        <Clock className="w-3.5 h-3.5" />
+                        {order.dateBought}
+                      </span>
+                    </div>
+
+                    {order.deliveryEstimation && (
+                      <div className="text-[11px] font-bold text-blue-700 bg-blue-50/70 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between">
+                        <span>Delivery Estimation:</span>
+                        <span>{order.deliveryEstimation}</span>
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-gray-500 pt-1 border-t border-gray-100">
+                      {order.delivery}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center text-xs text-gray-500 shadow-xs">
+                You haven't placed any orders yet. Browse furniture to get started!
+              </div>
+            )}
+          </main>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* FULL PAGE 3: RETURNS                                                      */}
       {/* ========================================================================= */}
       {activeModal === 'returns' && (
-        <div
-          className="fixed inset-0 z-60 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setActiveModal(null)}
-        >
-          <div
-            className="bg-white rounded-3xl p-5 max-w-sm sm:max-w-md w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-150 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
-                  <RotateCcw className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-gray-900">Returns &amp; Replacements</h3>
-                  <p className="text-[10px] text-gray-500">7-Day Hassle-Free Return Guarantee</p>
-                </div>
+        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
+          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
+            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  aria-label="Go back"
+                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+                >
+                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="absolute left-1/2 -translate-x-1/2">
+                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
+                  Pin<span className="text-[#2D8EDE]">In</span>
+                </span>
+              </div>
+
+              <div className="w-8" aria-hidden="true" />
+            </div>
+          </header>
+
+          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
+            <div className="border-b border-gray-200 pb-3">
+              <h1 className="text-xl font-bold text-gray-900">Returns</h1>
+              <p className="text-xs text-gray-500 mt-0.5">7-Day Hassle-Free Return Guarantee</p>
             </div>
 
             {returnSuccessMsg && (
@@ -688,154 +718,160 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             )}
 
             {/* Policy badge */}
-            <div className="p-3 bg-purple-50/70 border border-purple-200/80 rounded-2xl text-xs space-y-1">
-              <p className="font-extrabold text-purple-900">PinIn Return Policy</p>
-              <p className="text-[11px] text-purple-800 leading-snug">
+            <div className="p-4 bg-white border border-gray-200 rounded-3xl text-xs space-y-1 shadow-xs">
+              <p className="font-extrabold text-gray-900 text-sm">PinIn Return Policy</p>
+              <p className="text-[11px] text-gray-600 leading-relaxed">
                 You can return any purchased furniture item within 7 days of delivery if the condition does not match the listing description or is defective.
               </p>
             </div>
 
             {/* Request Return Form */}
             {orders.length > 0 ? (
-              <form onSubmit={handleSubmitReturn} className="space-y-3 text-xs">
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Select Order to Return *
-                  </label>
-                  <select
-                    required
-                    value={selectedReturnOrder}
-                    onChange={(e) => setSelectedReturnOrder(e.target.value)}
-                    className="w-full text-xs font-medium px-3 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white"
+              <div className="bg-white border border-gray-200 rounded-3xl p-5 shadow-xs space-y-4">
+                <h2 className="text-sm font-bold text-gray-900">Request a Return</h2>
+                <form onSubmit={handleSubmitReturn} className="space-y-3.5 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                      Select Order to Return *
+                    </label>
+                    <select
+                      required
+                      value={selectedReturnOrder}
+                      onChange={(e) => setSelectedReturnOrder(e.target.value)}
+                      className="w-full text-xs font-medium px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white cursor-pointer"
+                    >
+                      <option value="">-- Choose an order --</option>
+                      {orders.map((o) => (
+                        <option key={o.id} value={o.orderNumber}>
+                          {o.orderNumber} - {o.itemBought} (R{o.price})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                      Reason for Return *
+                    </label>
+                    <select
+                      value={returnReason}
+                      onChange={(e) => setReturnReason(e.target.value)}
+                      className="w-full text-xs font-medium px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white cursor-pointer"
+                    >
+                      <option value="description doesn't match product">Description doesn't match product</option>
+                      <option value="wrong product image">Wrong product image</option>
+                      <option value="item arrived damaged">Item arrived damaged / scratched</option>
+                      <option value="changed mind">Changed mind</option>
+                      <option value="other">Other reason</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                      Additional Details
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={returnDetails}
+                      onChange={(e) => setReturnDetails(e.target.value)}
+                      placeholder="Describe any specifics to arrange pickup..."
+                      className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={!selectedReturnOrder}
+                    className="w-full py-3 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
                   >
-                    <option value="">-- Choose an order --</option>
-                    {orders.map((o) => (
-                      <option key={o.id} value={o.orderNumber}>
-                        {o.orderNumber} - {o.itemBought} (R{o.price})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Reason for Return *
-                  </label>
-                  <select
-                    value={returnReason}
-                    onChange={(e) => setReturnReason(e.target.value)}
-                    className="w-full text-xs font-medium px-3 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white"
-                  >
-                    <option value="description doesn't match product">Description doesn't match product</option>
-                    <option value="wrong product image">Wrong product image</option>
-                    <option value="item arrived damaged">Item arrived damaged / scratched</option>
-                    <option value="changed mind">Changed mind</option>
-                    <option value="other">Other reason</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Additional Details
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={returnDetails}
-                    onChange={(e) => setReturnDetails(e.target.value)}
-                    placeholder="Describe any specifics to arrange pickup..."
-                    className="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white resize-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={!selectedReturnOrder}
-                  className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
-                >
-                  Submit Return Request
-                </button>
-              </form>
+                    Submit Return Request
+                  </button>
+                </form>
+              </div>
             ) : (
-              <div className="p-4 bg-gray-50 rounded-2xl text-center text-xs text-gray-500">
+              <div className="bg-white border border-gray-200 rounded-3xl p-8 text-center text-xs text-gray-500 shadow-xs">
                 You have no completed orders eligible for return at this time.
               </div>
             )}
-          </div>
+          </main>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 3: INVOICES                                                         */}
+      {/* FULL PAGE 4: INVOICES                                                     */}
       {/* ========================================================================= */}
       {activeModal === 'invoices' && (
-        <div
-          className="fixed inset-0 z-60 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setActiveModal(null)}
-        >
-          <div
-            className="bg-white rounded-3xl p-5 max-w-sm sm:max-w-md w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-150 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-gray-900">Tax Invoices &amp; Receipts</h3>
-                  <p className="text-[10px] text-gray-500">Download printable invoices for your records</p>
-                </div>
+        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
+          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
+            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedInvoice(null);
+                    setActiveModal(null);
+                  }}
+                  aria-label="Go back"
+                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+                >
+                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedInvoice(null);
-                  setActiveModal(null);
-                }}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="absolute left-1/2 -translate-x-1/2">
+                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
+                  Pin<span className="text-[#2D8EDE]">In</span>
+                </span>
+              </div>
+
+              <div className="w-8" aria-hidden="true" />
+            </div>
+          </header>
+
+          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
+            <div className="border-b border-gray-200 pb-3">
+              <h1 className="text-xl font-bold text-gray-900">Invoices</h1>
+              <p className="text-xs text-gray-500 mt-0.5">View receipts &amp; download tax invoices</p>
             </div>
 
             {selectedInvoice ? (
               /* Printable digital invoice view */
               <div className="space-y-4">
-                <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl text-xs space-y-3 font-mono">
-                  <div className="flex items-center justify-between pb-2 border-b border-gray-300 font-sans">
-                    <span className="font-black text-base text-gray-900">PinIn INVOICE</span>
-                    <span className="text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full text-[10px]">
+                <div className="p-5 bg-white border border-gray-200 rounded-3xl text-xs space-y-4 font-mono shadow-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-200 font-sans">
+                    <span className="font-black text-lg text-gray-900">PinIn INVOICE</span>
+                    <span className="text-emerald-700 font-bold bg-emerald-100 px-2.5 py-0.5 rounded-full text-xs">
                       PAID
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <p className="text-gray-400 uppercase text-[9px]">Invoice Number</p>
+                      <p className="text-gray-400 uppercase text-[10px]">Invoice Number</p>
                       <p className="font-bold text-gray-900">INV-{selectedInvoice.orderNumber}</p>
                     </div>
                     <div>
-                      <p className="text-gray-400 uppercase text-[9px]">Date</p>
+                      <p className="text-gray-400 uppercase text-[10px]">Date</p>
                       <p className="font-bold text-gray-900">{selectedInvoice.dateBought}</p>
                     </div>
                   </div>
 
-                  <div className="text-[11px]">
-                    <p className="text-gray-400 uppercase text-[9px]">Billed To</p>
+                  <div className="text-xs">
+                    <p className="text-gray-400 uppercase text-[10px]">Billed To</p>
                     <p className="font-bold text-gray-900">{selectedInvoice.buyerName}</p>
                     <p className="text-gray-600">{selectedInvoice.buyerEmail}</p>
                   </div>
 
-                  <div className="text-[11px] border-t border-gray-200 pt-2">
-                    <p className="text-gray-400 uppercase text-[9px]">Item Description</p>
+                  <div className="text-xs border-t border-gray-100 pt-3">
+                    <p className="text-gray-400 uppercase text-[10px]">Item Description</p>
                     <p className="font-bold text-gray-900">{selectedInvoice.itemBought}</p>
                     <p className="text-gray-600">Seller: {selectedInvoice.sellerName}</p>
                     <p className="text-gray-600">{selectedInvoice.delivery}</p>
                   </div>
 
-                  <div className="border-t border-gray-300 pt-2 flex items-center justify-between font-sans">
-                    <span className="font-bold text-gray-800 text-xs">Total Amount</span>
-                    <span className="font-black text-[#2D8EDE] text-base">R{selectedInvoice.price}</span>
+                  <div className="border-t border-gray-200 pt-3 flex items-center justify-between font-sans">
+                    <span className="font-bold text-gray-800 text-sm">Total Amount</span>
+                    <span className="font-black text-[#2D8EDE] text-lg">R{selectedInvoice.price}</span>
                   </div>
                 </div>
 
@@ -843,7 +879,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   <button
                     type="button"
                     onClick={() => window.print()}
-                    className="flex-1 py-2.5 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 py-3 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Printer className="w-4 h-4" />
                     <span>Print Invoice</span>
@@ -851,7 +887,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   <button
                     type="button"
                     onClick={() => setSelectedInvoice(null)}
-                    className="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl cursor-pointer"
+                    className="py-3 px-5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-xs rounded-xl cursor-pointer"
                   >
                     Back to List
                   </button>
@@ -859,40 +895,40 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               </div>
             ) : (
               /* Invoices list */
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {orders.length > 0 ? (
                   orders.map((o) => (
                     <div
                       key={o.id}
-                      className="p-3 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-between text-xs hover:border-[#2D8EDE] transition-colors"
+                      className="p-4 bg-white border border-gray-200 rounded-3xl flex items-center justify-between text-xs hover:border-[#2D8EDE] transition-colors shadow-xs"
                     >
-                      <div className="min-w-0 pr-2">
-                        <p className="font-black text-gray-900">INV-{o.orderNumber}</p>
-                        <p className="text-[11px] text-gray-500 truncate">{o.itemBought}</p>
-                        <p className="text-[10px] text-gray-400">{o.dateBought} • R{o.price}</p>
+                      <div className="min-w-0 pr-3">
+                        <p className="font-black text-gray-900 text-sm">INV-{o.orderNumber}</p>
+                        <p className="text-xs text-gray-600 truncate mt-0.5">{o.itemBought}</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">{o.dateBought} • R{o.price}</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => setSelectedInvoice(o)}
-                        className="py-1.5 px-3 bg-white border border-gray-300 hover:border-[#2D8EDE] text-[#2D8EDE] font-extrabold text-xs rounded-xl shadow-2xs shrink-0 cursor-pointer"
+                        className="py-2 px-4 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-[#2D8EDE] font-extrabold text-xs rounded-xl shadow-2xs shrink-0 cursor-pointer"
                       >
                         View
                       </button>
                     </div>
                   ))
                 ) : (
-                  <div className="p-4 bg-gray-50 rounded-2xl text-center text-xs text-gray-500">
+                  <div className="bg-white border border-gray-200 rounded-3xl p-8 text-center text-xs text-gray-500 shadow-xs">
                     No orders have been placed yet. Invoices will automatically appear here once you place an order.
                   </div>
                 )}
               </div>
             )}
-          </div>
+          </main>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* FULL PAGE: ADDRESS BOOK                                                   */}
+      {/* FULL PAGE 5: ADDRESS BOOK                                                 */}
       {/* ========================================================================= */}
       <DeliveryAddressPage
         isOpen={activeModal === 'address-book'}
@@ -904,145 +940,151 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       />
 
       {/* ========================================================================= */}
-      {/* MODAL 5: HELP                                                             */}
+      {/* FULL PAGE 6: HELP & SUPPORT                                               */}
       {/* ========================================================================= */}
       {activeModal === 'help' && (
-        <div
-          className="fixed inset-0 z-60 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setActiveModal(null)}
-        >
-          <div
-            className="bg-white rounded-3xl p-5 max-w-sm sm:max-w-md w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-150 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center">
-                  <HelpCircle className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-gray-900">Help &amp; FAQs</h3>
-                  <p className="text-[10px] text-gray-500">Answers to common furniture shopping questions</p>
-                </div>
+        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
+          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
+            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  aria-label="Go back"
+                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+                >
+                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="absolute left-1/2 -translate-x-1/2">
+                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
+                  Pin<span className="text-[#2D8EDE]">In</span>
+                </span>
+              </div>
+
+              <div className="w-8" aria-hidden="true" />
+            </div>
+          </header>
+
+          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
+            <div className="border-b border-gray-200 pb-3">
+              <h1 className="text-xl font-bold text-gray-900">Help &amp; Support</h1>
+              <p className="text-xs text-gray-500 mt-0.5">Answers to common furniture shopping questions</p>
             </div>
 
             {/* FAQs Accordion */}
-            <div className="space-y-2 text-xs">
-              <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
-                <p className="font-extrabold text-gray-900">How long does delivery take?</p>
-                <p className="text-gray-600 text-[11px] leading-relaxed">
-                  Delivery takes 2 to 5 business days across Gauteng and surrounding areas. You can also opt for free self-collection.
+            <div className="space-y-3 text-xs">
+              <div className="p-4 bg-white rounded-3xl border border-gray-200 space-y-1 shadow-xs">
+                <p className="font-extrabold text-gray-900 text-sm">How long does delivery take?</p>
+                <p className="text-gray-600 text-xs leading-relaxed">
+                  Delivery takes 2 to 5 business days across Gauteng and surrounding areas.
                 </p>
               </div>
 
-              <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
-                <p className="font-extrabold text-gray-900">What is the return policy?</p>
-                <p className="text-gray-600 text-[11px] leading-relaxed">
+              <div className="p-4 bg-white rounded-3xl border border-gray-200 space-y-1 shadow-xs">
+                <p className="font-extrabold text-gray-900 text-sm">What is the return policy?</p>
+                <p className="text-gray-600 text-xs leading-relaxed">
                   Items can be returned within 7 days of delivery if they arrive damaged or do not match the photos/description.
                 </p>
               </div>
 
-              <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
-                <p className="font-extrabold text-gray-900">Can I pay in person?</p>
-                <p className="text-gray-600 text-[11px] leading-relaxed">
-                  Yes, for items marked with the "Pay in Person" badge, you can inspect the item and settle during collection.
+              <div className="p-4 bg-white rounded-3xl border border-gray-200 space-y-1 shadow-xs">
+                <p className="font-extrabold text-gray-900 text-sm">Can I pay in person?</p>
+                <p className="text-gray-600 text-xs leading-relaxed">
+                  Yes, for items marked with the "Pay in Person" badge, you can inspect the item and settle upon handover.
                 </p>
               </div>
 
-              <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
-                <p className="font-extrabold text-gray-900">How do I report an inaccurate listing?</p>
-                <p className="text-gray-600 text-[11px] leading-relaxed">
+              <div className="p-4 bg-white rounded-3xl border border-gray-200 space-y-1 shadow-xs">
+                <p className="font-extrabold text-gray-900 text-sm">How do I report an inaccurate listing?</p>
+                <p className="text-gray-600 text-xs leading-relaxed">
                   Open any listing, click the 3 dots in the top right corner, and select "Report Listing".
                 </p>
               </div>
             </div>
 
             {/* Contact Action */}
-            <div className="pt-2 border-t border-gray-100 flex gap-2">
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setActiveModal(null);
                   if (onOpenContactUs) onOpenContactUs();
                 }}
-                className="w-full py-2.5 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-3.5 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Headphones className="w-4 h-4" />
+                <Headphones className="w-4 h-4 text-white" />
                 <span>Contact Customer Support</span>
               </button>
             </div>
-          </div>
+          </main>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 6: CREDITS & REFUNDS                                                */}
+      {/* FULL PAGE 7: CREDITS & REFUNDS                                            */}
       {/* ========================================================================= */}
       {activeModal === 'credits-refunds' && (
-        <div
-          className="fixed inset-0 z-60 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setActiveModal(null)}
-        >
-          <div
-            className="bg-white rounded-3xl p-5 max-w-sm sm:max-w-md w-full max-h-[90vh] overflow-y-auto flex flex-col shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-150 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  <Coins className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-gray-900">Credits &amp; Refunds</h3>
-                  <p className="text-[10px] text-gray-500">Your store wallet balance &amp; payout history</p>
-                </div>
+        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
+          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
+            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  aria-label="Go back"
+                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+                >
+                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="absolute left-1/2 -translate-x-1/2">
+                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
+                  Pin<span className="text-[#2D8EDE]">In</span>
+                </span>
+              </div>
+
+              <div className="w-8" aria-hidden="true" />
+            </div>
+          </header>
+
+          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
+            <div className="border-b border-gray-200 pb-3">
+              <h1 className="text-xl font-bold text-gray-900">Credits &amp; Refunds</h1>
+              <p className="text-xs text-gray-500 mt-0.5">Your store wallet balance &amp; payout history</p>
             </div>
 
             {/* Wallet Balance Card */}
-            <div className="p-4 bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl text-center space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-wider text-indigo-700">Available Store Credit</p>
-              <p className="text-2xl font-black text-indigo-950">R0.00</p>
-              <p className="text-[10px] text-indigo-800">
+            <div className="p-6 bg-white border border-gray-200 rounded-3xl text-center space-y-2 shadow-xs">
+              <p className="text-xs font-black uppercase tracking-wider text-gray-500">Available Store Credit</p>
+              <p className="text-3xl font-black text-[#2D8EDE]">R0.00</p>
+              <p className="text-xs text-gray-500">
                 Credits are automatically applied as discounts during cart checkout.
               </p>
             </div>
 
             {/* Refund History */}
-            <div className="space-y-2 text-xs">
-              <p className="font-extrabold text-gray-900 text-[11px] uppercase tracking-wider">Refund History</p>
-              <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200 space-y-1">
+            <div className="space-y-3 text-xs">
+              <p className="font-extrabold text-gray-900 text-xs uppercase tracking-wider">Refund History</p>
+              <div className="p-4 bg-white rounded-3xl border border-gray-200 space-y-1.5 shadow-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-gray-800">Standard Payout Speed</span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
                     Active
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-500 leading-snug">
+                <p className="text-xs text-gray-500 leading-relaxed">
                   Processed refunds take 2 to 5 business days to appear on your bank card statement or reflect immediately as store credit.
                 </p>
               </div>
 
-              <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200 text-center text-gray-500 text-[11px]">
+              <div className="p-4 bg-white rounded-3xl border border-gray-200 text-center text-gray-500 text-xs shadow-xs">
                 No pending or processed refunds.
               </div>
             </div>
-          </div>
+          </main>
         </div>
       )}
 
@@ -1081,9 +1123,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-5 max-w-xs w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 text-center">
-            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
             <h3 className="text-base font-black text-gray-900">Delete Account?</h3>
             <p className="text-xs text-gray-500">
               This action cannot be undone. All your profile information and local preferences will be permanently removed.
@@ -1118,11 +1157,11 @@ export const AccountPage: React.FC<AccountPageProps> = ({
           <button
             type="button"
             onClick={onGoHome}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            className="flex flex-col items-center justify-center h-full text-[#2D8EDE] hover:text-[#2579BE] active:scale-95 transition-all group relative cursor-pointer"
             aria-label="Home"
           >
-            <Home className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+            <Home className="w-5 h-5 stroke-[2.2] text-[#2D8EDE]" />
+            <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">
               Home
             </span>
           </button>
@@ -1131,18 +1170,18 @@ export const AccountPage: React.FC<AccountPageProps> = ({
           <button
             type="button"
             onClick={onOpenCart}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            className="flex flex-col items-center justify-center h-full text-[#2D8EDE] hover:text-[#2579BE] active:scale-95 transition-all group relative cursor-pointer"
             aria-label="Cart"
           >
             <div className="relative">
-              <ShoppingCart className="w-5 h-5 stroke-[2] text-gray-600 group-hover:text-[#2D8EDE]" />
+              <ShoppingCart className="w-5 h-5 stroke-[2] text-[#2D8EDE]" />
               {cartItemCount > 0 && (
                 <span className="absolute -top-1.5 -right-2.5 bg-[#2D8EDE] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {cartItemCount}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">
               Cart
             </span>
           </button>

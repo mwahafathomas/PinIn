@@ -26,7 +26,6 @@ import { EditProfilePage } from './components/EditProfilePage';
 import { AuthPage } from './components/AuthPage';
 import { CategoriesPage } from './components/CategoriesPage';
 import { FiltersPage } from './components/FiltersPage';
-import { LocationPage } from './components/LocationPage';
 import { FilterResultsPage } from './components/FilterResultsPage';
 import { AccountPage } from './components/AccountPage';
 import { SearchPage } from './components/SearchPage';
@@ -87,6 +86,7 @@ import {
 } from './services/notificationsService';
 import {
   initOneSignal,
+  getOneSignalAppId,
   loginUserToOneSignal,
   logoutUserFromOneSignal,
 } from './services/oneSignalService';
@@ -361,16 +361,19 @@ const ListingDetailView: React.FC<ListingDetailViewProps> = ({
   const fromSelected = selectedItem?.id === id ? selectedItem : null;
   const fromList = furnitureList.find((i) => i.id === id);
   const fromOwn = userOwnListings.find((i) => i.id === id);
-  const item =
-    (fetchedItem?.additionalImages && fetchedItem.additionalImages.length > 0)
-      ? fetchedItem
-      : (fromSelected?.additionalImages && fromSelected.additionalImages.length > 0)
-      ? fromSelected
-      : (fromList?.additionalImages && fromList.additionalImages.length > 0)
-      ? fromList
-      : (fromOwn?.additionalImages && fromOwn.additionalImages.length > 0)
-      ? fromOwn
-      : fetchedItem || fromSelected || fromList || fromOwn || null;
+  const baseItem = fromList || fromOwn || fetchedItem || fromSelected || null;
+  const item = baseItem
+    ? {
+        ...baseItem,
+        ...(fromSelected || {}),
+        additionalImages:
+          baseItem.additionalImages && baseItem.additionalImages.length > 0
+            ? baseItem.additionalImages
+            : fromSelected?.additionalImages,
+        seller: baseItem.seller || fromSelected?.seller,
+        description: baseItem.description || fromSelected?.description || '',
+      }
+    : fetchedItem || fromSelected || fromList || fromOwn || null;
 
   return (
     <ListingDetailPage
@@ -963,8 +966,67 @@ export default function App() {
       });
     };
 
-    // 0. Initialize OneSignal Push Notifications
-    initOneSignal();
+    // 0. Initialize OneSignal Push Notifications: OneSignal.init(appId) then requestPermission
+    const onesignalAppId = getOneSignalAppId();
+    if (typeof window !== 'undefined') {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async (OneSignal: any) => {
+        try {
+          if (typeof OneSignal.init === 'function') {
+            try {
+              await OneSignal.init(onesignalAppId);
+            } catch {
+              await OneSignal.init({
+                appId: onesignalAppId,
+                allowLocalhostAsSecureOrigin: true,
+                notifyButton: { enable: false },
+                serviceWorkerPath: '/OneSignalSDKWorker.js',
+                serviceWorkerParam: { scope: '/' },
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('OneSignal init error:', e);
+        }
+      });
+    }
+
+    initOneSignal(onesignalAppId).finally(() => {
+      // 3-second delay after first launch to request notification permission
+      setTimeout(async () => {
+        try {
+          if (typeof window !== 'undefined') {
+            if (window.OneSignal?.Notifications?.requestPermission) {
+              await window.OneSignal.Notifications.requestPermission(true);
+            } else if (window.OneSignalDeferred) {
+              window.OneSignalDeferred.push(async (OneSignal: any) => {
+                try {
+                  await OneSignal.Notifications?.requestPermission(true);
+                } catch (e) {
+                  console.warn('OneSignal requestPermission error:', e);
+                }
+              });
+            }
+          }
+
+          // If running inside Capacitor native Android shell, also prompt Capacitor PushNotifications
+          if (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) {
+            try {
+              const { PushNotifications } = await import('@capacitor/push-notifications');
+              const permStatus = await PushNotifications.checkPermissions();
+              if (permStatus.receive === 'prompt') {
+                await PushNotifications.requestPermissions();
+              }
+              await PushNotifications.register();
+            } catch (capErr) {
+              console.warn('Capacitor PushNotifications request error:', capErr);
+            }
+          }
+        } catch (err) {
+          console.warn('Could not request notification permission:', err);
+        }
+      }, 3000);
+    });
 
     // 1. Fetch fresh listings from Supabase
     fetchAllListings(true).then((items) => {
@@ -2518,6 +2580,13 @@ export default function App() {
                   onGoHome={handleGoHome}
                   onOpenAccount={() => goTo('/account')}
                   onOpenAuth={handleOpenAuth}
+                  onSelectItem={(item) => {
+                    const match =
+                      furnitureList.find((f) => f.id === item.id) ||
+                      userOwnListings.find((f) => f.id === item.id);
+                    setSelectedItem(match || item);
+                    goTo(`/item/${item.id}`);
+                  }}
                 />
               }
             />
@@ -2677,7 +2746,6 @@ export default function App() {
                     showToast('Filters cleared');
                   }}
                   onOpenCategoriesPage={() => goTo('/categories?from=filters')}
-                  onOpenLocationPage={() => goTo('/location?from=filters')}
                   onOpenMessages={() => goTo('/messages')}
                   onOpenNotifications={handleOpenNotifications}
                   unreadMessagesCount={unreadMessagesCount}
@@ -2686,64 +2754,8 @@ export default function App() {
               }
             />
 
-            {/* 6. Location Page */}
-            <Route
-              path="/location"
-              element={
-                <LocationPage
-                  isOpen={true}
-                  fromSell={location.search.includes('from=sell')}
-                  onClose={() => {
-                    if (location.search.includes('from=sell')) {
-                      const origin = location.search.includes('origin=account') ? '?from=account' : '';
-                      goTo(`/sell${origin}`, -1);
-                    } else if (location.search.includes('from=filters')) {
-                      goTo('/filters', -1);
-                    } else {
-                      goTo('/filters', -1);
-                    }
-                  }}
-                  selectedLocation={
-                    location.search.includes('from=sell')
-                      ? sellFormData.location
-                      : filters.location || ''
-                  }
-                  onSelectLocation={(loc) => {
-                    if (location.search.includes('from=sell')) {
-                      const cleanLoc = loc.trim() || 'Sandton (Gauteng)';
-                      const cleanSuburb = cleanLoc.replace(/\s*\(Gauteng\)\s*/i, '').trim();
-                      const coords = getCoordinatesForLocation(cleanSuburb || cleanLoc);
-                      setSellFormData((prev) => ({
-                        ...prev,
-                        location: cleanLoc,
-                        collectionSuburb: cleanSuburb || cleanLoc,
-                        collectionLat: coords.lat,
-                        collectionLng: coords.lng,
-                      }));
-                      if (loc) {
-                        showToast(`Location set to ${cleanLoc}`);
-                      }
-                      const origin = location.search.includes('origin=account') ? '?from=account' : '';
-                      goTo(`/sell${origin}`, -1);
-                    } else {
-                      setFilters((prev) => ({ ...prev, location: loc }));
-                      if (loc) {
-                        showToast(`Location set to ${loc}`);
-                      }
-                      if (location.search.includes('from=filters')) {
-                        goTo('/filters', -1);
-                      } else {
-                        goTo('/filters', -1);
-                      }
-                    }
-                  }}
-                  onOpenMessages={() => goTo('/messages')}
-                  onOpenNotifications={handleOpenNotifications}
-                  unreadMessagesCount={unreadMessagesCount}
-                  unreadNotificationsCount={unreadNotificationsCount}
-                />
-              }
-            />
+            {/* 6. Location Page (Removed from app) */}
+            <Route path="/location" element={<Navigate to="/filters" replace />} />
 
             {/* 7. Filter Results Page */}
             <Route

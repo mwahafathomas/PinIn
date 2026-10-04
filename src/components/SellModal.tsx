@@ -38,15 +38,15 @@ export const SellModal: React.FC<SellModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !price || !location.trim()) {
-      alert('Please fill in the furniture name, price, and location.');
+    if (!title.trim() || !price) {
+      alert('Please fill in the furniture name and price.');
       return;
     }
 
     const newItem: FurnitureItem = {
       id: `item-${Date.now()}`,
       title: title.trim(),
-      location: location.trim(),
+      location: location.trim() || 'Gauteng',
       price: Number(price) || 100,
       category,
       condition,
@@ -152,13 +152,12 @@ export const SellModal: React.FC<SellModalProps> = ({
           {/* Location of Seller */}
           <div>
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-              Seller Location *
+              Seller Location (Optional)
             </label>
             <div className="relative">
               <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
               <input
                 type="text"
-                required
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g. Brooklyn, NY"

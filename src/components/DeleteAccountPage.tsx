@@ -80,10 +80,7 @@ export const DeleteAccountPage: React.FC<DeleteAccountPageProps> = ({
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto pb-16 flex flex-col px-4 md:px-6 lg:px-8 pt-4 space-y-4">
         {/* Warning Hero Banner */}
-        <div className="bg-red-50 border-2 border-red-200 rounded-3xl p-4 text-left shadow-xs flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 mt-0.5">
-            <AlertTriangle className="w-5 h-5 stroke-[2.5]" />
-          </div>
+        <div className="bg-red-50 border-2 border-red-200 rounded-3xl p-4 text-left shadow-xs">
           <div>
             <h1 className="text-base font-black text-red-950 tracking-tight">
               Delete PinIn Account
@@ -96,9 +93,8 @@ export const DeleteAccountPage: React.FC<DeleteAccountPageProps> = ({
 
         {/* List of what will happen once they delete their account */}
         <div className="bg-white rounded-3xl border-2 border-gray-200 p-5 shadow-xs text-left space-y-3.5">
-          <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-red-500" />
-            <span>What happens when you delete your account:</span>
+          <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider">
+            What happens when you delete your account:
           </h2>
 
           <div className="space-y-3 pt-1">
@@ -158,18 +154,13 @@ export const DeleteAccountPage: React.FC<DeleteAccountPageProps> = ({
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-2.5 rounded-2xl bg-red-50/70 border border-red-100">
-              <div className="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center shrink-0 mt-0.5 text-xs font-black">
-                !
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-black text-red-700">
-                  This action is permanent and cannot be undone
-                </p>
-                <p className="text-[11px] text-red-600/90 mt-0.5">
-                  You cannot restore your account or retrieve previous conversations once deleted.
-                </p>
-              </div>
+            <div className="p-3 rounded-2xl bg-red-50/70 border border-red-100">
+              <p className="text-xs font-black text-red-700">
+                This action is permanent &amp; cannot be undone
+              </p>
+              <p className="text-[11px] text-red-600/90 mt-0.5">
+                You cannot restore your account or retrieve previous conversations once deleted.
+              </p>
             </div>
           </div>
         </div>

@@ -75,10 +75,10 @@ const checkProfileCompleteness = (u: UserAccount) => {
   // Avatar: custom photo uploaded OR user has already completed/saved profile
   const hasAvatar = !!(u.avatar && !isDefaultAvatar(u.avatar)) || markedUpdated;
 
-  // Profile is complete if marked updated and has name & location, or meets initial criteria
+  // Profile is complete if marked updated and has name, or meets initial criteria (location is optional)
   const isComplete = markedUpdated
-    ? (hasFirstName && hasLocation)
-    : (hasAvatar && hasFirstName && hasSurname && hasLocation);
+    ? hasFirstName
+    : (hasAvatar && hasFirstName && hasSurname);
 
   return {
     isComplete,
@@ -199,7 +199,7 @@ export const SellPage: React.FC<SellPageProps> = ({
               Update Your Profile First
             </h3>
             <p className="text-xs text-gray-600 font-medium leading-relaxed">
-              To list furniture on PinIn, please complete your profile first. You need to add a profile picture, your first name, surname, and your location.
+              To list furniture on PinIn, please complete your profile first. You need to add a profile picture, your first name, and surname.
             </p>
           </div>
 
@@ -224,14 +224,6 @@ export const SellPage: React.FC<SellPageProps> = ({
             <div className="flex items-center justify-between">
               <span className="font-bold text-gray-700">Surname</span>
               {profileStatus.hasSurname ? (
-                <span className="text-emerald-600 font-extrabold flex items-center gap-1">✓ Added</span>
-              ) : (
-                <span className="text-amber-600 font-extrabold flex items-center gap-1">⚠ Required</span>
-              )}
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-gray-700">Location</span>
-              {profileStatus.hasLocation ? (
                 <span className="text-emerald-600 font-extrabold flex items-center gap-1">✓ Added</span>
               ) : (
                 <span className="text-amber-600 font-extrabold flex items-center gap-1">⚠ Required</span>
@@ -461,11 +453,7 @@ export const SellPage: React.FC<SellPageProps> = ({
       return;
     }
 
-    const chosenSuburb = (formData.collectionSuburb || formData.location || user.location || 'Sandton').trim();
-    if (!chosenSuburb) {
-      setErrorMessage('Please select a location for your furniture.');
-      return;
-    }
+    const chosenSuburb = (formData.collectionSuburb || formData.location || user.location || 'Gauteng').trim();
 
     if (!formData.description.trim()) {
       setErrorMessage('Description is compulsory. Please describe your furniture.');
@@ -1016,7 +1004,7 @@ export const SellPage: React.FC<SellPageProps> = ({
               <div className="flex items-center justify-between mb-0.5">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-100 flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-blue-200" />
-                  <span>Location *</span>
+                  <span>Location (Optional)</span>
                 </span>
               </div>
               <div className="flex items-center justify-between">

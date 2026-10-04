@@ -1,16 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   ChevronLeft,
-  Camera,
-  MapPin,
   User as UserIcon,
   Mail,
-  Trash2,
 } from 'lucide-react';
 import { UserAccount } from '../types/furniture';
-import { DEFAULT_AVATAR_IMAGE, isDefaultAvatar } from '../data/defaultAvatar';
-import { compressImageBlob } from '../services/storageService';
-import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 
 interface EditProfilePageProps {
   isOpen: boolean;
@@ -25,15 +19,6 @@ interface EditProfilePageProps {
     avatar?: string;
   }) => void;
 }
-
-const isNameFromEmail = (nameStr?: string, emailStr?: string) => {
-  if (!nameStr) return true;
-  const clean = nameStr.toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (clean === '' || clean === 'pininmember' || clean === 'guest' || clean === 'valueduser') return true;
-  if (!emailStr) return false;
-  const emailPrefix = emailStr.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-  return clean === emailPrefix;
-};
 
 export const EditProfilePage: React.FC<EditProfilePageProps> = ({
   isOpen,
@@ -52,41 +37,8 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
     return n;
   });
   const [surname, setSurname] = useState(user.surname || '');
-  const [bio, setBio] = useState(user.bio?.slice(0, 50) || '');
-  const [location, setLocation] = useState(() => {
-    return user.location || '';
-  });
-  const [avatar, setAvatar] = useState(
-    user.avatar || DEFAULT_AVATAR_IMAGE
-  );
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
-
-  const handleAvatarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const { blob } = await compressImageBlob(file, 400, 0.8);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setAvatar(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(blob);
-    } catch (err) {
-      console.warn('Error compressing avatar:', err);
-    }
-  };
-
-  const handleRemovePhoto = () => {
-    setAvatar(DEFAULT_AVATAR_IMAGE);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,27 +50,15 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
     onSaveProfile({
       name: cleanName,
       surname: cleanSurname,
-      bio: bio.trim().slice(0, 50),
-      location: location.trim(),
+      bio: user.bio || '',
+      location: user.location || '',
       phone: user.phone || '',
-      avatar,
+      avatar: user.avatar,
     });
   };
 
-  const hasCustomPhoto = !isDefaultAvatar(avatar);
-
   return (
     <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans select-none">
-      {/* Hidden File Input for Custom Avatar */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleAvatarFileUpload}
-        className="hidden"
-        aria-label="Upload profile picture"
-      />
-
       {/* Top Header Bar (White) */}
       <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
@@ -129,7 +69,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
             aria-label="Go back"
             className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
-            <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+            <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
           </button>
 
           {/* App Name (PinIn) right in the middle */}
@@ -149,24 +89,11 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
           {/* Page Title Header */}
           <div className="text-center pt-1 pb-2">
             <h1 className="text-xl font-black text-gray-900 tracking-tight">
-              Edit Profile &amp; Bio
+              Edit Profile
             </h1>
             <p className="text-xs text-gray-500 font-medium mt-0.5">
-              Customize how other furniture buyers and sellers see you
+              Update your account name
             </p>
-          </div>
-
-          {/* Avatar Section without upload option */}
-          <div className="flex flex-col items-center">
-            <div className="relative">
-              <img
-                src={getOptimizedImageUrl(avatar, { width: 200, quality: 75, format: 'webp' })}
-                alt="Profile preview"
-                className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 shadow-sm"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
           </div>
 
           {/* Form Fields Card */}
@@ -181,7 +108,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
                   First Name
                 </label>
                 <div className="relative flex items-center">
-                  <UserIcon className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
+                  <UserIcon className="w-4 h-4 text-[#2D8EDE] absolute left-3 pointer-events-none" />
                   <input
                     id="edit-name"
                     type="text"
@@ -212,31 +139,6 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
               </div>
             </div>
 
-            {/* Location */}
-            <div className="space-y-1">
-              <label
-                htmlFor="edit-location"
-                className="block text-[11px] font-extrabold uppercase tracking-wider text-gray-600"
-              >
-                Location / Suburb
-              </label>
-              <div className="relative flex items-center">
-                <MapPin className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
-                <input
-                  id="edit-location"
-                  type="text"
-                  required
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Sandton (Gauteng)"
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-semibold pl-9 pr-3 py-2.5 rounded-xl outline-none focus:border-[#2D8EDE] focus:bg-white transition-all"
-                />
-              </div>
-              <p className="text-[10px] text-gray-400 pl-1">
-                PinIn connects furniture buyers &amp; sellers
-              </p>
-            </div>
-
             {/* Email (read-only reference) */}
             <div className="space-y-1">
               <label
@@ -246,7 +148,7 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
                 Email Address
               </label>
               <div className="relative flex items-center">
-                <Mail className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
+                <Mail className="w-4 h-4 text-[#2D8EDE] absolute left-3 pointer-events-none" />
                 <input
                   id="edit-email"
                   type="email"
@@ -256,33 +158,9 @@ export const EditProfilePage: React.FC<EditProfilePageProps> = ({
                 />
               </div>
             </div>
-
-            {/* Bio Textarea: max length 50 */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label
-                  htmlFor="edit-bio"
-                  className="block text-[11px] font-extrabold uppercase tracking-wider text-gray-600"
-                >
-                  Bio / About You
-                </label>
-                <span className="text-[10px] text-gray-400 font-medium">
-                  {bio.length}/50
-                </span>
-              </div>
-              <textarea
-                id="edit-bio"
-                rows={2}
-                maxLength={50}
-                value={bio}
-                onChange={(e) => setBio(e.target.value.slice(0, 50))}
-                placeholder="Short bio (e.g. Vintage furniture collector)..."
-                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-xs font-semibold p-3 rounded-xl outline-none focus:border-[#2D8EDE] focus:bg-white resize-none transition-all"
-              />
-            </div>
           </div>
 
-          {/* Action Buttons (No stars on save button as requested) */}
+          {/* Action Buttons */}
           <div className="pt-2 space-y-2.5">
             <button
               type="submit"

@@ -37,6 +37,15 @@ export interface FurnitureItem {
   // Verification & Approval Assets (Internal / Admin only - not shown on public listing feed)
   handwrittenDateImage?: string;
   verificationVideo?: string;
+  // New Marketplace Fields
+  soldBy?: string;
+  deliveryEstimation?: string;
+  inStock?: boolean | string;
+  warranty?: boolean | string;
+  returns?: boolean | string;
+  payInPerson?: boolean | string;
+  productInformation?: string;
+  reviewsList?: Array<{ id: string; author: string; rating: number; date: string; comment: string }>;
 }
 
 export interface CategoryOption {
@@ -139,3 +148,15 @@ export interface UserAccount {
   isProfileUpdated?: boolean;
   profileCompleted?: boolean;
 }
+
+export interface DeliveryAddress {
+  recipientName: string;
+  recipientPhone: string;
+  streetAddressLine1: string;
+  streetAddressLine2?: string;
+  cityTown: string;
+  province: string;
+  postalCode: string;
+  deliveryInstructions: string;
+}
+

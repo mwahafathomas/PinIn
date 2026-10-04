@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
-  Trash2,
   Plus,
   Minus,
   ShoppingCart,
@@ -13,6 +12,7 @@ import {
   ShieldCheck,
   Package,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import {
   getCartItems,
   removeFromCart,
@@ -37,7 +37,148 @@ interface CartPageProps {
   onGoHome: () => void;
   onOpenAccount: () => void;
   onOpenAuth?: (mode?: 'signin' | 'register') => void;
+  onSelectItem?: (item: any) => void;
 }
+
+const SwipeableCartCard: React.FC<{
+  item: CartItem;
+  onSelectItem?: (item: any) => void;
+  onUpdateQuantity: (listingId: string, qty: number) => void;
+  onRemove: (listingId: string) => void;
+}> = ({ item, onSelectItem, onUpdateQuantity, onRemove }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
+    if (info.offset.x < -35 || info.velocity.x < -250) {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl group select-none">
+      {/* Background Revealed Action: Red Delete option on the right */}
+      <div className="absolute inset-y-0 right-0 w-20 bg-red-600 rounded-2xl flex items-center justify-center z-0">
+        <button
+          type="button"
+          onClick={() => onRemove(item.listingId)}
+          className="w-full h-full flex items-center justify-center text-white active:scale-95 transition-transform p-2 cursor-pointer font-black text-xs uppercase tracking-wider"
+          aria-label="Delete item"
+        >
+          Delete
+        </button>
+      </div>
+
+      {/* Foreground Swipeable Card */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -80, right: 0 }}
+        dragElastic={0.15}
+        onDragEnd={handleDragEnd}
+        animate={{ x: isOpen ? -80 : 0 }}
+        transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+        onClick={() => {
+          if (isOpen) {
+            setIsOpen(false);
+          }
+        }}
+        className="relative z-10 bg-white rounded-2xl border border-gray-100 p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 cursor-grab active:cursor-grabbing touch-pan-y"
+      >
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const targetListingId = item.listingId || item.id;
+            if (onSelectItem) {
+              onSelectItem({
+                id: targetListingId,
+                title: item.title,
+                price: item.price,
+                imageUrl: item.imageUrl,
+                location: item.location || 'Gauteng',
+                category: item.category || 'Furniture',
+                condition: item.condition || 'Used',
+                sellerName: item.sellerName,
+                sellerId: item.sellerId,
+              });
+            }
+          }}
+          className="cursor-pointer shrink-0 focus-visible:outline-none"
+          aria-label={`View listing for ${item.title}`}
+        >
+          <img
+            src={getOptimizedImageUrl(item.imageUrl, { width: 140, quality: 75, format: 'webp' })}
+            alt={item.title}
+            className="w-18 h-18 rounded-xl object-cover border border-gray-200 hover:opacity-90 active:scale-95 transition-all"
+          />
+        </button>
+
+        <div className="flex-1 min-w-0">
+          <h3
+            onClick={(e) => {
+              e.stopPropagation();
+              const targetListingId = item.listingId || item.id;
+              if (onSelectItem) {
+                onSelectItem({
+                  id: targetListingId,
+                  title: item.title,
+                  price: item.price,
+                  imageUrl: item.imageUrl,
+                  location: item.location || 'Gauteng',
+                  category: item.category || 'Furniture',
+                  condition: item.condition || 'Used',
+                  sellerName: item.sellerName,
+                  sellerId: item.sellerId,
+                });
+              }
+            }}
+            className="font-extrabold text-xs sm:text-sm text-gray-900 truncate cursor-pointer hover:text-[#2D8EDE] transition-colors"
+          >
+            {item.title}
+          </h3>
+          <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5 truncate">
+            <MapPin className="w-3 h-3 text-[#2D8EDE] shrink-0" />
+            <span>{item.location}</span>
+            <span className="text-gray-300">•</span>
+            <span>{item.condition}</span>
+          </p>
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-sm font-black text-[#2D8EDE]">
+              R{item.price * item.quantity}
+            </span>
+
+            {/* Quantity controls without trash icon */}
+            <div
+              className="flex items-center border border-gray-200 rounded-lg bg-gray-50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => onUpdateQuantity(item.listingId, item.quantity - 1)}
+                className="p-1 hover:bg-gray-200 text-gray-700 rounded-l cursor-pointer"
+                aria-label="Decrease quantity"
+              >
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className="px-2 text-xs font-bold text-gray-800">
+                {item.quantity}
+              </span>
+              <button
+                type="button"
+                onClick={() => onUpdateQuantity(item.listingId, item.quantity + 1)}
+                className="p-1 hover:bg-gray-200 text-gray-700 rounded-r cursor-pointer"
+                aria-label="Increase quantity"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 export const CartPage: React.FC<CartPageProps> = ({
   isOpen,
@@ -45,6 +186,8 @@ export const CartPage: React.FC<CartPageProps> = ({
   user,
   onGoHome,
   onOpenAccount,
+  onOpenAuth,
+  onSelectItem,
 }) => {
   const [items, setItems] = useState<CartItem[]>(getCartItems());
   const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'collection'>('delivery');
@@ -103,29 +246,26 @@ export const CartPage: React.FC<CartPageProps> = ({
   if (!isOpen) return null;
 
   const subtotal = items.reduce((acc, i) => acc + (i.price || 0) * (i.quantity || 1), 0);
-  const deliveryFee = deliveryMethod === 'delivery' ? 150 : 0;
-  const grandTotal = subtotal + deliveryFee;
+  const deliveryFee = 0;
+  const grandTotal = subtotal;
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+
+    if (!user?.isLoggedIn) {
+      if (onOpenAuth) {
+        onOpenAuth('signin');
+      }
+      return;
+    }
 
     if (items.length === 0) {
       setErrorMessage('Your cart is empty.');
       return;
     }
 
-    if (!buyerName.trim()) {
-      setErrorMessage('Please enter your full name.');
-      return;
-    }
-
-    if (!buyerEmail.trim() || !buyerEmail.includes('@')) {
-      setErrorMessage('Please enter a valid email address for your order confirmation.');
-      return;
-    }
-
-    if (deliveryMethod === 'delivery' && !currentAddress && !deliveryAddress.trim()) {
+    if (!currentAddress && !deliveryAddress.trim()) {
       setErrorMessage('Please add a delivery address to proceed.');
       setIsAddressPageOpen(true);
       return;
@@ -139,21 +279,25 @@ export const CartPage: React.FC<CartPageProps> = ({
       const mainSellerName = items[0]?.sellerName || 'PinIn Verified Seller';
       const mainSellerId = items[0]?.sellerId;
       const mainListingId = items[0]?.listingId;
-      const deliveryText =
-        deliveryMethod === 'delivery'
-          ? currentAddress
-            ? `Courier Delivery to: ${currentAddress.streetAddressLine1}${
-                currentAddress.streetAddressLine2 ? `, ${currentAddress.streetAddressLine2}` : ''
-              }, ${currentAddress.cityTown}, ${currentAddress.province} (${currentAddress.postalCode})`
-            : `Courier Delivery to: ${deliveryAddress.trim()}`
-          : `Self Collection / Pickup in ${items[0]?.location || 'Gauteng'}`;
+      const finalBuyerName =
+        currentAddress?.recipientName ||
+        buyerName.trim() ||
+        (user?.isLoggedIn ? (user.surname ? `${user.name} ${user.surname}` : user.name) : 'Customer');
+      const finalBuyerEmail = buyerEmail.trim() || user?.email || 'customer@pinin.co.za';
+      const finalBuyerPhone = currentAddress?.recipientPhone || '';
+
+      const deliveryText = currentAddress
+        ? `Free Delivery to: ${currentAddress.streetAddressLine1}${
+            currentAddress.streetAddressLine2 ? `, ${currentAddress.streetAddressLine2}` : ''
+          }, ${currentAddress.cityTown}, ${currentAddress.province} (${currentAddress.postalCode})`
+        : `Free Delivery to: ${deliveryAddress.trim()}`;
 
       const totalQuantity = items.reduce((acc, i) => acc + (i.quantity || 1), 0);
       const res = await createOrder({
-        username: buyerName,
-        userEmail: buyerEmail,
-        buyerName,
-        buyerEmail,
+        username: finalBuyerName,
+        userEmail: finalBuyerEmail,
+        buyerName: finalBuyerName,
+        buyerEmail: finalBuyerEmail,
         buyerId: user?.isLoggedIn ? user.id : undefined,
         sellerName: mainSellerName,
         sellerId: mainSellerId,
@@ -163,8 +307,8 @@ export const CartPage: React.FC<CartPageProps> = ({
         price: grandTotal,
         quantity: totalQuantity,
         delivery: deliveryText,
-        recipientName: currentAddress?.recipientName || buyerName,
-        recipientPhone: currentAddress?.recipientPhone || '',
+        recipientName: currentAddress?.recipientName || finalBuyerName,
+        recipientPhone: finalBuyerPhone,
         streetAddressLine1: currentAddress?.streetAddressLine1 || deliveryAddress,
         streetAddressLine2: currentAddress?.streetAddressLine2 || undefined,
         cityTown: currentAddress?.cityTown || 'Johannesburg',
@@ -380,7 +524,7 @@ export const CartPage: React.FC<CartPageProps> = ({
             <div>
               <h2 className="text-base font-extrabold text-gray-900">Your Cart is Empty</h2>
               <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1 leading-relaxed">
-                Discover couches, dining sets, bedroom furniture, and decor listed across Gauteng.
+                Discover couches, dining sets, bedroom furniture, and decor.
               </p>
             </div>
             <button
@@ -411,157 +555,83 @@ export const CartPage: React.FC<CartPageProps> = ({
                 </button>
               </div>
 
-              <div className="divide-y divide-gray-100">
+              <div className="space-y-2.5">
                 {items.map((item) => (
-                  <div key={item.id} className="py-3 flex items-start gap-3">
-                    <img
-                      src={getOptimizedImageUrl(item.imageUrl, { width: 140, quality: 75, format: 'webp' })}
-                      alt={item.title}
-                      className="w-18 h-18 rounded-2xl object-cover border border-gray-200 shrink-0"
-                    />
-
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-extrabold text-xs sm:text-sm text-gray-900 truncate">
-                        {item.title}
-                      </h3>
-                      <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5 truncate">
-                        <MapPin className="w-3 h-3 text-[#2D8EDE] shrink-0" />
-                        <span>{item.location}</span>
-                        <span className="text-gray-300">•</span>
-                        <span>{item.condition}</span>
-                      </p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm font-black text-[#2D8EDE]">
-                          R{item.price * item.quantity}
-                        </span>
-
-                        {/* Quantity and Delete */}
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50">
-                            <button
-                              type="button"
-                              onClick={() => updateCartQuantity(item.listingId, item.quantity - 1)}
-                              className="p-1 hover:bg-gray-200 text-gray-700 rounded-l cursor-pointer"
-                              aria-label="Decrease quantity"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="px-2 text-xs font-bold text-gray-800">
-                              {item.quantity}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => updateCartQuantity(item.listingId, item.quantity + 1)}
-                              className="p-1 hover:bg-gray-200 text-gray-700 rounded-r cursor-pointer"
-                              aria-label="Increase quantity"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => removeFromCart(item.listingId)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
-                            aria-label="Remove item"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <SwipeableCartCard
+                    key={item.listingId || item.id}
+                    item={item}
+                    onSelectItem={onSelectItem}
+                    onUpdateQuantity={updateCartQuantity}
+                    onRemove={removeFromCart}
+                  />
                 ))}
               </div>
             </div>
 
             {/* Delivery Option */}
             <div className="bg-white rounded-3xl border border-gray-200 p-4 shadow-xs space-y-3">
-              <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Truck className="w-3.5 h-3.5 text-[#2D8EDE]" />
-                <span>Delivery or Collection</span>
-              </h2>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDeliveryMethod('delivery')}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                    deliveryMethod === 'delivery'
-                      ? 'border-[#2D8EDE] bg-blue-50/70 text-gray-900 ring-2 ring-blue-200'
-                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <p className="font-extrabold text-xs">Courier Delivery</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">Gauteng door-to-door (+R150)</p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setDeliveryMethod('collection')}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                    deliveryMethod === 'collection'
-                      ? 'border-[#2D8EDE] bg-blue-50/70 text-gray-900 ring-2 ring-blue-200'
-                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <p className="font-extrabold text-xs">Self Collection</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">Pick up from seller (Free)</p>
-                </button>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-[#2D8EDE]" />
+                  <span>Delivery</span>
+                </h2>
+                <span className="text-xs font-black text-[#2D8EDE] bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200">
+                  Free delivery
+                </span>
               </div>
 
-              {deliveryMethod === 'delivery' && (
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Delivery Address / Suburb *
+              <div className="pt-2 border-t border-gray-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-gray-800">
+                    Delivery Address *
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                    placeholder="e.g. 14 Sandton Drive, Sandton, Gauteng"
-                    className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Buyer Information (for order placement) */}
-            <div className="bg-white rounded-3xl border border-gray-200 p-4 shadow-xs space-y-3">
-              <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-[#2D8EDE]" />
-                <span>Buyer Details</span>
-              </h2>
-
-              <div className="space-y-2.5">
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={buyerName}
-                    onChange={(e) => setBuyerName(e.target.value)}
-                    placeholder="e.g. Thabo Ndlovu"
-                    className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white"
-                  />
+                  {currentAddress && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddressPageOpen(true)}
+                      className="text-[11px] font-bold text-[#2D8EDE] hover:underline cursor-pointer"
+                    >
+                      Change address
+                    </button>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={buyerEmail}
-                    onChange={(e) => setBuyerEmail(e.target.value)}
-                    placeholder="e.g. thabo@example.co.za"
-                    className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white"
-                  />
-                </div>
+                {currentAddress ? (
+                  <div
+                    onClick={() => setIsAddressPageOpen(true)}
+                    className="p-3 bg-gray-50 border border-gray-200 rounded-2xl cursor-pointer hover:border-gray-400 transition-colors space-y-1 text-left"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-extrabold text-xs text-gray-900">
+                        {currentAddress.recipientName}
+                      </p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-200 text-gray-800 rounded-full">
+                        {currentAddress.province}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-700 font-medium">
+                      {currentAddress.recipientPhone}
+                    </p>
+                    <p className="text-[11px] text-gray-700">
+                      {currentAddress.streetAddressLine1}
+                      {currentAddress.streetAddressLine2 ? `, ${currentAddress.streetAddressLine2}` : ''}
+                    </p>
+                    <p className="text-[11px] text-gray-600">
+                      {currentAddress.cityTown}, {currentAddress.province}, {currentAddress.postalCode}
+                    </p>
+                    <p className="text-[10px] text-gray-500 italic">
+                      Note: {currentAddress.deliveryInstructions}
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddressPageOpen(true)}
+                    className="w-full py-2.5 px-4 border border-gray-300 hover:border-[#2D8EDE] rounded-xl bg-white hover:bg-gray-50 text-center font-bold text-xs text-gray-900 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Add delivery address
+                  </button>
+                )}
               </div>
             </div>
 
@@ -573,9 +643,7 @@ export const CartPage: React.FC<CartPageProps> = ({
               </div>
               <div className="flex items-center justify-between text-gray-600">
                 <span>Delivery</span>
-                <span className="font-bold text-gray-900">
-                  {deliveryFee === 0 ? 'Free (Self Collection)' : `R${deliveryFee}`}
-                </span>
+                <span className="font-bold text-[#2D8EDE]">Free delivery</span>
               </div>
               <div className="h-px bg-gray-100 my-1" />
               <div className="flex items-center justify-between text-sm">
@@ -590,19 +658,24 @@ export const CartPage: React.FC<CartPageProps> = ({
               </div>
             )}
 
-            {/* Place Order CTA */}
+            {/* Proceed to checkout CTA */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-50 text-white font-black text-sm rounded-2xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              onClick={(e) => {
+                if (!user?.isLoggedIn) {
+                  e.preventDefault();
+                  if (onOpenAuth) {
+                    onOpenAuth('signin');
+                  }
+                }
+              }}
+              className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-50 text-white font-black text-sm rounded-2xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center capitalize"
             >
               {isSubmitting ? (
-                <span>Placing Order...</span>
+                <span>Proceeding to check out...</span>
               ) : (
-                <>
-                  <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
-                  <span>Place Order • R{grandTotal}</span>
-                </>
+                <span>proceed to check out</span>
               )}
             </button>
           </form>
@@ -656,6 +729,22 @@ export const CartPage: React.FC<CartPageProps> = ({
           </button>
         </div>
       </footer>
+
+      {/* Full Page: Delivery Address */}
+      <DeliveryAddressPage
+        isOpen={isAddressPageOpen}
+        onClose={() => setIsAddressPageOpen(false)}
+        onSaveAddress={(addr) => {
+          setCurrentAddress(addr);
+          setDeliveryAddress(
+            `${addr.streetAddressLine1}${addr.streetAddressLine2 ? `, ${addr.streetAddressLine2}` : ''}, ${addr.cityTown}, ${addr.province}`
+          );
+          if (addr.recipientName) {
+            setBuyerName(addr.recipientName);
+          }
+        }}
+        title="Delivery Address"
+      />
     </div>
   );
 };
