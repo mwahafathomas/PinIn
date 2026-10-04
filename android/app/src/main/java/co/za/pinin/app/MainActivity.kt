@@ -22,6 +22,10 @@ import co.za.pinin.app.ui.screens.CartScreen
 import co.za.pinin.app.ui.screens.HomeScreen
 import co.za.pinin.app.ui.screens.ListingDetailScreen
 import co.za.pinin.app.ui.theme.PinInTheme
+import androidx.lifecycle.lifecycleScope
+import com.onesignal.OneSignal
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -37,6 +41,16 @@ class MainActivity : ComponentActivity() {
 
         // OneSignal push subscription observer and integration complete verification
         setupPushSubscriptionObserver(this)
+
+        // Request notification permission with a 3-second delay after first launch
+        lifecycleScope.launch {
+            delay(3000)
+            try {
+                OneSignal.Notifications.requestPermission(true)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
         setContent {
             PinInTheme {
