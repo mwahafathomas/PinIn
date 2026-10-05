@@ -23,10 +23,15 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "47242cd4-ecdc-4348-82aa-0274bee57d27",
-          notifyButton: { enable: false },
-        });
+        try {
+          await OneSignal.init({
+            appId: "47242cd4-ecdc-4348-82aa-0274bee57d27",
+            notifyButton: { enable: false },
+            allowLocalhostAsSecureOrigin: true,
+          });
+        } catch (e) {
+          // Gracefully ignore iframe permission / sandbox restrictions
+        }
       });
     </script>
     <style>

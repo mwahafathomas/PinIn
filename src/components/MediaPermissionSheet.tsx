@@ -1,5 +1,5 @@
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 type Mode = 'gallery' | 'camera';
 
@@ -13,20 +13,23 @@ export default function MediaPermissionSheet({
   onClose: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePick = async () => {
     setLoading(true);
+    setBlockedMessage(null);
     try {
       try {
-        // Ask for permissions
+        // Ask for permissions if supported by native Capacitor
         const perm = await Camera.requestPermissions({ permissions: ['camera', 'photos'] });
 
         if (mode === 'camera' && perm.camera === 'denied') {
-          alert("Camera blocked. Go to Settings > Apps > PinIn > Permissions > Allow Camera");
+          setBlockedMessage("Camera access blocked. Please enable Camera permissions in your browser or device settings.");
           return;
         }
         if (mode === 'gallery' && perm.photos === 'denied') {
-          alert("Gallery blocked. Go to Settings > Apps > PinIn > Permissions > Allow Photos");
+          setBlockedMessage("Photo gallery access blocked. Please enable Photos permissions in your browser or device settings.");
           return;
         }
       } catch {
@@ -44,17 +47,45 @@ export default function MediaPermissionSheet({
         onImagePicked(photo.dataUrl);
         onClose();
       }
-    } catch (e) {
-      console.log("Cancelled", e);
+    } catch (e: any) {
+      // If camera/gallery fails or is blocked in web iframe, open native HTML file picker
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        onImagePicked(dataUrl);
+        onClose();
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const isCamera = mode === 'camera';
 
   return (
     <div className="fixed inset-0 bg-black/60 z-[999] flex items-end justify-center">
+      {/* Hidden file input fallback for browsers / iframes */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture={isCamera ? 'environment' : undefined}
+        className="hidden"
+        onChange={handleFileInputChange}
+      />
+
       <div className="bg-white w-full max-w-md rounded-t-[24px] p-6 animate-in slide-in-from-bottom duration-200">
         <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
 
@@ -69,6 +100,12 @@ export default function MediaPermissionSheet({
               : 'Choose photos from your gallery. PinIn will only see the photos you select, not your whole gallery.'}
           </p>
         </div>
+
+        {blockedMessage && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 text-center font-medium">
+            {blockedMessage}
+          </div>
+        )}
 
         <button
           onClick={handlePick}

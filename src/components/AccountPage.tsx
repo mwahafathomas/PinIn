@@ -450,47 +450,44 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 </div>
                 <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
+
+              {/* 10. Contact Us */}
+              <button
+                type="button"
+                onClick={onOpenContactUs}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                    <Headphones className="w-4 h-4 text-[#2D8EDE]" />
+                  </div>
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Contact Us</p>
+                    <p className="text-[11px] text-gray-400">24/7 customer support &amp; inquiries</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+              </button>
+
+              {/* 11. Sign Out (Logged in only) */}
+              {user.isLoggedIn && (
+                <button
+                  type="button"
+                  onClick={() => setShowSignOutConfirm(true)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-blue-50/50 text-gray-800 text-left transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
+                      <LogOut className="w-4 h-4 text-[#2D8EDE]" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-bold text-gray-900">Sign Out</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
+                </button>
+              )}
             </div>
           </>
         )}
-            <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
-          </button>
-
-          {/* 10. Contact Us */}
-          <button
-            type="button"
-            onClick={onOpenContactUs}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                <Headphones className="w-4 h-4 text-[#2D8EDE]" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-gray-900">Contact Us</p>
-                <p className="text-[11px] text-gray-400">24/7 customer support &amp; inquiries</p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
-          </button>
-
-          {/* 11. Sign Out (Logged in only) */}
-          {user.isLoggedIn && (
-            <button
-              type="button"
-              onClick={() => setShowSignOutConfirm(true)}
-              className="w-full flex items-center justify-between p-4 hover:bg-blue-50/50 text-gray-800 text-left transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                  <LogOut className="w-4 h-4 text-[#2D8EDE]" />
-                </div>
-                <span className="text-xs sm:text-sm font-bold text-gray-900">Sign Out</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
-            </button>
-          )}
-        </div>
       </main>
 
       {/* ========================================================================= */}
@@ -627,7 +624,20 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               </div>
             </div>
 
-            {orders.length > 0 ? (
+            {isSubpageLoading ? (
+              <div className="space-y-3 animate-pulse">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white p-4 border border-gray-200 rounded-3xl space-y-3">
+                    <div className="flex justify-between">
+                      <div className="h-4 w-28 bg-gray-200 rounded" />
+                      <div className="h-4 w-16 bg-gray-200 rounded-full" />
+                    </div>
+                    <div className="h-4 w-3/4 bg-gray-200 rounded" />
+                    <div className="h-3 w-1/2 bg-gray-200 rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : orders.length > 0 ? (
               <div className="space-y-3">
                 {orders.map((order) => (
                   <div

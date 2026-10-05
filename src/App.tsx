@@ -89,6 +89,7 @@ import {
   getOneSignalAppId,
   loginUserToOneSignal,
   logoutUserFromOneSignal,
+  isInsideIframe,
 } from './services/oneSignalService';
 import {
   fetchUserProfile,
@@ -992,12 +993,16 @@ export default function App() {
     }
 
     initOneSignal(onesignalAppId).finally(() => {
+      // If inside an iframe (like AI Studio preview) or notifications denied, skip auto-prompt
+      if (isInsideIframe()) return;
+      if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return;
+
       // 3-second delay after first launch to request notification permission
       setTimeout(async () => {
         try {
           if (typeof window !== 'undefined') {
             if (window.OneSignal?.Notifications?.requestPermission) {
-              await window.OneSignal.Notifications.requestPermission(true);
+              await window.OneSignal.Notifications.requestPermission(true).catch(() => {});
             } else if (window.OneSignalDeferred) {
               window.OneSignalDeferred.push(async (OneSignal: any) => {
                 try {

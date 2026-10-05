@@ -158,11 +158,15 @@ export async function initOneSignalWithDelayedPermission(customAppId?: string, d
 
   await initOneSignal(appId);
 
+  // If inside an iframe or denied, never auto-prompt permissions as browsers block it
+  if (isInsideIframe()) return;
+  if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return;
+
   setTimeout(async () => {
     if (typeof window === 'undefined') return;
     try {
       if (window.OneSignal?.Notifications?.requestPermission) {
-        await window.OneSignal.Notifications.requestPermission(true);
+        await window.OneSignal.Notifications.requestPermission(true).catch(() => {});
       } else if (window.OneSignalDeferred) {
         window.OneSignalDeferred.push(async (OneSignal: any) => {
           try {
