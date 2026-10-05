@@ -71,7 +71,7 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
                 <img
                   src={img}
                   alt={`${item.title} photo ${idx + 1}`}
-                  className="w-full h-full object-cover select-none"
+                  className="w-full h-full object-contain p-1 select-none"
                   loading="lazy"
                   decoding="async"
                   draggable={false}
@@ -81,9 +81,9 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
           </div>
         ) : (
           <img
-            src={getOptimizedImageUrl(item.imageUrl, { width: 600, quality: 70, format: 'webp' })}
+            src={getOptimizedImageUrl(item.imageUrl, { width: 600, quality: 75, format: 'webp' })}
             alt={item.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 select-none"
+            className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300 select-none"
             loading="lazy"
             decoding="async"
             draggable={false}

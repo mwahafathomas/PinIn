@@ -29,21 +29,23 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
       {/* Search Furniture space container */}
       <div className="relative w-full max-w-md md:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto px-4 md:px-6 pt-3.5 pb-3 sm:py-4 md:py-5">
         <div className="relative flex items-center">
-          <div className="absolute left-3.5 pointer-events-none text-gray-500">
+          <button
+            type="button"
+            onClick={onOpenSearchPage}
+            className="absolute left-3.5 text-gray-500 hover:text-[#2D8EDE] transition-colors cursor-pointer"
+            aria-label="Open search page"
+          >
             <Search className="w-5 h-5" />
-          </div>
+          </button>
 
           {/* White input box where users type */}
           <input
             type="text"
             value={searchQuery}
-            onClick={() => {
-              if (onOpenSearchPage) onOpenSearchPage();
-            }}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="search furniture"
             aria-label="Search furniture"
-            className="w-full bg-white text-gray-900 placeholder:text-gray-500 text-sm md:text-base font-medium pl-10 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300/80 shadow-md focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:border-transparent transition-all cursor-pointer"
+            className="w-full bg-white text-gray-900 placeholder:text-gray-500 text-sm md:text-base font-medium pl-10 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300/80 shadow-md focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:border-transparent transition-all"
           />
 
           {searchQuery && (

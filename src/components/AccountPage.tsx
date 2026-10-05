@@ -39,6 +39,11 @@ import {
   fetchUserOrders,
   OrderRecord,
 } from '../services/ordersService';
+import {
+  submitReturnRequest,
+  fetchUserRefunds,
+  RefundRecord,
+} from '../services/returnsAndRefundsService';
 import { getCartCount } from '../services/cartService';
 import { DeliveryAddressPage } from './DeliveryAddressPage';
 
@@ -103,6 +108,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   // Invoices state
   const [selectedInvoice, setSelectedInvoice] = useState<OrderRecord | null>(null);
 
+  // Refunds state
+  const [refunds, setRefunds] = useState<RefundRecord[]>([]);
+
   // Returns state
   const [returnSuccessMsg, setReturnSuccessMsg] = useState('');
   const [selectedReturnOrder, setSelectedReturnOrder] = useState<string>('');
@@ -110,9 +118,24 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   const [returnDetails, setReturnDetails] = useState('');
 
   // Submit return
-  const handleSubmitReturn = (e: React.FormEvent) => {
+  const handleSubmitReturn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedReturnOrder) return;
+
+    const matchedOrder = orders.find((o) => o.orderNumber === selectedReturnOrder);
+
+    // Save to Supabase returns_requests table
+    await submitReturnRequest({
+      orderNumber: selectedReturnOrder,
+      orderId: matchedOrder?.id,
+      userEmail: user.email || '',
+      userName: user.surname ? `${user.name} ${user.surname}` : user.name,
+      listingId: matchedOrder?.listingId,
+      itemBought: matchedOrder?.itemBought || 'Item',
+      reason: returnReason,
+      description: returnDetails,
+    });
+
     setReturnSuccessMsg(
       `Return request for order #${selectedReturnOrder} submitted. Our logistics team will contact you within 24 hours.`
     );
@@ -131,6 +154,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       }, 1200);
       setCartItemCount(getCartCount());
       fetchUserOrders(user.email, user.id).then(setOrders);
+      fetchUserRefunds(user.email).then(setRefunds);
       return () => clearTimeout(timer);
     }
   }, [isOpen, user.email, user.id]);
@@ -138,12 +162,17 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   useEffect(() => {
     if (activeModal) {
       setIsSubpageLoading(true);
+      if (activeModal === 'credits-refunds') {
+        fetchUserRefunds(user.email).then(setRefunds);
+      } else if (activeModal === 'my-orders') {
+        fetchUserOrders(user.email, user.id).then(setOrders);
+      }
       const timer = setTimeout(() => {
         setIsSubpageLoading(false);
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [activeModal]);
+  }, [activeModal, user.email, user.id]);
 
   if (!isOpen) return null;
 
@@ -646,9 +675,16 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   >
                     <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                       <span className="font-black text-[#2D8EDE] text-sm">{order.orderNumber}</span>
-                      <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                          (order.deliveryStatus || order.status || '').toLowerCase().includes('delivered') &&
+                          !(order.deliveryStatus || '').toLowerCase().includes('still')
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
                         <CheckCircle className="w-3 h-3" />
-                        <span>{order.status || 'Completed'}</span>
+                        <span>{order.deliveryStatus || order.status || 'Still being delivered'}</span>
                       </span>
                     </div>
 
@@ -1090,9 +1126,58 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 </p>
               </div>
 
-              <div className="p-4 bg-white rounded-3xl border border-gray-200 text-center text-gray-500 text-xs shadow-xs">
-                No pending or processed refunds.
-              </div>
+              {refunds.length > 0 ? (
+                <div className="space-y-2.5">
+                  {refunds.map((ref) => {
+                    const statusLower = (ref.status || 'processing').toLowerCase();
+                    const statusColor =
+                      statusLower === 'approved' || statusLower === 'refunded' || statusLower === 'completed'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : statusLower === 'rejected' || statusLower === 'declined'
+                        ? 'bg-red-100 text-red-800 border-red-200'
+                        : 'bg-amber-100 text-amber-800 border-amber-200';
+
+                    return (
+                      <div
+                        key={ref.id}
+                        className="p-4 bg-white rounded-3xl border border-gray-200 space-y-2 shadow-xs"
+                      >
+                        <div className="flex items-center justify-between pb-1.5 border-b border-gray-100">
+                          <div>
+                            <span className="font-black text-gray-900 text-xs">{ref.refundNumber}</span>
+                            <span className="text-[11px] text-gray-400 ml-2">Order #{ref.orderNumber}</span>
+                          </div>
+                          <span
+                            className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${statusColor}`}
+                          >
+                            {ref.status || 'Processing'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-gray-800 truncate max-w-[180px]">
+                            {ref.itemBought}
+                          </span>
+                          <span className="font-black text-[#2D8EDE] text-sm">
+                            R{ref.amount}
+                          </span>
+                        </div>
+                        {ref.reason && (
+                          <p className="text-[11px] text-gray-500 italic">
+                            Reason: {ref.reason}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-gray-400 pt-1 border-t border-gray-100">
+                          Live status updates automatically from our admin console.
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-4 bg-white rounded-3xl border border-gray-200 text-center text-gray-500 text-xs shadow-xs">
+                  No pending or processed refunds.
+                </div>
+              )}
             </div>
           </main>
         </div>

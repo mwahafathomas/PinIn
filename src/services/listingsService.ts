@@ -67,11 +67,15 @@ export interface SupabaseListingRow {
   pay_in_person?: boolean | string | number | null;
   product_information?: string | null;
   reviews?: any;
+  trending_tag?: string | null;
+  trending_items?: string | null;
+  what_you_might_like?: string | null;
+  category_order?: number | string | null;
 }
 
 // Safe public listing fields (omits massive verification_video base64 so queries complete in <150ms)
 export const PUBLIC_LISTING_FIELDS =
-  'id, title, location, price, original_price, category, condition, image_url, additional_images, seller_id, seller_name, seller_avatar, seller_rating, seller_review_count, seller_joined_date, seller_response_rate, description, dimensions, material, brand, posted_at, created_at, status, latitude, longitude';
+  'id, title, location, price, original_price, category, condition, image_url, additional_images, seller_id, seller_name, seller_avatar, seller_rating, seller_review_count, seller_joined_date, seller_response_rate, description, dimensions, material, brand, posted_at, created_at, status, latitude, longitude, trending_tag, trending_items, what_you_might_like, category_order';
 
 // Check if a row is approved or active for public feed
 export function isListingRowApproved(row?: Partial<SupabaseListingRow> | Record<string, unknown> | null): boolean {
@@ -260,6 +264,15 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
       }
       return [];
     })(),
+    trendingTag: row.trending_tag || row.trending_items || (row as any).trending || undefined,
+    whatYouMightLike: row.what_you_might_like || (row as any).whatYouMightLike || undefined,
+    categoryOrder: typeof row.category_order === 'number'
+      ? row.category_order
+      : typeof (row as any).categoryOrder === 'number'
+      ? (row as any).categoryOrder
+      : row.category_order
+      ? parseInt(String(row.category_order), 10)
+      : undefined,
   };
 }
 

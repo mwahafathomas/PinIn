@@ -247,7 +247,18 @@ export const CartPage: React.FC<CartPageProps> = ({
 
   const subtotal = items.reduce((acc, i) => acc + (i.price || 0) * (i.quantity || 1), 0);
   const deliveryFee = 0;
-  const grandTotal = subtotal;
+
+  // When a user buys 2 or more of the same item, calculate 12.5% amount of total saved (e.g. R 375 Saved)
+  const savingsAmount = items.reduce((acc, item) => {
+    const qty = item.quantity || 1;
+    if (qty >= 2) {
+      const itemTotal = (item.price || 0) * qty;
+      return acc + Math.round(itemTotal * 0.125);
+    }
+    return acc;
+  }, 0);
+
+  const grandTotal = Math.max(0, subtotal - savingsAmount);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -575,9 +586,16 @@ export const CartPage: React.FC<CartPageProps> = ({
                   <Truck className="w-3.5 h-3.5 text-[#2D8EDE]" />
                   <span>Delivery</span>
                 </h2>
-                <span className="text-xs font-black text-[#2D8EDE] bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200">
-                  Free delivery
-                </span>
+                <div className="flex flex-col items-end">
+                  <span className="text-xs font-black text-[#2D8EDE] bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200">
+                    Free delivery
+                  </span>
+                  {savingsAmount > 0 && (
+                    <span className="text-[11px] font-black text-emerald-600 mt-1">
+                      R {savingsAmount} Saved
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="pt-2 border-t border-gray-100 space-y-2">
@@ -641,9 +659,16 @@ export const CartPage: React.FC<CartPageProps> = ({
                 <span>Items Subtotal</span>
                 <span className="font-bold text-gray-900">R{subtotal}</span>
               </div>
-              <div className="flex items-center justify-between text-gray-600">
+              <div className="flex items-start justify-between text-gray-600">
                 <span>Delivery</span>
-                <span className="font-bold text-[#2D8EDE]">Free delivery</span>
+                <div className="text-right">
+                  <span className="font-bold text-[#2D8EDE]">Free delivery</span>
+                  {savingsAmount > 0 && (
+                    <div className="text-emerald-600 font-black text-xs mt-0.5">
+                      R {savingsAmount} Saved
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="h-px bg-gray-100 my-1" />
               <div className="flex items-center justify-between text-sm">

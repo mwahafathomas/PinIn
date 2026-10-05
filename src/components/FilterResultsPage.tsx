@@ -39,6 +39,18 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
 
+  // Sort items by category order if specified in listings table
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const orderA = typeof a.categoryOrder === 'number' ? a.categoryOrder : 999999;
+      const orderB = typeof b.categoryOrder === 'number' ? b.categoryOrder : 999999;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      return 0;
+    });
+  }, [items]);
+
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true);
@@ -86,7 +98,7 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
               <span>Results</span>
             </h1>
             <span className="text-xs font-bold text-gray-500">
-              ({items.length})
+              ({sortedItems.length})
             </span>
           </div>
 
@@ -148,9 +160,9 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
               </div>
             ))}
           </div>
-        ) : items.length > 0 ? (
+        ) : sortedItems.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
-            {items.map((item) => {
+            {sortedItems.map((item) => {
               const isSaved = savedItemIds.includes(item.id);
 
               return (

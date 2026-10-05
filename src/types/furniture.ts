@@ -46,6 +46,10 @@ export interface FurnitureItem {
   payInPerson?: boolean | string;
   productInformation?: string;
   reviewsList?: Array<{ id: string; author: string; rating: number; date: string; comment: string }>;
+  // Home Sections & Category Order
+  trendingTag?: string;
+  whatYouMightLike?: string;
+  categoryOrder?: number;
 }
 
 export interface CategoryOption {

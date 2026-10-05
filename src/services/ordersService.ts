@@ -27,6 +27,7 @@ export interface OrderRecord {
   quantity: number;
   dateBought: string;
   status: string;
+  deliveryStatus?: string;
   imageUrl?: string;
   created_at?: string;
 }
@@ -224,6 +225,7 @@ export async function createOrder(data: {
       delivery_instructions: rec.deliveryInstructions || null,
       date_bought: rec.dateBought,
       status: rec.status,
+      delivery_status: rec.deliveryStatus || 'Still being delivered',
     }));
 
     const { error: insertError } = await supabase.from('orders').insert(rowsToInsert);
@@ -404,6 +406,7 @@ export async function getUserOrders(userEmail?: string, buyerId?: string): Promi
         quantity: Number(row.quantity) || 1,
         dateBought: row.date_bought || new Date(row.created_at || Date.now()).toLocaleDateString(),
         status: row.status || 'Completed',
+        deliveryStatus: row.delivery_status || row.deliveryStatus || row.status || 'Still being delivered',
         created_at: row.created_at,
       }));
 

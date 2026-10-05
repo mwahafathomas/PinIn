@@ -15,6 +15,7 @@ import { Header } from './components/Header';
 import { ActionNav } from './components/ActionNav';
 import { HeroSearch } from './components/HeroSearch';
 import { FurnitureGrid } from './components/FurnitureGrid';
+import { HomeFeedSections } from './components/HomeFeedSections';
 import { BottomNav } from './components/BottomNav';
 import { ListingDetailPage } from './components/ListingDetailPage';
 import { CartPage } from './components/CartPage';
@@ -592,6 +593,26 @@ export default function App() {
   const handleOpenUserProfile = (userId: string, initialData?: any) => {
     setSelectedUserProfile({ id: userId, profile: initialData });
     goTo(`/user/${userId}`, 1);
+  };
+
+  // Categories & Filters hide on scroll down / show on scroll up state
+  const [isActionNavVisible, setIsActionNavVisible] = useState<boolean>(true);
+  const homeLastScrollYRef = useRef<number>(0);
+
+  const handleHomeScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const currentScrollY = e.currentTarget.scrollTop;
+    const prevScrollY = homeLastScrollYRef.current;
+    const diff = currentScrollY - prevScrollY;
+
+    if (diff > 8 && currentScrollY > 40) {
+      // User is scrolling down -> make categories & filters invisible
+      setIsActionNavVisible(false);
+    } else if (diff < -5 || currentScrollY <= 20) {
+      // User is scrolling up -> show categories & filters
+      setIsActionNavVisible(true);
+    }
+
+    homeLastScrollYRef.current = currentScrollY;
   };
 
   // Sell Form Persistent State (retained across Category and Location sub-pages)
@@ -2213,6 +2234,18 @@ export default function App() {
     }
 
     const sorted = [...filtered].sort((a, b) => {
+      // If category filter is active, respect category_order first
+      const isCatActive =
+        (filters.categories && filters.categories.length > 0) ||
+        (filters.category && filters.category !== 'all');
+      if (isCatActive) {
+        const orderA = typeof a.categoryOrder === 'number' ? a.categoryOrder : 999999;
+        const orderB = typeof b.categoryOrder === 'number' ? b.categoryOrder : 999999;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+      }
+
       if (filters.sortBy === 'price-asc') return a.price - b.price;
       if (filters.sortBy === 'price-desc') return b.price - a.price;
       if (filters.sortBy === 'newest') return b.id.localeCompare(a.id);
@@ -2434,13 +2467,21 @@ export default function App() {
                       onOpenSearchPage={() => goTo('/search?type=furniture')}
                     />
 
-                    {/* Categories & Filters only at top, remove + sell */}
-                    <ActionNav
-                      onOpenCategories={() => goTo('/categories')}
-                      onOpenFilters={() => goTo('/filters')}
-                      activeCategoryName={activeCategoryDisplayName}
-                      activeFilterCount={appliedFiltersCount}
-                    />
+                    {/* Categories & Filters only at top, hide on scroll down, show on scroll up */}
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                        isActionNavVisible
+                          ? 'max-h-16 opacity-100'
+                          : 'max-h-0 opacity-0 pointer-events-none'
+                      }`}
+                    >
+                      <ActionNav
+                        onOpenCategories={() => goTo('/categories')}
+                        onOpenFilters={() => goTo('/filters')}
+                        activeCategoryName={activeCategoryDisplayName}
+                        activeFilterCount={appliedFiltersCount}
+                      />
+                    </div>
 
                     {/* Active Filter Indicators */}
                     {((filters.categories && filters.categories.length > 0) || filters.category !== 'all' || (filters.location && filters.location.trim()) || filters.locationQuery || filters.condition.length > 0 || searchQuery) && (
@@ -2518,23 +2559,45 @@ export default function App() {
                   </div>
 
                   {/* Scrollable Center Content Area */}
-                  <main id="home-main-scroll" className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain bg-white flex flex-col">
+                  <main
+                    id="home-main-scroll"
+                    onScroll={handleHomeScroll}
+                    className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain bg-white flex flex-col"
+                  >
                     <div className="flex-1 flex flex-col justify-between min-h-full">
                       <div className="flex-1">
-                        <FurnitureGrid
-                          items={filteredFurniture}
-                          savedItemIds={user.savedItemIds}
-                          onSelectItem={(item) => {
-                            setSelectedItem(item);
-                            goTo(`/item/${item.id}`);
-                          }}
-                          onToggleSave={handleToggleSave}
-                          onShareItem={handleShareItem}
-                          onMessageSeller={handleMessageSeller}
-                          onResetFilters={handleGoHome}
-                          showDistance={hasLocationPermission && !!userCoords}
-                          isLoading={isFeedLoading || isFeedRefreshing}
-                        />
+                        {searchQuery.trim() ||
+                        (filters.categories && filters.categories.length > 0) ||
+                        filters.category !== 'all' ||
+                        (filters.location && filters.location.trim()) ||
+                        filters.locationQuery.trim() ||
+                        filters.condition.length > 0 ? (
+                          <FurnitureGrid
+                            items={filteredFurniture}
+                            savedItemIds={user.savedItemIds}
+                            onSelectItem={(item) => {
+                              setSelectedItem(item);
+                              goTo(`/item/${item.id}`);
+                            }}
+                            onToggleSave={handleToggleSave}
+                            onShareItem={handleShareItem}
+                            onMessageSeller={handleMessageSeller}
+                            onResetFilters={handleGoHome}
+                            showDistance={hasLocationPermission && !!userCoords}
+                            isLoading={isFeedLoading || isFeedRefreshing}
+                          />
+                        ) : (
+                          <HomeFeedSections
+                            items={filteredFurniture}
+                            savedItemIds={user.savedItemIds}
+                            onSelectItem={(item) => {
+                              setSelectedItem(item);
+                              goTo(`/item/${item.id}`);
+                            }}
+                            onToggleSave={handleToggleSave}
+                            isLoading={isFeedLoading || isFeedRefreshing}
+                          />
+                        )}
                       </div>
 
                       {/* Footer containing quick links */}
