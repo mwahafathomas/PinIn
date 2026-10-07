@@ -1,9 +1,9 @@
 import React from 'react';
-import { Home, ShoppingCart, User } from 'lucide-react';
+import { Home, LayoutGrid, ShoppingCart, User } from 'lucide-react';
 
 interface BottomNavProps {
-  activeTab: 'home' | 'marketplace' | 'search' | 'cart' | 'account' | 'profile';
-  onNavigate: (tab: 'home' | 'cart' | 'account') => void;
+  activeTab: 'home' | 'marketplace' | 'search' | 'categories' | 'cart' | 'account' | 'profile';
+  onNavigate: (tab: 'home' | 'categories' | 'cart' | 'account') => void;
   cartCount?: number;
 }
 
@@ -13,6 +13,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   cartCount = 0,
 }) => {
   const isHomeActive = activeTab === 'home' || activeTab === 'marketplace' || activeTab === 'search';
+  const isCategoriesActive = activeTab === 'categories';
   const isCartActive = activeTab === 'cart';
   const isAccountActive = activeTab === 'account' || activeTab === 'profile';
 
@@ -21,7 +22,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       aria-label="Bottom navigation bar"
       className="w-full bg-white border-t border-gray-200"
     >
-      <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-3 items-center">
+      <div className="w-full max-w-md md:max-w-7xl mx-auto px-2 md:px-8 h-16 grid grid-cols-4 items-center">
         {/* 1. Home Icon (First at the left) */}
         <button
           type="button"
@@ -45,7 +46,30 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           </span>
         </button>
 
-        {/* 2. Cart Icon (Second at middle, where messages was) */}
+        {/* 2. Category Icon (Middle between Home and Cart) */}
+        <button
+          type="button"
+          onClick={() => onNavigate('categories')}
+          aria-label="Categories"
+          className="flex flex-col items-center justify-center h-full text-gray-700 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+        >
+          <div className="relative flex items-center justify-center">
+            <LayoutGrid
+              className={`w-5 h-5 stroke-[2.2] transition-colors ${
+                isCategoriesActive ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
+              }`}
+            />
+          </div>
+          <span
+            className={`text-[11px] font-bold mt-1 leading-none transition-colors ${
+              isCategoriesActive ? 'text-[#2D8EDE]' : 'text-gray-600 group-hover:text-[#2D8EDE]'
+            }`}
+          >
+            Category
+          </span>
+        </button>
+
+        {/* 3. Cart Icon */}
         <button
           type="button"
           onClick={() => onNavigate('cart')}
@@ -73,7 +97,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           </span>
         </button>
 
-        {/* 3. Account Icon (Last at right, where notifications was) */}
+        {/* 4. Account Icon */}
         <button
           type="button"
           onClick={() => onNavigate('account')}

@@ -2163,15 +2163,22 @@ export default function App() {
         const q = searchQuery.toLowerCase();
         const matchesTitle = item.title.toLowerCase().includes(q);
         const matchesLocation = item.location.toLowerCase().includes(q);
-        const matchesDesc = item.description.toLowerCase().includes(q);
+        const matchesDesc = item.description?.toLowerCase().includes(q);
         const matchesBrand = item.brand?.toLowerCase().includes(q);
-        if (!matchesTitle && !matchesLocation && !matchesDesc && !matchesBrand) {
+        const matchesCategory = item.category?.toLowerCase().includes(q);
+        const matchesMaterial = item.material?.toLowerCase().includes(q);
+        const matchesProductInfo = (item as any).productInformation?.toLowerCase().includes(q);
+        if (!matchesTitle && !matchesLocation && !matchesDesc && !matchesBrand && !matchesCategory && !matchesMaterial && !matchesProductInfo) {
           return false;
         }
       }
 
-      if (!matchFurnitureWithCategories(item, filters.categories, filters.category)) {
-        return false;
+      // If user is searching text (e.g. "apple"), show any listing containing the word even if not in categories
+      const hasExplicitCategories = filters.categories && filters.categories.length > 0;
+      if (hasExplicitCategories || (!searchQuery.trim() && filters.category !== 'all')) {
+        if (!matchFurnitureWithCategories(item, filters.categories, filters.category)) {
+          return false;
+        }
       }
 
       if (filters.location && filters.location.trim()) {
@@ -2449,9 +2456,11 @@ export default function App() {
                 <div className="h-[100dvh] max-h-[100dvh] flex flex-col font-sans text-gray-900 bg-white overflow-hidden">
                   {/* Pinned Top Header & Controls */}
                   <div className="shrink-0 z-30 bg-white border-b border-gray-200 shadow-2xs">
-                    {/* Top Header: PinIn centered logo */}
+                    {/* Top Header: PinIn centered logo + sign in icon at top right */}
                     <Header
                       onGoHome={handleGoHome}
+                      user={user}
+                      onOpenAuth={handleOpenAuth}
                     />
 
                     {/* 3 = Search */}
@@ -2466,22 +2475,6 @@ export default function App() {
                       nearbyCount={nearbyListingsCount}
                       onOpenSearchPage={() => goTo('/search?type=furniture')}
                     />
-
-                    {/* Categories & Filters only at top, hide on scroll down, show on scroll up */}
-                    <div
-                      className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                        isActionNavVisible
-                          ? 'max-h-16 opacity-100'
-                          : 'max-h-0 opacity-0 pointer-events-none'
-                      }`}
-                    >
-                      <ActionNav
-                        onOpenCategories={() => goTo('/categories')}
-                        onOpenFilters={() => goTo('/filters')}
-                        activeCategoryName={activeCategoryDisplayName}
-                        activeFilterCount={appliedFiltersCount}
-                      />
-                    </div>
 
                     {/* Active Filter Indicators */}
                     {((filters.categories && filters.categories.length > 0) || filters.category !== 'all' || (filters.location && filters.location.trim()) || filters.locationQuery || filters.condition.length > 0 || searchQuery) && (
@@ -2615,6 +2608,8 @@ export default function App() {
                       onNavigate={(tab) => {
                         if (tab === 'home') {
                           handleGoHome();
+                        } else if (tab === 'categories') {
+                          goTo('/categories');
                         } else if (tab === 'cart') {
                           goTo('/cart');
                         } else if (tab === 'account') {

@@ -167,17 +167,14 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
 
   return (
     <div className="w-full flex flex-col space-y-5 pb-6">
-      {/* 1. Advertisement 1 Area */}
-      <AdvertBanner slotNumber={1} fallbackAlt="Advertisement 1" adv={adverts[1]} />
-
-      {/* 2. Below place the words "Trending items" */}
+      {/* 1. Start with "Trending items" */}
       <div className="px-4">
         <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight">
           Trending items
         </h2>
       </div>
 
-      {/* 3. Below place listings allowed into trending items on home page (horizontally not vertically) */}
+      {/* Trending items listings (horizontally) */}
       <div className="w-full">
         {isLoading ? (
           <div className="flex items-center gap-3 overflow-x-auto no-scrollbar px-4 py-1">
@@ -199,14 +196,14 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
         )}
       </div>
 
-      {/* 4. Below place the words "shop by departments" */}
+      {/* 2. Followed by "Shop by category" */}
       <div className="px-4 pt-1">
         <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight">
-          Shop by departments
+          Shop by category
         </h2>
       </div>
 
-      {/* 5. Below place the following departments horizontally below "Electronics", "Furniture", "Clothing", "Beauty", "Tools & fitness". Small circle areas for images on top of them (not clickable yet) */}
+      {/* Categories horizontal preview circles */}
       <div className="w-full px-4">
         <div className="flex items-start justify-between gap-3 overflow-x-auto no-scrollbar py-1">
           {departments.map((dept) => (
@@ -214,7 +211,6 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
               key={dept.id || dept.name}
               className="flex flex-col items-center gap-1.5 shrink-0 select-none cursor-default"
             >
-              {/* Small circle area for images on top */}
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-gray-200 shadow-2xs bg-gray-100 flex items-center justify-center">
                 <img
                   src={getOptimizedImageUrl(dept.image_url, { width: 160, quality: 75, format: 'webp' })}
@@ -223,7 +219,6 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
                   loading="lazy"
                 />
               </div>
-              {/* Department name */}
               <span className="text-[11px] sm:text-xs font-bold text-gray-800 text-center capitalize max-w-[76px] leading-tight">
                 {dept.name}
               </span>
@@ -232,17 +227,17 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
         </div>
       </div>
 
-      {/* 6. Below place advertisement 2 area */}
-      <AdvertBanner slotNumber={2} fallbackAlt="Advertisement 2" adv={adverts[2]} />
+      {/* 3. Followed by "Ad 1" */}
+      <AdvertBanner slotNumber={1} fallbackAlt="Advertisement 1" adv={adverts[1]} />
 
-      {/* 7. Below place the words "What you might like" */}
+      {/* 4. Followed by "Items you might like" */}
       <div className="px-4">
         <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight">
-          What you might like
+          Items you might like
         </h2>
       </div>
 
-      {/* 8. Below the words "what you might like" below place listings allowed into what you might like on home page (horizontally not vertically) */}
+      {/* Items you might like listings (horizontally) */}
       <div className="w-full">
         {isLoading ? (
           <div className="flex items-center gap-3 overflow-x-auto no-scrollbar px-4 py-1">
@@ -264,7 +259,8 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
         )}
       </div>
 
-      {/* 9. Lastly place advertisement 3 area */}
+      {/* 5. Followed by "Ad 2" & "Ad 3" */}
+      <AdvertBanner slotNumber={2} fallbackAlt="Advertisement 2" adv={adverts[2]} />
       <AdvertBanner slotNumber={3} fallbackAlt="Advertisement 3" adv={adverts[3]} />
     </div>
   );

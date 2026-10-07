@@ -5,9 +5,11 @@ import {
   X,
   Tag,
   ArrowRight,
+  MapPin,
 } from 'lucide-react';
 import { FurnitureItem, UserAccount } from '../types/furniture';
 import { recordSearchQuery } from '../services/ordersService';
+import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 
 interface SearchPageProps {
   isOpen: boolean;
@@ -48,6 +50,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   onClose,
   searchQuery,
   onSearchChange,
+  furnitureList = [],
+  onSelectItem,
   onViewAllResults,
 }) => {
   const [localQuery, setLocalQuery] = useState(searchQuery);
@@ -64,7 +68,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
       setIsLoading(true);
       const timer = setTimeout(() => {
         setIsLoading(false);
-      }, 1200);
+      }, 600);
 
       const focusTimer = setTimeout(() => {
         inputRef.current?.focus();
@@ -103,6 +107,22 @@ export const SearchPage: React.FC<SearchPageProps> = ({
     onSearchChange(term);
     onViewAllResults();
   };
+
+  // Find all listings matching the query anywhere in title, desc, brand, category, etc.
+  const matchingListings = useMemo(() => {
+    const q = localQuery.trim().toLowerCase();
+    if (!q) return [];
+    return (furnitureList || []).filter((item) => {
+      const inTitle = item.title?.toLowerCase().includes(q);
+      const inDesc = item.description?.toLowerCase().includes(q);
+      const inCat = item.category?.toLowerCase().includes(q);
+      const inBrand = item.brand?.toLowerCase().includes(q);
+      const inMaterial = item.material?.toLowerCase().includes(q);
+      const inLocation = item.location?.toLowerCase().includes(q);
+      const inInfo = (item as any).productInformation?.toLowerCase().includes(q);
+      return inTitle || inDesc || inCat || inBrand || inMaterial || inLocation || inInfo;
+    });
+  }, [localQuery, furnitureList]);
 
   // Categories suggestions matching current query
   const matchingCategories = useMemo(() => {
@@ -173,7 +193,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
         </div>
       </div>
 
-      {/* 3. Search Categories Content Area */}
+      {/* 3. Search Results Content Area */}
       <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 py-4 space-y-4">
         {isLoading ? (
           /* Shimmer Skeleton Loader */
@@ -191,38 +211,85 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               ))}
             </div>
           </div>
-        ) : (
+        ) : localQuery.trim().length > 0 ? (
+          /* When user types search query (e.g. "apple"), show matching listings directly */
           <div className="space-y-3">
             <div className="flex items-center justify-between pb-1">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                {localQuery.trim() ? 'Categories & Search Terms' : 'Categories'}
+                Results for "{localQuery.trim()}" ({matchingListings.length})
+              </span>
+            </div>
+
+            {matchingListings.length > 0 ? (
+              <div className="space-y-2.5">
+                {matchingListings.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      if (onSelectItem) {
+                        onSelectItem(item);
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 p-3 bg-white rounded-2xl border border-gray-200 hover:border-[#2D8EDE] shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
+                  >
+                    <div className="w-16 h-16 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                      <img
+                        src={getOptimizedImageUrl(item.imageUrl, { width: 160, quality: 75, format: 'webp' })}
+                        alt={item.title}
+                        className="w-full h-full object-contain p-0.5 group-hover:scale-105 transition-transform"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 truncate">
+                          {item.title}
+                        </h4>
+                        <span className="text-xs font-black text-[#2D8EDE] shrink-0">
+                          R{item.price}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 truncate mt-0.5 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
+                        <span>{item.location || 'Gauteng'}</span>
+                        <span>•</span>
+                        <span>{item.condition}</span>
+                      </p>
+                      <span className="text-[10px] font-extrabold text-[#2D8EDE] uppercase mt-0.5 block">
+                        Free delivery
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => handleSelectTerm(localQuery.trim())}
+                  className="w-full py-3 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer mt-3"
+                >
+                  View all results on marketplace
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center space-y-2">
+                <p className="text-sm font-bold text-gray-800">
+                  No listings found containing "{localQuery.trim()}"
+                </p>
+                <p className="text-xs text-gray-500">
+                  Try searching with a different word or explore categories below.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* When search query is empty, show Categories */
+          <div className="space-y-3">
+            <div className="flex items-center justify-between pb-1">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Categories
               </span>
             </div>
 
             <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs divide-y divide-gray-100">
-              {/* If user typed a search term (e.g. "Tv"), show the exact searched keyword row first */}
-              {localQuery.trim().length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleSelectTerm(localQuery.trim())}
-                  className="w-full flex items-center justify-between p-4 hover:bg-blue-50/50 text-left transition-colors cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
-                      <Search className="w-4 h-4 text-[#2D8EDE]" />
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm font-extrabold text-[#2D8EDE]">
-                        "{localQuery.trim()}"
-                      </p>
-                      <p className="text-[11px] text-gray-400">Search for "{localQuery.trim()}"</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-[#2D8EDE] group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              )}
-
-              {/* Matching / Available Categories */}
               {matchingCategories.map((category) => (
                 <button
                   key={category}

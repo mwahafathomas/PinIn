@@ -1,4 +1,5 @@
 import React from 'react';
+import { LogIn } from 'lucide-react';
 import { UserAccount } from '../types/furniture';
 
 interface HeaderProps {
@@ -11,6 +12,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   onGoHome,
+  user,
+  onOpenAuth,
 }) => {
   return (
     <header
@@ -31,6 +34,18 @@ export const Header: React.FC<HeaderProps> = ({
             Pin<span className="text-[#2D8EDE]">In</span>
           </span>
         </button>
+
+        {/* Right: Sign in icon if user is not logged in */}
+        {!user?.isLoggedIn && (
+          <button
+            type="button"
+            onClick={() => onOpenAuth?.('signin')}
+            aria-label="Sign In"
+            className="absolute right-4 p-2 rounded-xl text-[#2D8EDE] hover:bg-blue-50 active:scale-95 transition-all cursor-pointer"
+          >
+            <LogIn className="w-5 h-5 stroke-[2.2]" />
+          </button>
+        )}
       </div>
     </header>
   );

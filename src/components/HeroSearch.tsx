@@ -38,22 +38,25 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
             <Search className="w-5 h-5" />
           </button>
 
-          {/* White input box where users type */}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="search furniture"
-            aria-label="Search furniture"
-            className="w-full bg-white text-gray-900 placeholder:text-gray-500 text-sm md:text-base font-medium pl-10 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300/80 shadow-md focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] focus:border-transparent transition-all"
-          />
+          {/* White input box that opens full search page when clicked */}
+          <div
+            onClick={onOpenSearchPage}
+            className="w-full bg-white text-gray-900 text-sm md:text-base font-medium pl-10 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300/80 shadow-md cursor-pointer flex items-center transition-all select-none hover:border-[#2D8EDE]"
+          >
+            <span className={searchQuery ? 'text-gray-900 font-semibold truncate' : 'text-gray-500'}>
+              {searchQuery || 'search furniture'}
+            </span>
+          </div>
 
           {searchQuery && (
             <button
               type="button"
-              onClick={onClearSearch}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClearSearch();
+              }}
               aria-label="Clear search"
-              className="absolute right-3 p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              className="absolute right-3 p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
