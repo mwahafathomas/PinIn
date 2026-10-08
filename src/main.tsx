@@ -5,6 +5,14 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient.ts';
 import App from './App.tsx';
 import './index.css';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
+
+if (Capacitor.isNativePlatform()) {
+  StatusBar.setBackgroundColor({ color: '#ffffff' });
+  StatusBar.setStyle({ style: Style.Light });
+  StatusBar.setOverlaysWebView({ overlay: false });
+}
 
 // Detect if running inside Android APK wrapper / WebView / standalone app with notch
 if (typeof window !== 'undefined') {
