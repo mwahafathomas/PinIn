@@ -993,28 +993,8 @@ export const SellPage: React.FC<SellPageProps> = ({
             </button>
           </div>
 
-          {/* Row 2: Location & Condition */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Location Blue Bar Button - leads to Location Selection Page */}
-            <button
-              type="button"
-              onClick={onOpenLocation}
-              className="bg-[#0052FF] hover:bg-blue-700 active:scale-[0.99] rounded-xl px-3 py-2.5 shadow-md flex flex-col justify-center text-white text-left transition-all group cursor-pointer"
-            >
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-100 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-blue-200" />
-                  <span>Location (Optional)</span>
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm font-bold text-white truncate max-w-[110px]">
-                  {formData.collectionSuburb || formData.location || 'Select Location'}
-                </span>
-                <ChevronRight className="w-4 h-4 text-blue-200 group-hover:text-white group-hover:translate-x-0.5 transition-transform shrink-0" />
-              </div>
-            </button>
-
+          {/* Row 2: Condition */}
+          <div>
             {/* Condition Blue Bar */}
             <div className="bg-[#0052FF] rounded-xl px-3 py-2.5 shadow-md flex flex-col justify-center text-white">
               <label

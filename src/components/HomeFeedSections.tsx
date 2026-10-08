@@ -61,7 +61,22 @@ export const HomeFeedSections: React.FC<HomeFeedSectionsProps> = ({
     return matched;
   }, [items, trendingListings]);
 
-// Non-clickable Advertisement Card Component
+  // Filter listings for "Electronics"
+  // Checks if seller/admin wrote "electronics" in the electronics column or category
+  const electronicsListings = useMemo(() => {
+    return items.filter((item) => {
+      const tag = (item.electronics || '').toLowerCase().trim();
+      const cat = (item.category || '').toLowerCase().trim();
+      return (
+        tag === 'electronics' ||
+        tag.includes('electronic') ||
+        cat === 'electronics' ||
+        cat.includes('electronic')
+      );
+    });
+  }, [items]);
+
+// Non-clickable Advertisement Card Component (renders ONLY if an advert is uploaded in Supabase)
 interface AdvertBannerProps {
   slotNumber: number;
   fallbackAlt: string;
@@ -73,14 +88,10 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
   fallbackAlt,
   adv,
 }) => {
-  const defaultImage =
-    slotNumber === 1
-      ? 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1600&auto=format&fit=crop&q=80'
-      : slotNumber === 2
-      ? 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1600&auto=format&fit=crop&q=80'
-      : 'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=1600&auto=format&fit=crop&q=80';
-
-  const imageUrl = adv?.image_url || defaultImage;
+  // If user hasn't uploaded ads yet at Supabase, do NOT show any default ad (prevents flash glitch)
+  if (!adv?.image_url) {
+    return null;
+  }
 
   return (
     <section
@@ -89,8 +100,8 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
     >
       <div className="w-full overflow-hidden rounded-none">
         <img
-          src={getOptimizedImageUrl(imageUrl, { width: 1600, quality: 85, format: 'webp' })}
-          alt={adv?.title || fallbackAlt}
+          src={getOptimizedImageUrl(adv.image_url, { width: 1600, quality: 85, format: 'webp' })}
+          alt={adv.title || fallbackAlt}
           className="w-full h-auto object-contain rounded-none pointer-events-none select-none block"
           loading="lazy"
           decoding="async"
@@ -100,7 +111,7 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
   );
 };
 
-  // Horizontal Card Component for Listings
+  // Horizontal Card Component for Listings (clean, no location, no "New", no "free delivery")
   const renderHorizontalListing = (item: FurnitureItem) => {
     const isSaved = savedItemIds.includes(item.id);
 
@@ -142,31 +153,18 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
           </button>
         </div>
 
-        {/* Info */}
-        <div className="p-2.5 space-y-1 flex-1 flex flex-col justify-between">
-          <div>
-            <h3 className="text-xs font-bold text-gray-900 truncate leading-snug">
-              {item.title}
-            </h3>
-            <p className="text-[11px] text-gray-500 truncate flex items-center gap-1 mt-0.5">
-              <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
-              <span>{item.location || 'Gauteng'}</span>
-            </p>
-          </div>
-
-          <div className="pt-1 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
-            <span className="truncate max-w-[85px]">{item.condition}</span>
-            <span className="text-[#2D8EDE] font-extrabold text-[10px] uppercase">
-              Free delivery
-            </span>
-          </div>
+        {/* Info - Clean title only */}
+        <div className="p-2.5 flex-1 flex flex-col justify-center">
+          <h3 className="text-xs font-bold text-gray-900 truncate leading-snug">
+            {item.title}
+          </h3>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="w-full flex flex-col space-y-5 pb-6">
+    <div className="w-full flex flex-col space-y-5 pt-5 pb-6">
       {/* 1. Start with "Trending items" */}
       <div className="px-4">
         <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight">
@@ -259,8 +257,39 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
         )}
       </div>
 
-      {/* 5. Followed by "Ad 2" & "Ad 3" */}
+      {/* 5. Followed by "Ad 2" */}
       <AdvertBanner slotNumber={2} fallbackAlt="Advertisement 2" adv={adverts[2]} />
+
+      {/* In middle of second ad and third ad: "Electronics" */}
+      <div className="px-4">
+        <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight">
+          Electronics
+        </h2>
+      </div>
+
+      {/* Electronics listings (horizontally) */}
+      <div className="w-full">
+        {isLoading ? (
+          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar px-4 py-1">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="w-38 sm:w-48 h-56 shrink-0 bg-gray-100 border border-gray-200 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : electronicsListings.length > 0 ? (
+          <div className="flex items-stretch gap-3 overflow-x-auto no-scrollbar scroll-smooth px-4 py-1">
+            {electronicsListings.map(renderHorizontalListing)}
+          </div>
+        ) : (
+          <div className="px-4 py-2 text-xs text-gray-500">
+            No electronics listings available.
+          </div>
+        )}
+      </div>
+
+      {/* 6. Followed by "Ad 3" */}
       <AdvertBanner slotNumber={3} fallbackAlt="Advertisement 3" adv={adverts[3]} />
     </div>
   );

@@ -6,6 +6,10 @@ import {
   Bell,
   Check,
   CheckCheck,
+  Home,
+  LayoutGrid,
+  ShoppingCart,
+  User,
 } from 'lucide-react';
 import {
   CategoryGroup,
@@ -24,6 +28,10 @@ interface CategoriesPageProps {
   onOpenNotifications?: () => void;
   unreadMessagesCount?: number;
   unreadNotificationsCount?: number;
+  onGoHome?: () => void;
+  onOpenCart?: () => void;
+  onOpenAccount?: () => void;
+  cartCount?: number;
 }
 
 export const CategoriesPage: React.FC<CategoriesPageProps> = ({
@@ -37,6 +45,10 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
   onOpenNotifications,
   unreadMessagesCount = 0,
   unreadNotificationsCount = 0,
+  onGoHome,
+  onOpenCart,
+  onOpenAccount,
+  cartCount = 0,
 }) => {
   const [categories, setCategories] = useState<CategoryGroup[]>(DEFAULT_CATEGORY_GROUPS);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -287,6 +299,69 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
           </button>
         </div>
       </main>
+
+      {/* 4 Bottom Icons Navigation Dock */}
+      <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
+        <div className="w-full max-w-md md:max-w-7xl mx-auto px-2 md:px-8 h-16 grid grid-cols-4 items-center">
+          {/* 1. Home */}
+          <button
+            type="button"
+            onClick={onGoHome || onClose}
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Home"
+          >
+            <Home className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+              Home
+            </span>
+          </button>
+
+          {/* 2. Category (Active) */}
+          <button
+            type="button"
+            className="flex flex-col items-center justify-center h-full active:scale-95 transition-all relative cursor-pointer text-[#2D8EDE]"
+            aria-label="Categories"
+          >
+            <LayoutGrid className="w-5 h-5 stroke-[2.2] text-[#2D8EDE]" />
+            <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">
+              Category
+            </span>
+          </button>
+
+          {/* 3. Cart */}
+          <button
+            type="button"
+            onClick={onOpenCart}
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all relative cursor-pointer group"
+            aria-label="Cart"
+          >
+            <div className="relative">
+              <ShoppingCart className="w-5 h-5 stroke-[2] text-gray-600 group-hover:text-[#2D8EDE]" />
+              {cartCount !== undefined && cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 bg-[#2D8EDE] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                  {cartCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+              Cart
+            </span>
+          </button>
+
+          {/* 4. Account */}
+          <button
+            type="button"
+            onClick={onOpenAccount}
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Account"
+          >
+            <User className="w-5 h-5 stroke-[2] text-gray-600 group-hover:text-[#2D8EDE]" />
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+              Account
+            </span>
+          </button>
+        </div>
+      </footer>
     </div>
   );
 };

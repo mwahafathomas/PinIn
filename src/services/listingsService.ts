@@ -71,11 +71,17 @@ export interface SupabaseListingRow {
   trending_items?: string | null;
   what_you_might_like?: string | null;
   category_order?: number | string | null;
+  image_url_2?: string | null;
+  image_url_3?: string | null;
+  image_url_4?: string | null;
+  image_url_5?: string | null;
+  image_url_6?: string | null;
+  image_url_7?: string | null;
+  electronics?: string | null;
 }
 
 // Safe public listing fields (omits massive verification_video base64 so queries complete in <150ms)
-export const PUBLIC_LISTING_FIELDS =
-  'id, title, location, price, original_price, category, condition, image_url, additional_images, seller_id, seller_name, seller_avatar, seller_rating, seller_review_count, seller_joined_date, seller_response_rate, description, dimensions, material, brand, posted_at, created_at, status, latitude, longitude, trending_tag, trending_items, what_you_might_like, category_order';
+export const PUBLIC_LISTING_FIELDS = '*';
 
 // Check if a row is approved or active for public feed
 export function isListingRowApproved(row?: Partial<SupabaseListingRow> | Record<string, unknown> | null): boolean {
@@ -192,6 +198,19 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
       parse((row as any).additionalImages);
       parse((row as any).images);
       parse((row as any).imageUrls);
+
+      // Also check individual columns image_url_2 through image_url_7 (and alternatives)
+      for (let i = 2; i <= 7; i++) {
+        const c1 = (row as any)[`image_url_${i}`];
+        const c2 = (row as any)[`image_${i}`];
+        const c3 = (row as any)[`image${i}`];
+        const c4 = (row as any)[`image_url${i}`];
+        if (typeof c1 === 'string' && c1.trim()) add(c1.trim());
+        else if (typeof c2 === 'string' && c2.trim()) add(c2.trim());
+        else if (typeof c3 === 'string' && c3.trim()) add(c3.trim());
+        else if (typeof c4 === 'string' && c4.trim()) add(c4.trim());
+      }
+
       return list.map((img) =>
         getOptimizedImageUrl(img, { width: 600, quality: 70, format: 'webp' })
       );
@@ -266,6 +285,7 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
     })(),
     trendingTag: row.trending_tag || row.trending_items || (row as any).trending || undefined,
     whatYouMightLike: row.what_you_might_like || (row as any).whatYouMightLike || undefined,
+    electronics: row.electronics ? String(row.electronics).trim() : (row as any).electronics ? String((row as any).electronics).trim() : undefined,
     categoryOrder: typeof row.category_order === 'number'
       ? row.category_order
       : typeof (row as any).categoryOrder === 'number'
@@ -695,6 +715,17 @@ export async function insertListing(item: FurnitureItem): Promise<{ success: boo
       console.warn('Primary listings insert note:', insertResult.error.message);
       const errMsg = insertResult.error.message.toLowerCase();
 
+      // If location column does not exist or has issue, remove location and retry
+      if (errMsg.includes('location')) {
+        const noLocationRow = { ...row };
+        delete noLocationRow.location;
+        const noLocRes = await supabase.from('listings').insert([noLocationRow]);
+        if (!noLocRes.error) {
+          invalidateListingsCache();
+          return { success: true };
+        }
+      }
+
       // Fallback: Strip extended fields and ensure seller_id is non-null
       const cleanRow: Record<string, unknown> = {
         id: itemId,
@@ -704,13 +735,16 @@ export async function insertListing(item: FurnitureItem): Promise<{ success: boo
         condition: pendingItem.condition,
         image_url: pendingItem.imageUrl,
         additional_images: pendingItem.additionalImages || [],
-        location: pendingItem.location || pendingItem.collectionSuburb || 'Sandton',
         description: pendingItem.description || '',
         seller_id: pendingItem.seller?.id || 'anonymous_seller',
         seller_name: pendingItem.seller?.name || 'PinIn Member',
         seller_avatar: pendingItem.seller?.avatar || '',
         status: pendingItem.status || 'pending',
       };
+
+      if (!errMsg.includes('location') && (pendingItem.location || pendingItem.collectionSuburb)) {
+        cleanRow.location = pendingItem.location || pendingItem.collectionSuburb;
+      }
 
       if (pendingItem.latitude !== undefined && pendingItem.longitude !== undefined) {
         cleanRow.latitude = pendingItem.latitude;

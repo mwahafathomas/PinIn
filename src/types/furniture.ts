@@ -1,7 +1,7 @@
 export interface FurnitureItem {
   id: string;
   title: string;
-  location: string;
+  location?: string;
   price: number;
   originalPrice?: number;
   category: string;
@@ -49,6 +49,7 @@ export interface FurnitureItem {
   // Home Sections & Category Order
   trendingTag?: string;
   whatYouMightLike?: string;
+  electronics?: string;
   categoryOrder?: number;
 }
 

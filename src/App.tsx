@@ -2468,87 +2468,11 @@ export default function App() {
                       searchQuery={searchQuery}
                       onSearchChange={setSearchQuery}
                       onClearSearch={() => setSearchQuery('')}
-                      hasLocationPermission={hasLocationPermission}
-                      isLocating={isLocatingUser}
-                      onRequestLocation={() => handleRequestUserLocation(false)}
-                      onDisableLocation={handleDisableLocation}
-                      nearbyCount={nearbyListingsCount}
+                      hasLocationPermission={false}
+                      isLocating={false}
+                      nearbyCount={0}
                       onOpenSearchPage={() => goTo('/search?type=furniture')}
                     />
-
-                    {/* Active Filter Indicators */}
-                    {((filters.categories && filters.categories.length > 0) || filters.category !== 'all' || (filters.location && filters.location.trim()) || filters.locationQuery || filters.condition.length > 0 || searchQuery) && (
-                      <div className="max-w-md mx-auto w-full px-4 py-2 flex items-center justify-between gap-2 overflow-x-auto text-xs bg-gray-50/80 border-t border-gray-100">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {filters.categories && filters.categories.length > 0 ? (
-                            filters.categories.map((cat) => (
-                              <span
-                                key={cat}
-                                className="bg-blue-100 text-[#2D8EDE] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0"
-                              >
-                                <span className="capitalize">{cat.split('/')[0].trim()}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const remaining = filters.categories!.filter((c) => c !== cat);
-                                    setFilters({
-                                      ...filters,
-                                      categories: remaining,
-                                      category: remaining.length === 0 ? 'all' : remaining.length === 1 ? remaining[0] : remaining.join(', '),
-                                    });
-                                  }}
-                                  className="hover:text-blue-800 font-bold ml-0.5 cursor-pointer"
-                                >
-                                  ×
-                                </button>
-                              </span>
-                            ))
-                          ) : filters.category !== 'all' ? (
-                            <span className="bg-blue-100 text-[#2D8EDE] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
-                              <span className="capitalize">{activeCategoryObj?.name || filters.category}</span>
-                              <button
-                                type="button"
-                                onClick={() => setFilters({ ...filters, category: 'all', categories: [] })}
-                                className="hover:text-blue-800 font-bold ml-0.5 cursor-pointer"
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ) : null}
-                          {filters.location && filters.location.trim() && (
-                            <span className="bg-blue-50 text-[#2D8EDE] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 border border-blue-200 shrink-0">
-                              📍 <span className="truncate max-w-[120px]">{filters.location.replace(/\(Gauteng\)/gi, '')}</span>
-                              <button
-                                type="button"
-                                onClick={() => setFilters({ ...filters, location: '' })}
-                                className="hover:text-red-500 font-bold ml-0.5 cursor-pointer"
-                              >
-                                ×
-                              </button>
-                            </span>
-                          )}
-                          {filters.locationQuery && (
-                            <span className="bg-gray-200 text-gray-800 font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
-                              📍 {filters.locationQuery}
-                              <button
-                                type="button"
-                                onClick={() => setFilters({ ...filters, locationQuery: '' })}
-                                className="hover:text-black font-bold ml-0.5 cursor-pointer"
-                              >
-                                ×
-                              </button>
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleGoHome}
-                          className="text-xs text-[#2D8EDE] hover:underline font-bold shrink-0 ml-auto cursor-pointer"
-                        >
-                          Clear all
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   {/* Scrollable Center Content Area */}
@@ -2641,6 +2565,7 @@ export default function App() {
                   }}
                   user={user}
                   onGoHome={handleGoHome}
+                  onOpenCategories={() => goTo('/categories')}
                   onOpenAccount={() => goTo('/account')}
                   onOpenAuth={handleOpenAuth}
                   onSelectItem={(item) => {
@@ -2780,6 +2705,10 @@ export default function App() {
                   onOpenNotifications={handleOpenNotifications}
                   unreadMessagesCount={unreadMessagesCount}
                   unreadNotificationsCount={unreadNotificationsCount}
+                  onGoHome={handleGoHome}
+                  onOpenCart={() => goTo('/cart')}
+                  onOpenAccount={() => goTo('/account')}
+                  cartCount={cartCount}
                 />
               }
             />
@@ -2911,6 +2840,7 @@ export default function App() {
                   onOpenAuth={handleOpenAuth}
                   onSignOut={handleToggleAuth}
                   onOpenCart={() => goTo('/cart')}
+                  onOpenCategories={() => goTo('/categories')}
                   onGoHome={handleGoHome}
                 />
               }

@@ -28,12 +28,22 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
 
+  const extraCols: string[] = [];
+  for (let i = 2; i <= 7; i++) {
+    const val =
+      (item as any)[`image_url_${i}`] ||
+      (item as any)[`image_${i}`] ||
+      (item as any)[`image${i}`] ||
+      (item as any)[`image_url${i}`];
+    if (typeof val === 'string' && val.trim()) extraCols.push(val.trim());
+  }
+
   const rawImages =
-    item.images && item.images.length > 0
-      ? item.images
+    (item as any).images && (item as any).images.length > 0
+      ? (item as any).images
       : item.additionalImages && item.additionalImages.length > 0
-      ? [item.imageUrl, ...item.additionalImages]
-      : [item.imageUrl];
+      ? [item.imageUrl, ...item.additionalImages, ...extraCols.filter((c) => !item.additionalImages?.includes(c))]
+      : [item.imageUrl, ...extraCols];
 
   const allImages = rawImages.map((img) =>
     getOptimizedImageUrl(img, { width: 600, quality: 70, format: 'webp' })
@@ -186,9 +196,9 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
           {item.title}
         </h3>
 
-        {/* Category & Condition */}
+        {/* Category */}
         <div className="mt-0.5 flex items-center justify-between gap-1 text-gray-500 text-[11px]">
-          <span className="truncate">{item.category} • {item.condition}</span>
+          <span className="truncate">{item.category}</span>
         </div>
       </div>
     </div>

@@ -147,6 +147,17 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   parseAndAddImages((item as any).images);
   parseAndAddImages((item as any).imageUrls);
 
+  for (let i = 2; i <= 7; i++) {
+    const extra =
+      (item as any)[`image_url_${i}`] ||
+      (item as any)[`image_${i}`] ||
+      (item as any)[`image${i}`] ||
+      (item as any)[`image_url${i}`];
+    if (typeof extra === 'string' && extra.trim()) {
+      addImageToList(extra.trim());
+    }
+  }
+
   if (rawImages.length === 0 && item.imageUrl) {
     addImageToList(item.imageUrl);
   }
@@ -463,21 +474,21 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </div>
             )}
 
-            {/* Category & Condition Badges (No location) */}
-            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 shadow-xs flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#2D8EDE] rounded-xl border border-blue-200 text-xs font-black">
+            {/* Category & Condition Badges (Clean, no box background or border) */}
+            <div className="py-2.5 border-b border-gray-200 flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#2D8EDE] rounded-lg text-xs font-black">
                 <Tag className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>{item.category}</span>
               </div>
 
-              <div className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-xl text-xs font-extrabold">
+              <div className="px-3 py-1 bg-gray-100 text-gray-800 rounded-lg text-xs font-extrabold">
                 {item.condition}
               </div>
             </div>
 
-            {/* Description */}
-            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs">
-              <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+            {/* Description (Clean, with grey divider) */}
+            <div className="py-4 border-b border-gray-200 space-y-2">
+              <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#2D8EDE]" />
                 <span>Description</span>
               </h2>
@@ -487,29 +498,29 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </p>
 
               {item.dimensions && (
-                <p className="text-xs font-bold text-gray-500 mt-3 pt-2.5 border-t border-gray-100 flex items-center gap-1.5">
+                <p className="text-xs font-bold text-gray-500 mt-3 pt-2.5 border-t border-gray-200 flex items-center gap-1.5">
                   <span className="font-extrabold text-gray-800">Dimensions:</span>
                   <span className="text-gray-700 font-semibold">{item.dimensions}</span>
                 </p>
               )}
             </div>
 
-            {/* Product Information (Info written in Supabase) */}
+            {/* Product Information (Clean, with grey divider) */}
             {item.productInformation && item.productInformation.trim() !== '' && (
-              <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs space-y-2">
+              <div className="py-4 border-b border-gray-200 space-y-2">
                 <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Info className="w-4 h-4 text-[#2D8EDE]" />
                   <span>Product Information</span>
                 </h2>
-                <div className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium whitespace-pre-line bg-gray-50/70 p-3.5 rounded-2xl border border-gray-200">
+                <div className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium whitespace-pre-line pt-1">
                   {item.productInformation}
                 </div>
               </div>
             )}
 
-            {/* Customer Reviews Section */}
-            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs space-y-3.5">
-              <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+            {/* Customer Reviews Section (Clean, with grey divider) */}
+            <div className="py-4 border-b border-gray-200 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
                 <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
                   <span>Customer Reviews</span>
@@ -521,13 +532,13 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 )}
               </div>
 
-              {/* Reviews List */}
-              <div className="space-y-2.5">
+              {/* Reviews List with Grey Dividers */}
+              <div className="divide-y divide-gray-200">
                 {item.reviewsList && item.reviewsList.length > 0 ? (
                   item.reviewsList.map((rev) => (
                     <div
                       key={rev.id}
-                      className="p-3 bg-gray-50 rounded-2xl border border-gray-200 space-y-1 text-xs"
+                      className="py-3 space-y-1 text-xs"
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-extrabold text-gray-900">{rev.author}</span>
@@ -559,10 +570,10 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             </div>
           </div>
 
-          {/* Right Column: Title, Price, Add to Cart / Buy Now, and Clean Non-Clickable Seller Info */}
-          <div className="md:col-span-6 lg:col-span-5 space-y-3.5">
-            {/* Title, Price, Save Bookmark & Share */}
-            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs space-y-3">
+          {/* Right Column: Title, Price, Details, and Seller Info */}
+          <div className="md:col-span-6 lg:col-span-5 space-y-4">
+            {/* Title, Price, Save Bookmark & Share (Clean, with grey divider) */}
+            <div className="pb-4 border-b border-gray-200 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight leading-tight flex-1">
                   {item.title}
@@ -573,7 +584,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   type="button"
                   onClick={(e) => onToggleSave(item.id, e)}
                   aria-label={isSaved ? 'Remove from saved' : 'Save listing'}
-                  className="w-11 h-11 rounded-2xl bg-gray-50 hover:bg-blue-50 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-[#2D8EDE] active:scale-90 transition-all shrink-0 shadow-xs cursor-pointer"
+                  className="w-10 h-10 rounded-xl bg-gray-50 hover:bg-blue-50 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-[#2D8EDE] active:scale-90 transition-all shrink-0 cursor-pointer"
                 >
                   <Bookmark
                     className={`w-5 h-5 ${
@@ -587,7 +598,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
               {/* Price & Share */}
               <div className="flex items-center justify-between pt-1">
-                <div className="bg-[#2D8EDE] text-white text-base sm:text-lg font-black px-4 py-1.5 rounded-xl shadow-xs inline-flex items-center">
+                <div className="bg-[#2D8EDE] text-white text-base sm:text-lg font-black px-4 py-1.5 rounded-lg shadow-xs inline-flex items-center">
                   R{item.price}
                 </div>
 
@@ -597,37 +608,35 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     await handleNativeShare(item);
                     onShare?.(item);
                   }}
-                  className="py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="py-1.5 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <Share className="w-3.5 h-3.5" />
                   <span>Share</span>
                 </button>
               </div>
 
-              {/* Value Highlights: in stock, warranty, returns, pay in person each in their own blue box */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                <div className="bg-[#2D8EDE] text-white text-xs sm:text-sm font-extrabold py-2 px-2.5 rounded-xl shadow-xs flex items-center justify-center text-center">
+              {/* Value Highlights */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
                   In stock
                 </div>
-                <div className="bg-[#2D8EDE] text-white text-xs sm:text-sm font-extrabold py-2 px-2.5 rounded-xl shadow-xs flex items-center justify-center text-center">
+                <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
                   Warranty
                 </div>
-                <div className="bg-[#2D8EDE] text-white text-xs sm:text-sm font-extrabold py-2 px-2.5 rounded-xl shadow-xs flex items-center justify-center text-center">
+                <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
                   Returns
                 </div>
-                <div className="bg-[#2D8EDE] text-white text-xs sm:text-sm font-extrabold py-2 px-2.5 rounded-xl shadow-xs flex items-center justify-center text-center">
+                <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
                   Pay in person
                 </div>
               </div>
 
               {/* Delivery Estimation */}
-              <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-2xl flex items-center justify-between shadow-2xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-white text-[#2D8EDE] flex items-center justify-center shadow-2xs">
-                    <Truck className="w-4 h-4 stroke-[2.2]" />
-                  </div>
+              <div className="pt-3 border-t border-gray-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Truck className="w-4 h-4 text-[#2D8EDE]" />
                   <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 block">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 block">
                       Delivery Estimation
                     </span>
                     <span className="text-xs font-black text-gray-900">
@@ -635,60 +644,21 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     </span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-lg border border-blue-100 shadow-2xs">
+                <span className="text-[11px] font-bold text-[#2D8EDE]">
                   Door-to-door
                 </span>
               </div>
             </div>
 
-            {/* Purchase & Cart Actions */}
-            <div className="bg-white rounded-3xl border-2 border-gray-200 p-4 sm:p-5 shadow-xs space-y-4">
-              {/* Sold by (without sign icon and without verified seller) */}
-              <div className="pb-3 border-b border-gray-100">
+            {/* Sold by & Feedback Toast */}
+            <div className="pb-3 border-b border-gray-200 space-y-3">
+              <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
                   Sold by
                 </span>
                 <p className="font-extrabold text-xs sm:text-sm text-gray-900 mt-0.5">
                   {item.soldBy || sellerDisplayName}
                 </p>
-              </div>
-
-              {/* Quantity Selector */}
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-xs font-bold text-gray-700">Quantity</span>
-                <div className="flex items-center border border-gray-200 rounded-xl bg-gray-50 p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="w-8 h-8 rounded-lg hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="w-8 text-center text-xs font-black text-gray-900">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => q + 1)}
-                    className="w-8 h-8 rounded-lg hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Action Button: Add to Cart only (no Buy Now) */}
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-black text-sm rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  <span>Add to Cart</span>
-                </button>
               </div>
 
               {/* Feedback toast when added to cart */}
@@ -714,6 +684,57 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
         </div>
         )}
       </main>
+
+      {/* Pinned & Always Visible "Add to Cart" Bottom Bar */}
+      {!isLoading && (
+        <div className="shrink-0 z-40 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-3px_12px_rgba(0,0,0,0.06)]">
+          <div className="w-full max-w-md md:max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                Total Price
+              </span>
+              <span className="text-base sm:text-lg font-black text-[#2D8EDE]">
+                R{item.price * quantity}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              {/* Quantity Selector */}
+              <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="w-7 h-7 rounded hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="w-6 text-center text-xs font-black text-gray-900">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => q + 1)}
+                  className="w-7 h-7 rounded hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Action Button: Add to Cart */}
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="py-3 px-5 sm:px-8 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-black text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                <span>Add to Cart</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Comprehensive Report Modal */}
       {isReportModalOpen && (

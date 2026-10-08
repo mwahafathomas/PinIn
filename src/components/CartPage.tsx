@@ -11,6 +11,7 @@ import {
   User,
   ShieldCheck,
   Package,
+  LayoutGrid,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import {
@@ -35,6 +36,7 @@ interface CartPageProps {
   onClose: () => void;
   user?: UserAccount;
   onGoHome: () => void;
+  onOpenCategories?: () => void;
   onOpenAccount: () => void;
   onOpenAuth?: (mode?: 'signin' | 'register') => void;
   onSelectItem?: (item: any) => void;
@@ -83,7 +85,7 @@ const SwipeableCartCard: React.FC<{
             setIsOpen(false);
           }
         }}
-        className="relative z-10 bg-white rounded-2xl border border-gray-100 p-2.5 sm:p-3 shadow-2xs flex items-center gap-3 cursor-grab active:cursor-grabbing touch-pan-y"
+        className="relative z-10 bg-white py-3 border-b border-gray-200 last:border-b-0 flex items-center gap-3 cursor-grab active:cursor-grabbing touch-pan-y"
       >
         <button
           type="button"
@@ -96,7 +98,7 @@ const SwipeableCartCard: React.FC<{
                 title: item.title,
                 price: item.price,
                 imageUrl: item.imageUrl,
-                location: item.location || 'Gauteng',
+                location: item.location,
                 category: item.category || 'Furniture',
                 condition: item.condition || 'Used',
                 sellerName: item.sellerName,
@@ -110,7 +112,7 @@ const SwipeableCartCard: React.FC<{
           <img
             src={getOptimizedImageUrl(item.imageUrl, { width: 140, quality: 75, format: 'webp' })}
             alt={item.title}
-            className="w-18 h-18 rounded-xl object-cover border border-gray-200 hover:opacity-90 active:scale-95 transition-all"
+            className="w-18 h-18 rounded-none object-cover border border-gray-200 hover:opacity-90 active:scale-95 transition-all"
           />
         </button>
 
@@ -125,7 +127,7 @@ const SwipeableCartCard: React.FC<{
                   title: item.title,
                   price: item.price,
                   imageUrl: item.imageUrl,
-                  location: item.location || 'Gauteng',
+                  location: item.location,
                   category: item.category || 'Furniture',
                   condition: item.condition || 'Used',
                   sellerName: item.sellerName,
@@ -137,12 +139,6 @@ const SwipeableCartCard: React.FC<{
           >
             {item.title}
           </h3>
-          <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5 truncate">
-            <MapPin className="w-3 h-3 text-[#2D8EDE] shrink-0" />
-            <span>{item.location}</span>
-            <span className="text-gray-300">•</span>
-            <span>{item.condition}</span>
-          </p>
           <div className="flex items-center justify-between mt-2">
             <span className="text-sm font-black text-[#2D8EDE]">
               R{item.price * item.quantity}
@@ -185,6 +181,7 @@ export const CartPage: React.FC<CartPageProps> = ({
   onClose,
   user,
   onGoHome,
+  onOpenCategories,
   onOpenAccount,
   onOpenAuth,
   onSelectItem,
@@ -341,7 +338,7 @@ export const CartPage: React.FC<CartPageProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
       {/* Header */}
       <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
@@ -537,156 +534,158 @@ export const CartPage: React.FC<CartPageProps> = ({
           </div>
         ) : (
           /* Active Cart Form */
-          <form onSubmit={handlePlaceOrder} className="space-y-4">
-            {/* Items List */}
-            <div className="bg-white rounded-3xl border border-gray-200 p-4 shadow-xs space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Package className="w-3.5 h-3.5 text-[#2D8EDE]" />
-                  <span>Items in Cart</span>
-                  <span className="text-gray-400 font-medium">({items.length})</span>
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => clearCart()}
-                  className="text-[11px] font-bold text-[#2D8EDE] hover:text-[#2579BE] cursor-pointer"
-                >
-                  Clear all
-                </button>
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Scrollable Cart Content: Items, Delivery, Price Summary */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
+              {/* Items List */}
+              <div className="space-y-3 pb-3">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                  <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-[#2D8EDE]" />
+                    <span>Items in Cart</span>
+                    <span className="text-gray-400 font-medium">({items.length})</span>
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => clearCart()}
+                    className="text-[11px] font-bold text-[#2D8EDE] hover:text-[#2579BE] cursor-pointer"
+                  >
+                    Clear all
+                  </button>
+                </div>
+
+                <div className="divide-y divide-gray-200">
+                  {items.map((item) => (
+                    <SwipeableCartCard
+                      key={item.listingId || item.id}
+                      item={item}
+                      onSelectItem={onSelectItem}
+                      onUpdateQuantity={updateCartQuantity}
+                      onRemove={removeFromCart}
+                    />
+                  ))}
+                </div>
               </div>
 
-              <div className="space-y-2.5">
-                {items.map((item) => (
-                  <SwipeableCartCard
-                    key={item.listingId || item.id}
-                    item={item}
-                    onSelectItem={onSelectItem}
-                    onUpdateQuantity={updateCartQuantity}
-                    onRemove={removeFromCart}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Delivery Option */}
-            <div className="bg-white rounded-3xl border border-gray-200 p-4 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-[#2D8EDE]" />
-                  <span>Delivery</span>
-                </h2>
-                <div className="flex flex-col items-end">
-                  <span className="text-xs font-black text-[#2D8EDE] bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200">
+              {/* Delivery Section with Grey Divider */}
+              <div className="pt-4 border-t border-gray-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-[#2D8EDE]" />
+                    <span>Delivery</span>
+                  </h2>
+                  <span className="text-xs font-black text-[#2D8EDE]">
                     Free delivery
                   </span>
                 </div>
-              </div>
 
-              <div className="pt-2 border-t border-gray-100 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold text-gray-800">
-                    Delivery Address *
-                  </label>
-                  {currentAddress && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-gray-800">
+                      Delivery Address *
+                    </label>
+                    {currentAddress && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddressPageOpen(true)}
+                        className="text-[11px] font-bold text-[#2D8EDE] hover:underline cursor-pointer"
+                      >
+                        Change address
+                      </button>
+                    )}
+                  </div>
+
+                  {currentAddress ? (
+                    <div
+                      onClick={() => setIsAddressPageOpen(true)}
+                      className="p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 transition-colors space-y-1 text-left"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="font-extrabold text-xs text-gray-900">
+                          {currentAddress.recipientName}
+                        </p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">
+                          {currentAddress.province}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-700 font-medium">
+                        {currentAddress.recipientPhone}
+                      </p>
+                      <p className="text-[11px] text-gray-700">
+                        {currentAddress.streetAddressLine1}
+                        {currentAddress.streetAddressLine2 ? `, ${currentAddress.streetAddressLine2}` : ''}
+                      </p>
+                      <p className="text-[11px] text-gray-600">
+                        {currentAddress.cityTown}, {currentAddress.province}, {currentAddress.postalCode}
+                      </p>
+                    </div>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => setIsAddressPageOpen(true)}
-                      className="text-[11px] font-bold text-[#2D8EDE] hover:underline cursor-pointer"
+                      className="w-full py-2.5 px-4 border border-gray-300 hover:border-[#2D8EDE] rounded-xl text-center font-bold text-xs text-gray-900 transition-colors cursor-pointer"
                     >
-                      Change address
+                      Add delivery address
                     </button>
                   )}
                 </div>
+              </div>
 
-                {currentAddress ? (
-                  <div
-                    onClick={() => setIsAddressPageOpen(true)}
-                    className="p-3 bg-gray-50 border border-gray-200 rounded-2xl cursor-pointer hover:border-gray-400 transition-colors space-y-1 text-left"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="font-extrabold text-xs text-gray-900">
-                        {currentAddress.recipientName}
-                      </p>
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-200 text-gray-800 rounded-full">
-                        {currentAddress.province}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-700 font-medium">
-                      {currentAddress.recipientPhone}
-                    </p>
-                    <p className="text-[11px] text-gray-700">
-                      {currentAddress.streetAddressLine1}
-                      {currentAddress.streetAddressLine2 ? `, ${currentAddress.streetAddressLine2}` : ''}
-                    </p>
-                    <p className="text-[11px] text-gray-600">
-                      {currentAddress.cityTown}, {currentAddress.province}, {currentAddress.postalCode}
-                    </p>
-                    <p className="text-[10px] text-gray-500 italic">
-                      Note: {currentAddress.deliveryInstructions}
-                    </p>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsAddressPageOpen(true)}
-                    className="w-full py-2.5 px-4 border border-gray-300 hover:border-[#2D8EDE] rounded-xl bg-white hover:bg-gray-50 text-center font-bold text-xs text-gray-900 transition-colors cursor-pointer shadow-2xs"
-                  >
-                    Add delivery address
-                  </button>
-                )}
+              {/* Price Summary with Grey Divider */}
+              <div className="pt-4 border-t border-gray-200 space-y-2 text-xs">
+                <div className="flex items-center justify-between text-gray-600">
+                  <span>Items Subtotal</span>
+                  <span className="font-bold text-gray-900">R{subtotal}</span>
+                </div>
+                <div className="flex items-center justify-between text-gray-600">
+                  <span>Delivery</span>
+                  <span className="font-bold text-[#2D8EDE]">Free delivery</span>
+                </div>
+                <div className="h-px bg-gray-200 my-1" />
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-black text-gray-900">Total</span>
+                  <span className="font-black text-[#2D8EDE] text-base">R{grandTotal}</span>
+                </div>
               </div>
-            </div>
 
-            {/* Price Summary */}
-            <div className="bg-white rounded-3xl border border-gray-200 p-4 shadow-xs space-y-2 text-xs">
-              <div className="flex items-center justify-between text-gray-600">
-                <span>Items Subtotal</span>
-                <span className="font-bold text-gray-900">R{subtotal}</span>
-              </div>
-              <div className="flex items-center justify-between text-gray-600">
-                <span>Delivery</span>
-                <span className="font-bold text-[#2D8EDE]">Free delivery</span>
-              </div>
-              <div className="h-px bg-gray-100 my-1" />
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-black text-gray-900">Total</span>
-                <span className="font-black text-[#2D8EDE] text-base">R{grandTotal}</span>
-              </div>
-            </div>
-
-            {errorMessage && (
-              <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-2xl text-xs font-bold">
-                {errorMessage}
-              </div>
-            )}
-
-            {/* Proceed to checkout CTA */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              onClick={(e) => {
-                if (!user?.isLoggedIn) {
-                  e.preventDefault();
-                  if (onOpenAuth) {
-                    onOpenAuth('signin');
-                  }
-                }
-              }}
-              className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-50 text-white font-black text-sm rounded-2xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center capitalize"
-            >
-              {isSubmitting ? (
-                <span>Proceeding to check out...</span>
-              ) : (
-                <span>proceed to check out</span>
+              {errorMessage && (
+                <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-bold">
+                  {errorMessage}
+                </div>
               )}
-            </button>
-          </form>
+            </div>
+
+            {/* Pinned & Always Visible "Proceed to check out" Bottom Box */}
+            <div className="shrink-0 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-3px_10px_rgba(0,0,0,0.04)]">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={(e) => {
+                  if (!user?.isLoggedIn) {
+                    e.preventDefault();
+                    if (onOpenAuth) {
+                      onOpenAuth('signin');
+                    }
+                    return;
+                  }
+                  handlePlaceOrder(e as any);
+                }}
+                className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center capitalize"
+              >
+                {isSubmitting ? (
+                  <span>Proceeding to check out...</span>
+                ) : (
+                  <span>proceed to check out</span>
+                )}
+              </button>
+            </div>
+          </div>
         )}
       </main>
 
       {/* Bottom Navigation Dock */}
       <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
-        <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-3 items-center">
+        <div className="w-full max-w-md md:max-w-7xl mx-auto px-2 md:px-8 h-16 grid grid-cols-4 items-center">
           {/* 1. Home */}
           <button
             type="button"
@@ -700,7 +699,20 @@ export const CartPage: React.FC<CartPageProps> = ({
             </span>
           </button>
 
-          {/* 2. Cart (Active) */}
+          {/* 2. Category (Middle between Home and Cart) */}
+          <button
+            type="button"
+            onClick={onOpenCategories}
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Categories"
+          >
+            <LayoutGrid className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+              Category
+            </span>
+          </button>
+
+          {/* 3. Cart (Active) */}
           <button
             type="button"
             className="flex flex-col items-center justify-center h-full active:scale-95 transition-all relative cursor-pointer text-[#2D8EDE]"
@@ -717,7 +729,7 @@ export const CartPage: React.FC<CartPageProps> = ({
             <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">Cart</span>
           </button>
 
-          {/* 3. Account */}
+          {/* 4. Account */}
           <button
             type="button"
             onClick={onOpenAccount}

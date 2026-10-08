@@ -5,7 +5,6 @@ import {
   ShoppingCart,
   User as UserIcon,
   Settings,
-  ChevronRight,
   Bookmark,
   ShieldCheck,
   Headphones,
@@ -31,6 +30,7 @@ import {
   Check,
   Truck,
   ExternalLink,
+  LayoutGrid,
 } from 'lucide-react';
 import { UserAccount } from '../types/furniture';
 import { DEFAULT_AVATAR_IMAGE } from '../data/defaultAvatar';
@@ -61,6 +61,7 @@ interface AccountPageProps {
   onOpenAuth?: (mode?: 'signin' | 'register') => void;
   onSignOut?: () => void;
   onOpenCart?: () => void;
+  onOpenCategories?: () => void;
   onGoHome: () => void;
   // Deprecated props kept optional for compatibility
   userListings?: any[];
@@ -91,6 +92,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   onOpenAuth,
   onSignOut,
   onOpenCart,
+  onOpenCategories,
   onGoHome,
 }) => {
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
@@ -292,7 +294,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <p className="text-[11px] text-gray-400">Profile, edit details &amp; delete account</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
 
               {/* 2. My Orders */}
@@ -318,7 +319,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     </p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
 
               {/* 3. Returns */}
@@ -342,7 +342,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <p className="text-[11px] text-gray-400">7-day guarantee, track &amp; request return</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
 
               {/* 4. Invoices */}
@@ -366,7 +365,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <p className="text-[11px] text-gray-400">View receipts &amp; download tax invoices</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
 
               {/* 5. Address Book */}
@@ -390,7 +388,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <p className="text-[11px] text-gray-400">Manage delivery locations &amp; defaults</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
 
               {/* 6. Help & Support */}
@@ -408,7 +405,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <p className="text-[11px] text-gray-400">FAQs, ordering guides &amp; contact</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
 
               {/* 7. Credits & Refunds */}
@@ -432,7 +428,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <p className="text-[11px] text-gray-400">Wallet balance &amp; refund status</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
 
               {/* 8. Saved Items */}
@@ -456,7 +451,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <p className="text-[11px] text-gray-400">View bookmarks &amp; favorited furniture</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
 
               {/* 9. Policies */}
@@ -477,7 +471,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <p className="text-[11px] text-gray-400">Terms, privacy policy, and safety</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
 
               {/* 10. Contact Us */}
@@ -495,7 +488,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <p className="text-[11px] text-gray-400">24/7 customer support &amp; inquiries</p>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
               </button>
 
               {/* 11. Sign Out (Logged in only) */}
@@ -511,7 +503,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     </div>
                     <span className="text-xs sm:text-sm font-bold text-gray-900">Sign Out</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#2D8EDE]" />
                 </button>
               )}
             </div>
@@ -1245,43 +1236,56 @@ export const AccountPage: React.FC<AccountPageProps> = ({
         </div>
       )}
 
-      {/* Bottom Navigation Dock: Home, Cart, Account */}
+      {/* Bottom Navigation Dock: Home, Category, Cart, Account */}
       <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
-        <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-8 h-16 grid grid-cols-3 items-center">
+        <div className="w-full max-w-md md:max-w-7xl mx-auto px-2 md:px-8 h-16 grid grid-cols-4 items-center">
           {/* 1. Home */}
           <button
             type="button"
             onClick={onGoHome}
-            className="flex flex-col items-center justify-center h-full text-[#2D8EDE] hover:text-[#2579BE] active:scale-95 transition-all group relative cursor-pointer"
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
             aria-label="Home"
           >
-            <Home className="w-5 h-5 stroke-[2.2] text-[#2D8EDE]" />
-            <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">
+            <Home className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
               Home
             </span>
           </button>
 
-          {/* 2. Cart */}
+          {/* 2. Category (Middle between Home and Cart) */}
+          <button
+            type="button"
+            onClick={onOpenCategories}
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
+            aria-label="Categories"
+          >
+            <LayoutGrid className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
+              Category
+            </span>
+          </button>
+
+          {/* 3. Cart */}
           <button
             type="button"
             onClick={onOpenCart}
-            className="flex flex-col items-center justify-center h-full text-[#2D8EDE] hover:text-[#2579BE] active:scale-95 transition-all group relative cursor-pointer"
+            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
             aria-label="Cart"
           >
             <div className="relative">
-              <ShoppingCart className="w-5 h-5 stroke-[2] text-[#2D8EDE]" />
+              <ShoppingCart className="w-5 h-5 stroke-[2] text-gray-600 group-hover:text-[#2D8EDE]" />
               {cartItemCount > 0 && (
                 <span className="absolute -top-1.5 -right-2.5 bg-[#2D8EDE] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                   {cartItemCount}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">
+            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
               Cart
             </span>
           </button>
 
-          {/* 3. Account (Active) */}
+          {/* 4. Account (Active) */}
           <button
             type="button"
             className="flex flex-col items-center justify-center h-full active:scale-95 transition-all relative cursor-pointer text-[#2D8EDE]"

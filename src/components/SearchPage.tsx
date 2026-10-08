@@ -134,7 +134,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans select-none">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans select-none">
       {/* 1. Header Bar: Go back option on top left, PinIn in the middle */}
       <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
@@ -248,15 +248,6 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                           R{item.price}
                         </span>
                       </div>
-                      <p className="text-[11px] text-gray-500 truncate mt-0.5 flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
-                        <span>{item.location || 'Gauteng'}</span>
-                        <span>•</span>
-                        <span>{item.condition}</span>
-                      </p>
-                      <span className="text-[10px] font-extrabold text-[#2D8EDE] uppercase mt-0.5 block">
-                        Free delivery
-                      </span>
                     </div>
                   </div>
                 ))}

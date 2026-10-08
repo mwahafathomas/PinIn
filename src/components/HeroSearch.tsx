@@ -62,36 +62,6 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
             </button>
           )}
         </div>
-
-        {/* Distance & Geolocation permission pill when active */}
-        {hasLocationPermission && (
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <div className="w-full flex items-center justify-between bg-white/95 border border-emerald-200/80 rounded-lg px-2.5 py-1 shadow-xs text-[11px] text-gray-700">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="relative flex h-2 w-2 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span className="font-semibold text-emerald-800 truncate">
-                  {searchQuery.trim()
-                    ? `Showing nearby results (< 50 km) first with distances`
-                    : nearbyCount > 0
-                    ? `Showing ${nearbyCount} nearby listings (< 50 km) first`
-                    : `Location active · Distances in km enabled`}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={onDisableLocation}
-                className="text-[10px] text-gray-400 hover:text-red-600 font-medium ml-2 underline shrink-0 cursor-pointer"
-                title="Turn off distance tracking"
-              >
-                Disable
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
