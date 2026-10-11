@@ -51,6 +51,10 @@ export interface FurnitureItem {
   whatYouMightLike?: string;
   electronics?: string;
   categoryOrder?: number;
+  // Sale Tag and Sale Price
+  saleTag?: string; // e.g. "Sale" or "sale"
+  salePrice?: number; // New discounted price when on sale
+  isSale?: boolean;
 }
 
 export interface CategoryOption {
@@ -158,7 +162,8 @@ export interface DeliveryAddress {
   recipientName: string;
   recipientPhone: string;
   streetAddressLine1: string;
-  streetAddressLine2?: string;
+  streetAddressLine2: string; // Suburb (compulsory *)
+  streetAddressLine3?: string; // Complex / building name / floor (optional)
   cityTown: string;
   province: string;
   postalCode: string;

@@ -102,9 +102,20 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
 
         {/* 14: Price Blue Badge with Rand 'R' on top-left of photo */}
         <div className="absolute top-2 left-2 z-10 pointer-events-none">
-          <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1">
-            <span>R{item.price}</span>
-          </div>
+          {item.salePrice !== undefined && item.salePrice !== null && item.salePrice > 0 ? (
+            <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex flex-col items-start leading-tight">
+              <span className="line-through text-white/70 text-[10px] font-semibold">
+                R{item.originalPrice || item.price}
+              </span>
+              <span className="text-white text-xs font-black">
+                R{item.salePrice}
+              </span>
+            </div>
+          ) : (
+            <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1">
+              <span>R{item.price}</span>
+            </div>
+          )}
         </div>
 
         {/* Condition tag on bottom-left of photo */}
@@ -195,6 +206,13 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
         <h3 className="font-bold text-gray-900 text-xs leading-tight truncate">
           {item.title}
         </h3>
+
+        {/* Sale word below listing name if on sale */}
+        {(item.isSale || (item.saleTag && item.saleTag.toLowerCase() === 'sale') || (item.salePrice !== undefined && item.salePrice > 0)) && (
+          <span className="text-[11px] font-black text-[#2D8EDE] uppercase tracking-wide leading-tight mt-0.5">
+            {item.saleTag || 'Sale'}
+          </span>
+        )}
 
         {/* Category */}
         <div className="mt-0.5 flex items-center justify-between gap-1 text-gray-500 text-[11px]">

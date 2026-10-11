@@ -97,24 +97,7 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
               <span className="w-2 h-2 rounded-full bg-[#2D8EDE]" />
               <span>Results</span>
             </h1>
-            <span className="text-xs font-bold text-gray-500">
-              ({sortedItems.length})
-            </span>
           </div>
-
-          <button
-            type="button"
-            onClick={onEditFilters}
-            className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-blue-50 hover:bg-blue-100 active:scale-95 text-[#2D8EDE] text-xs font-bold transition-all border border-blue-200/80 shadow-xs cursor-pointer"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Edit Filters</span>
-            {appliedCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-[#2D8EDE] text-white text-[10px] font-black flex items-center justify-center">
-                {appliedCount}
-              </span>
-            )}
-          </button>
         </div>
 
         {/* Categories Chips if active */}
@@ -183,9 +166,20 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
 
                     {/* Price Blue Badge with Rand 'R' */}
                     <div className="absolute top-2 left-2 z-10">
-                      <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1">
-                        <span>R{item.price}</span>
-                      </div>
+                      {item.salePrice !== undefined && item.salePrice !== null && item.salePrice > 0 ? (
+                        <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex flex-col items-start leading-tight">
+                          <span className="line-through text-white/70 text-[10px] font-semibold">
+                            R{item.originalPrice || item.price}
+                          </span>
+                          <span className="text-white text-xs font-black">
+                            R{item.salePrice}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1">
+                          <span>R{item.price}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Bookmark Save Button */}
@@ -208,13 +202,6 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
                         />
                       </button>
                     )}
-
-                    {/* Condition Pill */}
-                    <div className="absolute bottom-2 left-2 z-10">
-                      <span className="bg-black/60 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md backdrop-blur-xs">
-                        {item.condition}
-                      </span>
-                    </div>
                   </div>
 
                   {/* Info Area */}
@@ -223,21 +210,17 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
                       <h3 className="font-extrabold text-xs text-gray-900 line-clamp-1 group-hover:text-[#2D8EDE] transition-colors">
                         {item.title}
                       </h3>
-                      <p className="text-[11px] font-medium text-gray-500 flex items-center gap-1 mt-0.5 truncate">
-                        <MapPin className="w-3 h-3 text-[#2D8EDE] shrink-0" />
-                        <span className="truncate">{item.location}</span>
-                      </p>
+                      {(item.isSale || (item.saleTag && item.saleTag.toLowerCase() === 'sale') || (item.salePrice !== undefined && item.salePrice > 0)) && (
+                        <span className="text-[11px] font-black text-[#2D8EDE] uppercase tracking-wide leading-tight mt-0.5 block">
+                          {item.saleTag || 'Sale'}
+                        </span>
+                      )}
                     </div>
 
                     <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-gray-400 capitalize truncate max-w-[80px]">
+                      <span className="font-semibold text-gray-400 capitalize truncate">
                         {item.category}
                       </span>
-                      {item.distanceText && (
-                        <span className="font-bold text-[#2D8EDE] bg-blue-50 px-1.5 py-0.2 rounded text-[10px]">
-                          {item.distanceText}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>

@@ -293,6 +293,19 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
       : row.category_order
       ? parseInt(String(row.category_order), 10)
       : undefined,
+    // Sale tag & discounted sale price
+    saleTag: row.sale_tag || (row as any).sale || (row as any).saleTag || undefined,
+    salePrice: row.sale_price !== undefined && row.sale_price !== null && !isNaN(Number(row.sale_price))
+      ? Number(row.sale_price)
+      : (row as any).salePrice !== undefined && (row as any).salePrice !== null && !isNaN(Number((row as any).salePrice))
+      ? Number((row as any).salePrice)
+      : undefined,
+    isSale:
+      row.is_sale === true ||
+      row.is_sale === 1 ||
+      String(row.is_sale).toLowerCase() === 'true' ||
+      String(row.sale_tag || (row as any).sale || '').toLowerCase().trim() === 'sale' ||
+      (row.sale_price !== undefined && row.sale_price !== null && Number(row.sale_price) > 0),
   };
 }
 
@@ -343,6 +356,8 @@ export function mapFurnitureItemToRow(item: FurnitureItem): Record<string, unkno
     longitude: lng !== undefined ? lng : null,
     handwritten_date_image: item.handwrittenDateImage || null,
     verification_video: item.verificationVideo || null,
+    sale_tag: item.saleTag || (item.isSale ? 'Sale' : null),
+    sale_price: item.salePrice !== undefined ? Number(item.salePrice) : null,
   };
 
   return payload;

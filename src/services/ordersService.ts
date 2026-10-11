@@ -17,6 +17,7 @@ export interface OrderRecord {
   recipientPhone?: string;
   streetAddressLine1?: string;
   streetAddressLine2?: string;
+  streetAddressLine3?: string;
   cityTown?: string;
   province?: string;
   postalCode?: string;
@@ -110,6 +111,7 @@ export async function createOrder(data: {
   recipientPhone?: string;
   streetAddressLine1?: string;
   streetAddressLine2?: string;
+  streetAddressLine3?: string;
   cityTown?: string;
   province?: string;
   postalCode?: string;
@@ -176,6 +178,7 @@ export async function createOrder(data: {
       recipientPhone: data.recipientPhone?.trim(),
       streetAddressLine1: data.streetAddressLine1?.trim(),
       streetAddressLine2: data.streetAddressLine2?.trim(),
+      streetAddressLine3: data.streetAddressLine3?.trim(),
       cityTown: data.cityTown?.trim(),
       province: data.province?.trim() || 'Gauteng',
       postalCode: data.postalCode?.trim(),
@@ -219,6 +222,7 @@ export async function createOrder(data: {
       recipient_phone: rec.recipientPhone || null,
       street_address_line1: rec.streetAddressLine1 || null,
       street_address_line2: rec.streetAddressLine2 || null,
+      street_address_line3: rec.streetAddressLine3 || null,
       city_town: rec.cityTown || null,
       province: rec.province || 'Gauteng',
       postal_code: rec.postalCode || null,

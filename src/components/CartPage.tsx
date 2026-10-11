@@ -541,7 +541,6 @@ export const CartPage: React.FC<CartPageProps> = ({
               <div className="space-y-3 pb-3">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-200">
                   <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-[#2D8EDE]" />
                     <span>Items in Cart</span>
                     <span className="text-gray-400 font-medium">({items.length})</span>
                   </h2>
@@ -571,7 +570,6 @@ export const CartPage: React.FC<CartPageProps> = ({
               <div className="pt-4 border-t border-gray-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-[#2D8EDE]" />
                     <span>Delivery</span>
                   </h2>
                   <span className="text-xs font-black text-[#2D8EDE]">

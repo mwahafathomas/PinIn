@@ -16,12 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuth,
 }) => {
   return (
-    <header
-      className="relative w-full bg-white border-b border-gray-200 shrink-0"
-      style={{
-        paddingTop: 'env(safe-area-inset-top, 8px)',
-      }}
-    >
+    <header className="relative w-full bg-white border-b border-gray-200 shrink-0">
       <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-center relative">
         {/* Center: App Name (PinIn) right in the middle */}
         <button

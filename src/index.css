@@ -107,8 +107,8 @@ ul::-webkit-scrollbar {
 
   body {
     background-color: #ffffff;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-top: 0px;
+    padding-bottom: 0px;
   }
 
   html,
@@ -125,37 +125,37 @@ ul::-webkit-scrollbar {
 
 /* Mobile Safe Area & Notch / Camera Cutout Support */
 :root {
-  --safe-area-top: env(safe-area-inset-top, 0px);
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: 0px;
+  --safe-area-bottom: 0px;
 }
 
 header {
-  padding-top: env(safe-area-inset-top, 8px);
+  padding-top: 0px;
 }
 
 /* Standalone / PWA / Capacitor native app notch support */
 @media all and (display-mode: standalone), (display-mode: fullscreen) {
   header {
-    padding-top: env(safe-area-inset-top, 8px);
+    padding-top: 0px;
   }
 }
 
 html.is-mobile-apk header,
 body.is-mobile-apk header {
-  padding-top: env(safe-area-inset-top, 8px);
+  padding-top: 0px;
 }
 
 /* Drawer top header safe-area clearance */
 .drawer-safe-top {
-  padding-top: max(0.5rem, env(safe-area-inset-top, 8px));
+  padding-top: 0.5rem;
 }
 
 html.is-mobile-apk .drawer-safe-top,
 body.is-mobile-apk .drawer-safe-top {
-  padding-top: max(0.5rem, 8px);
+  padding-top: 0.5rem;
 }
 
 /* Bottom safe-area for navigation bar */
 footer {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: 0px;
 }

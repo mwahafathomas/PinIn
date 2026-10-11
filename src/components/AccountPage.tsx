@@ -183,7 +183,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   const userBio = user.bio && user.bio.trim() !== '' ? user.bio : '';
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
       {/* Top Header Bar */}
       <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
@@ -215,7 +215,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
           /* Shimmer Skeleton Loader for Account Page */
           <div className="space-y-4 animate-pulse pt-1">
             <div className="bg-white rounded-3xl border border-gray-200 p-5 h-20 bg-gray-200" />
-            <div className="bg-white rounded-3xl border border-gray-200 p-4 space-y-3">
+            <div className="p-2 space-y-3">
               {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                 <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-none">
                   <div className="flex items-center gap-3">
@@ -234,13 +234,13 @@ export const AccountPage: React.FC<AccountPageProps> = ({
           <>
             {/* User Profile Card - Only User Email */}
             {user.isLoggedIn ? (
-              <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs">
+              <div className="px-2 py-3 border-b border-gray-200">
                 <p className="text-sm sm:text-base font-extrabold text-gray-900 truncate">
                   {user.email}
                 </p>
               </div>
             ) : (
-              /* Logged out state */
+              /* Logged out state - Keep box and border for Welcome to PinIn */
               <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs text-center space-y-3">
                 <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
                   <UserIcon className="w-6 h-6 text-[#2D8EDE]" />
@@ -271,8 +271,8 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               </div>
             )}
 
-            {/* Account Menu Navigation */}
-            <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs divide-y divide-gray-100">
+            {/* Account Menu Navigation - Clean list with grey divider lines (no box/border background) */}
+            <div className="divide-y divide-gray-200">
               {/* 1. Account Settings (Contains Account Profile, Edit Profile & Delete Account) */}
               <button
                 type="button"
@@ -283,7 +283,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   }
                   setActiveModal('settings');
                 }}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
@@ -306,7 +306,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   }
                   setActiveModal('my-orders');
                 }}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
@@ -331,7 +331,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   }
                   setActiveModal('returns');
                 }}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
@@ -354,7 +354,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   }
                   setActiveModal('invoices');
                 }}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
@@ -377,7 +377,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   }
                   setActiveModal('address-book');
                 }}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
@@ -394,7 +394,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveModal('help')}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
@@ -417,7 +417,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   }
                   setActiveModal('credits-refunds');
                 }}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
@@ -440,7 +440,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   }
                   if (onOpenSavedItems) onOpenSavedItems();
                 }}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
@@ -460,7 +460,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   if (onOpenPolicies) onOpenPolicies();
                   else if (onOpenPrivacyPolicy) onOpenPrivacyPolicy();
                 }}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
@@ -477,7 +477,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               <button
                 type="button"
                 onClick={onOpenContactUs}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
@@ -495,7 +495,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowSignOutConfirm(true)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-blue-50/50 text-gray-800 text-left transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-blue-50/50 text-gray-800 text-left transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">

@@ -133,9 +133,20 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
 
           {/* Price Blue Badge with Rand 'R' */}
           <div className="absolute top-2 left-2 z-10">
-            <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-0.5">
-              <span>R{item.price}</span>
-            </div>
+            {item.salePrice !== undefined && item.salePrice !== null && item.salePrice > 0 ? (
+              <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex flex-col items-start leading-tight">
+                <span className="line-through text-white/70 text-[10px] font-semibold">
+                  R{item.originalPrice || item.price}
+                </span>
+                <span className="text-white text-xs font-black">
+                  R{item.salePrice}
+                </span>
+              </div>
+            ) : (
+              <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-0.5">
+                <span>R{item.price}</span>
+              </div>
+            )}
           </div>
 
           {/* Save / Bookmark Button */}
@@ -153,11 +164,16 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
           </button>
         </div>
 
-        {/* Info - Clean title only */}
+        {/* Info - Clean title and Sale indicator */}
         <div className="p-2.5 flex-1 flex flex-col justify-center">
           <h3 className="text-xs font-bold text-gray-900 truncate leading-snug">
             {item.title}
           </h3>
+          {(item.isSale || (item.saleTag && item.saleTag.toLowerCase() === 'sale') || (item.salePrice !== undefined && item.salePrice > 0)) && (
+            <span className="text-[11px] font-black text-[#2D8EDE] uppercase tracking-wide leading-tight mt-0.5">
+              {item.saleTag || 'Sale'}
+            </span>
+          )}
         </div>
       </div>
     );

@@ -81,7 +81,8 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
   const [recipientName, setRecipientName] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [streetAddressLine1, setStreetAddressLine1] = useState('');
-  const [streetAddressLine2, setStreetAddressLine2] = useState('');
+  const [streetAddressLine2, setStreetAddressLine2] = useState(''); // Suburb *
+  const [streetAddressLine3, setStreetAddressLine3] = useState(''); // Complex / building / floor optional
   const [cityTown, setCityTown] = useState('');
   const [province, setProvince] = useState('Gauteng');
   const [postalCode, setPostalCode] = useState('');
@@ -107,6 +108,7 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
         setRecipientPhone(current.recipientPhone || '');
         setStreetAddressLine1(current.streetAddressLine1 || '');
         setStreetAddressLine2(current.streetAddressLine2 || '');
+        setStreetAddressLine3(current.streetAddressLine3 || '');
         setCityTown(current.cityTown || '');
         setPostalCode(current.postalCode || '');
         setDeliveryInstructions(current.deliveryInstructions || '');
@@ -136,6 +138,10 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
       setFormError('Please enter street address Line 1');
       return;
     }
+    if (!streetAddressLine2.trim()) {
+      setFormError('Please enter your suburb (Street Address Line 2)');
+      return;
+    }
     if (!cityTown.trim()) {
       setFormError('Please enter city or town');
       return;
@@ -153,7 +159,8 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
       recipientName: recipientName.trim(),
       recipientPhone: recipientPhone.trim(),
       streetAddressLine1: streetAddressLine1.trim(),
-      streetAddressLine2: streetAddressLine2.trim() || undefined,
+      streetAddressLine2: streetAddressLine2.trim(),
+      streetAddressLine3: streetAddressLine3.trim() || undefined,
       cityTown: cityTown.trim(),
       province: 'Gauteng',
       postalCode: postalCode.trim(),
@@ -319,15 +326,30 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
                 />
               </div>
 
-              {/* 4. Street Address Line 2 (Optional) */}
+              {/* 4. Street Address Line 2 (Suburb) * Compulsory */}
               <div>
                 <label className="block text-xs font-bold text-gray-900 mb-1">
-                  Street Address Line 2 (complex/ building name / floor) optional
+                  Street Address Line 2 (suburb) *
                 </label>
                 <input
                   type="text"
+                  required
                   value={streetAddressLine2}
                   onChange={(e) => setStreetAddressLine2(e.target.value)}
+                  placeholder="e.g. Sandton, Rosebank, Midrand"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-black text-xs"
+                />
+              </div>
+
+              {/* 5. Street Address Line 3 (Complex / building / floor) Optional */}
+              <div>
+                <label className="block text-xs font-bold text-gray-900 mb-1">
+                  Street Address Line 3 (complex / building name / floor) optional
+                </label>
+                <input
+                  type="text"
+                  value={streetAddressLine3}
+                  onChange={(e) => setStreetAddressLine3(e.target.value)}
                   placeholder="e.g. Sunset Heights, Block B, Floor 2"
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-black text-xs"
                 />

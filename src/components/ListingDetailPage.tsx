@@ -222,7 +222,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
     setAddedToCartFeedback(true);
     setTimeout(() => {
       setAddedToCartFeedback(false);
-    }, 3000);
+    }, 2500);
   };
 
   const handleBuyNow = () => {
@@ -575,9 +575,16 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             {/* Title, Price, Save Bookmark & Share (Clean, with grey divider) */}
             <div className="pb-4 border-b border-gray-200 space-y-3">
               <div className="flex items-start justify-between gap-3">
-                <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight leading-tight flex-1">
-                  {item.title}
-                </h1>
+                <div className="flex-1">
+                  <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight leading-tight">
+                    {item.title}
+                  </h1>
+                  {(item.isSale || (item.saleTag && item.saleTag.toLowerCase() === 'sale') || (item.salePrice !== undefined && item.salePrice > 0)) && (
+                    <span className="text-xs font-black text-[#2D8EDE] uppercase tracking-wide leading-tight mt-1 inline-block">
+                      {item.saleTag || 'Sale'}
+                    </span>
+                  )}
+                </div>
 
                 {/* Save / Bookmark Icon */}
                 <button
@@ -598,9 +605,20 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
               {/* Price & Share */}
               <div className="flex items-center justify-between pt-1">
-                <div className="bg-[#2D8EDE] text-white text-base sm:text-lg font-black px-4 py-1.5 rounded-lg shadow-xs inline-flex items-center">
-                  R{item.price}
-                </div>
+                {item.salePrice !== undefined && item.salePrice !== null && item.salePrice > 0 ? (
+                  <div className="bg-[#2D8EDE] text-white px-4 py-1.5 rounded-lg shadow-xs inline-flex flex-col items-start leading-tight">
+                    <span className="line-through text-white/70 text-xs font-semibold">
+                      R{item.originalPrice || item.price}
+                    </span>
+                    <span className="text-base sm:text-lg font-black text-white">
+                      R{item.salePrice}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="bg-[#2D8EDE] text-white text-base sm:text-lg font-black px-4 py-1.5 rounded-lg shadow-xs inline-flex items-center">
+                    R{item.price}
+                  </div>
+                )}
 
                 <button
                   type="button"
@@ -732,6 +750,27 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 <span>Add to Cart</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Centered "Added to Cart" Message in Middle of Screen */}
+      {addedToCartFeedback && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center pointer-events-none p-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-gray-900/90 text-white backdrop-blur-md px-6 py-4 rounded-2xl shadow-2xl flex flex-col items-center gap-2 max-w-xs text-center border border-white/10 pointer-events-auto">
+            <div className="w-11 h-11 rounded-full bg-[#2D8EDE] flex items-center justify-center shadow-md">
+              <Check className="w-6 h-6 stroke-[3] text-white" />
+            </div>
+            <span className="text-sm font-black tracking-wide">Added to cart</span>
+            {onOpenCart && (
+              <button
+                type="button"
+                onClick={onOpenCart}
+                className="mt-1 text-xs text-[#2D8EDE] bg-white px-3 py-1 rounded-full font-extrabold hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                View Cart
+              </button>
+            )}
           </div>
         </div>
       )}

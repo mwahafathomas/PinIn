@@ -32,9 +32,10 @@ interface SearchPageProps {
   onRequireAuth?: () => void;
 }
 
-const DEFAULT_CATEGORIES = [
-  'TV & Media Units',
+// Comprehensive list of furniture categories & synonyms for search matching
+const SEARCH_CATEGORIES = [
   'Sofas & Couches',
+  'TV & Media Units',
   'Beds & Mattresses',
   'Dining Tables & Chairs',
   'Coffee Tables',
@@ -43,6 +44,18 @@ const DEFAULT_CATEGORIES = [
   'Outdoor & Patio',
   'Side Tables & Nightstands',
   'Bookshelves & Storage',
+  'Kitchen & Appliances',
+  'Fridge',
+  'Stove & Oven',
+  'Microwave',
+  'Washing Machine',
+  'Living Room & Dining',
+  'Bedroom & Suites',
+  'Chairs & Recliners',
+  'Bar Stools',
+  'Gym & Fitness Equipment',
+  'Electronics',
+  'Mirrors & Decor',
 ];
 
 export const SearchPage: React.FC<SearchPageProps> = ({
@@ -68,7 +81,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
       setIsLoading(true);
       const timer = setTimeout(() => {
         setIsLoading(false);
-      }, 600);
+      }, 500);
 
       const focusTimer = setTimeout(() => {
         inputRef.current?.focus();
@@ -108,27 +121,23 @@ export const SearchPage: React.FC<SearchPageProps> = ({
     onViewAllResults();
   };
 
-  // Find all listings matching the query anywhere in title, desc, brand, category, etc.
-  const matchingListings = useMemo(() => {
-    const q = localQuery.trim().toLowerCase();
-    if (!q) return [];
-    return (furnitureList || []).filter((item) => {
-      const inTitle = item.title?.toLowerCase().includes(q);
-      const inDesc = item.description?.toLowerCase().includes(q);
-      const inCat = item.category?.toLowerCase().includes(q);
-      const inBrand = item.brand?.toLowerCase().includes(q);
-      const inMaterial = item.material?.toLowerCase().includes(q);
-      const inLocation = item.location?.toLowerCase().includes(q);
-      const inInfo = (item as any).productInformation?.toLowerCase().includes(q);
-      return inTitle || inDesc || inCat || inBrand || inMaterial || inLocation || inInfo;
-    });
-  }, [localQuery, furnitureList]);
-
   // Categories suggestions matching current query
+  // When search box is empty: blank (return empty array)
+  // When user types e.g. "sofa": return matching category words like "Sofas & Couches"
   const matchingCategories = useMemo(() => {
     const q = localQuery.trim().toLowerCase();
-    if (!q) return DEFAULT_CATEGORIES;
-    return DEFAULT_CATEGORIES.filter((cat) => cat.toLowerCase().includes(q));
+    if (!q) return [];
+    return SEARCH_CATEGORIES.filter((cat) => {
+      const lower = cat.toLowerCase();
+      // Handle plurals and common aliases (e.g. sofa -> sofas & couches)
+      if (lower.includes(q)) return true;
+      if (q === 'sofa' && lower.includes('sofas')) return true;
+      if (q === 'couch' && lower.includes('couches')) return true;
+      if (q === 'bed' && lower.includes('beds')) return true;
+      if (q === 'table' && lower.includes('tables')) return true;
+      if (q === 'chair' && lower.includes('chairs')) return true;
+      return false;
+    });
   }, [localQuery]);
 
   if (!isOpen) return null;
@@ -200,7 +209,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
           <div className="space-y-3 animate-pulse pt-1">
             <div className="h-4 w-32 bg-gray-200 rounded-md" />
             <div className="bg-white rounded-3xl border border-gray-200 p-3 space-y-3 shadow-xs">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
+              {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-none">
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-xl bg-gray-200" />
@@ -212,95 +221,53 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             </div>
           </div>
         ) : localQuery.trim().length > 0 ? (
-          /* When user types search query (e.g. "apple"), show matching listings directly */
+          /* When user types search query (e.g. "sofa"), show category words like "Sofas & Couches" */
           <div className="space-y-3">
-            <div className="flex items-center justify-between pb-1">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Results for "{localQuery.trim()}" ({matchingListings.length})
-              </span>
-            </div>
-
-            {matchingListings.length > 0 ? (
-              <div className="space-y-2.5">
-                {matchingListings.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => {
-                      if (onSelectItem) {
-                        onSelectItem(item);
-                      }
-                    }}
-                    className="w-full flex items-center gap-3 p-3 bg-white rounded-2xl border border-gray-200 hover:border-[#2D8EDE] shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
+            {matchingCategories.length > 0 ? (
+              <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs divide-y divide-gray-100">
+                {matchingCategories.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => handleSelectTerm(category)}
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-left transition-colors cursor-pointer group"
                   >
-                    <div className="w-16 h-16 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
-                      <img
-                        src={getOptimizedImageUrl(item.imageUrl, { width: 160, quality: 75, format: 'webp' })}
-                        alt={item.title}
-                        className="w-full h-full object-contain p-0.5 group-hover:scale-105 transition-transform"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 truncate">
-                          {item.title}
-                        </h4>
-                        <span className="text-xs font-black text-[#2D8EDE] shrink-0">
-                          R{item.price}
-                        </span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
+                        <Tag className="w-4 h-4 text-[#2D8EDE]" />
                       </div>
+                      <span className="text-xs sm:text-sm font-bold text-gray-900">
+                        {category}
+                      </span>
                     </div>
-                  </div>
+                    <ArrowRight className="w-4 h-4 text-[#2D8EDE] group-hover:translate-x-0.5 transition-transform" />
+                  </button>
                 ))}
-
+              </div>
+            ) : (
+              /* If no exact category matched, offer to search this keyword directly */
+              <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs">
                 <button
                   type="button"
                   onClick={() => handleSelectTerm(localQuery.trim())}
-                  className="w-full py-3 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer mt-3"
-                >
-                  View all results on marketplace
-                </button>
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center space-y-2">
-                <p className="text-sm font-bold text-gray-800">
-                  No listings found containing "{localQuery.trim()}"
-                </p>
-                <p className="text-xs text-gray-500">
-                  Try searching with a different word or explore categories below.
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* When search query is empty, show Categories */
-          <div className="space-y-3">
-            <div className="flex items-center justify-between pb-1">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Categories
-              </span>
-            </div>
-
-            <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs divide-y divide-gray-100">
-              {matchingCategories.map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() => handleSelectTerm(category)}
                   className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-left transition-colors cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
-                      <Tag className="w-4 h-4 text-[#2D8EDE]" />
+                      <Search className="w-4 h-4 text-[#2D8EDE]" />
                     </div>
                     <span className="text-xs sm:text-sm font-bold text-gray-900">
-                      {category}
+                      Search &ldquo;{localQuery.trim()}&rdquo;
                     </span>
                   </div>
                   <ArrowRight className="w-4 h-4 text-[#2D8EDE] group-hover:translate-x-0.5 transition-transform" />
                 </button>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
+        ) : (
+          /* When search query is empty, leave area completely blank as requested */
+          <div className="py-8" />
         )}
       </main>
     </div>
