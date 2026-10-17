@@ -14,6 +14,7 @@ import { Share as CapShare } from '@capacitor/share';
 import { Header } from './components/Header';
 import { ActionNav } from './components/ActionNav';
 import { HeroSearch } from './components/HeroSearch';
+import { CategoryPills } from './components/CategoryPills';
 import { FurnitureGrid } from './components/FurnitureGrid';
 import { HomeFeedSections } from './components/HomeFeedSections';
 import { BottomNav } from './components/BottomNav';
@@ -56,6 +57,8 @@ import {
   getDeletedListingIds,
   generateValidUUID,
   SupabaseListingRow,
+  type SupabaseProductRow,
+  mapProductRowToFurnitureItem,
 } from './services/listingsService';
 import {
   fetchAllConversations,
@@ -189,8 +192,8 @@ function matchFurnitureWithCategories(item: FurnitureItem, categories?: string[]
     const raw = rawCat.toLowerCase().trim();
     if (!raw || raw === 'all') return true;
 
-    // Direct category ID match
-    if (catLower === raw) return true;
+    // Direct category ID or name match
+    if (catLower === raw || catLower.includes(raw) || raw.includes(catLower)) return true;
 
     // Category mapping semantics
     if (raw.includes('couch') || raw.includes('sofa')) {
@@ -570,6 +573,7 @@ export default function App() {
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [filters, setFilters] = useState<FilterState>({
     category: 'all',
     minPrice: 0,
@@ -1361,6 +1365,42 @@ export default function App() {
       )
       .on(
         'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        (payload: { eventType: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const newProd = payload.new as unknown as SupabaseProductRow;
+            if (Number(newProd.stock_quantity) > 0) {
+              const newItem = mapProductRowToFurnitureItem(newProd);
+              setFurnitureList((prev) => {
+                const without = prev.filter((item) => item.id !== newItem.id);
+                return [newItem, ...without];
+              });
+            }
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            const newProd = payload.new as unknown as SupabaseProductRow;
+            if (Number(newProd.stock_quantity) > 0) {
+              const updatedItem = mapProductRowToFurnitureItem(newProd);
+              setFurnitureList((prev) => {
+                const exists = prev.some((item) => item.id === updatedItem.id);
+                if (exists) {
+                  return prev.map((item) => (item.id === updatedItem.id ? updatedItem : item));
+                }
+                return [updatedItem, ...prev];
+              });
+            } else {
+              // Out of stock (stock_quantity <= 0) - remove from public catalog
+              setFurnitureList((prev) => prev.filter((item) => item.id !== newProd.id));
+            }
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            const deletedId = (payload.old as { id?: string }).id;
+            if (deletedId) {
+              setFurnitureList((prev) => prev.filter((item) => item.id !== deletedId));
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
         () => {
           fetchAllConversations().then((convs) => {
@@ -1521,6 +1561,7 @@ export default function App() {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setSearchQuery('');
+    setSelectedCategory('All');
     setFilters({
       category: 'all',
       categories: [],
@@ -2126,7 +2167,15 @@ export default function App() {
     }
   };
 
-  // Filtered & Sorted Furniture items (with km distance & <50km proximity prioritization)
+  // 2. Dynamically build category pills/filters from DB
+  const categories = useMemo(() => {
+    const rawCats = furnitureList
+      .map((p) => p.category?.trim())
+      .filter((c): c is string => Boolean(c && c.length > 0));
+    return ['All', ...Array.from(new Set(rawCats))];
+  }, [furnitureList]);
+
+  // Filtered & Sorted items (with km distance & <50km proximity prioritization)
   const { filteredFurniture, nearbyListingsCount } = useMemo(() => {
     const enrichedList = furnitureList.map((item) => {
       if (hasLocationPermission && userCoords) {
@@ -2159,6 +2208,15 @@ export default function App() {
     });
 
     const filtered = enrichedList.filter((item) => {
+      // 3. Filter logic - clicking "All" shows everything
+      if (selectedCategory !== 'All') {
+        const itemCat = (item.category || '').toLowerCase().trim();
+        const selCat = selectedCategory.toLowerCase().trim();
+        if (itemCat !== selCat && !itemCat.includes(selCat) && !selCat.includes(itemCat)) {
+          return false;
+        }
+      }
+
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesTitle = item.title.toLowerCase().includes(q);
@@ -2263,7 +2321,10 @@ export default function App() {
       filteredFurniture: sorted,
       nearbyListingsCount: 0,
     };
-  }, [furnitureList, searchQuery, filters, hasLocationPermission, userCoords]);
+  }, [furnitureList, selectedCategory, searchQuery, filters, hasLocationPermission, userCoords]);
+
+  // Aliased for product catalog
+  const filteredProducts = filteredFurniture;
 
   // Active filter count for badge
   const appliedFiltersCount = useMemo(() => {
@@ -2473,6 +2534,13 @@ export default function App() {
                       nearbyCount={0}
                       onOpenSearchPage={() => goTo('/search?type=furniture')}
                     />
+
+                    {/* Dynamic Category Pills */}
+                    <CategoryPills
+                      categories={categories}
+                      selectedCategory={selectedCategory}
+                      onSelectCategory={setSelectedCategory}
+                    />
                   </div>
 
                   {/* Scrollable Center Content Area */}
@@ -2483,38 +2551,23 @@ export default function App() {
                   >
                     <div className="flex-1 flex flex-col justify-between min-h-full">
                       <div className="flex-1">
-                        {searchQuery.trim() ||
-                        (filters.categories && filters.categories.length > 0) ||
-                        filters.category !== 'all' ||
-                        (filters.location && filters.location.trim()) ||
-                        filters.locationQuery.trim() ||
-                        filters.condition.length > 0 ? (
-                          <FurnitureGrid
-                            items={filteredFurniture}
-                            savedItemIds={user.savedItemIds}
-                            onSelectItem={(item) => {
-                              setSelectedItem(item);
-                              goTo(`/item/${item.id}`);
-                            }}
-                            onToggleSave={handleToggleSave}
-                            onShareItem={handleShareItem}
-                            onMessageSeller={handleMessageSeller}
-                            onResetFilters={handleGoHome}
-                            showDistance={hasLocationPermission && !!userCoords}
-                            isLoading={isFeedLoading || isFeedRefreshing}
-                          />
-                        ) : (
-                          <HomeFeedSections
-                            items={filteredFurniture}
-                            savedItemIds={user.savedItemIds}
-                            onSelectItem={(item) => {
-                              setSelectedItem(item);
-                              goTo(`/item/${item.id}`);
-                            }}
-                            onToggleSave={handleToggleSave}
-                            isLoading={isFeedLoading || isFeedRefreshing}
-                          />
-                        )}
+                        <FurnitureGrid
+                          items={filteredProducts}
+                          savedItemIds={user.savedItemIds}
+                          onSelectItem={(item) => {
+                            setSelectedItem(item);
+                            goTo(`/item/${item.id}`);
+                          }}
+                          onToggleSave={handleToggleSave}
+                          onShareItem={handleShareItem}
+                          onMessageSeller={handleMessageSeller}
+                          onResetFilters={() => {
+                            setSelectedCategory('All');
+                            handleGoHome();
+                          }}
+                          showDistance={hasLocationPermission && !!userCoords}
+                          isLoading={isFeedLoading || isFeedRefreshing}
+                        />
                       </div>
 
                       {/* Footer containing quick links */}
@@ -2582,6 +2635,68 @@ export default function App() {
             {/* Item Detail Route */}
             <Route
               path="/item/:id"
+              element={
+                <ListingDetailView
+                  selectedItem={selectedItem}
+                  furnitureList={furnitureList}
+                  userOwnListings={userOwnListings}
+                  savedItemIds={user.savedItemIds}
+                  unreadMessagesCount={unreadMessagesCount}
+                  unreadNotificationsCount={unreadNotificationsCount}
+                  onToggleSave={(itemId, e) => handleToggleSave(itemId, e)}
+                  onShare={handleShareItem}
+                  onReport={handleReportListing}
+                  onOpenSearch={() => goTo('/search?type=furniture')}
+                  onOpenCart={() => goTo('/cart')}
+                  user={user}
+                  onOpenAuth={handleOpenAuth}
+                  onClose={() => {
+                    setDirection(-1);
+                    if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+                      navigate(-1);
+                    } else if (window.history.length > 1 && location.pathname !== '/marketplace' && location.pathname !== '/') {
+                      navigate(-1);
+                    } else {
+                      navigate('/');
+                    }
+                  }}
+                />
+              }
+            />
+
+            {/* Product Detail Route Aliases */}
+            <Route
+              path="/product/:id"
+              element={
+                <ListingDetailView
+                  selectedItem={selectedItem}
+                  furnitureList={furnitureList}
+                  userOwnListings={userOwnListings}
+                  savedItemIds={user.savedItemIds}
+                  unreadMessagesCount={unreadMessagesCount}
+                  unreadNotificationsCount={unreadNotificationsCount}
+                  onToggleSave={(itemId, e) => handleToggleSave(itemId, e)}
+                  onShare={handleShareItem}
+                  onReport={handleReportListing}
+                  onOpenSearch={() => goTo('/search?type=furniture')}
+                  onOpenCart={() => goTo('/cart')}
+                  user={user}
+                  onOpenAuth={handleOpenAuth}
+                  onClose={() => {
+                    setDirection(-1);
+                    if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
+                      navigate(-1);
+                    } else if (window.history.length > 1 && location.pathname !== '/marketplace' && location.pathname !== '/') {
+                      navigate(-1);
+                    } else {
+                      navigate('/');
+                    }
+                  }}
+                />
+              }
+            />
+            <Route
+              path="/listing/:id"
               element={
                 <ListingDetailView
                   selectedItem={selectedItem}

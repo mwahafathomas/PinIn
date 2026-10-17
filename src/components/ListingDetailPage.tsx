@@ -636,7 +636,9 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               {/* Value Highlights */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
                 <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
-                  In stock
+                  {typeof item.stockQuantity === 'number' && item.stockQuantity > 0
+                    ? `In stock (${item.stockQuantity})`
+                    : 'In stock'}
                 </div>
                 <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
                   Warranty
@@ -668,15 +670,27 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </div>
             </div>
 
-            {/* Sold by & Feedback Toast */}
+            {/* Sold by & SKU & Feedback Toast */}
             <div className="pb-3 border-b border-gray-200 space-y-3">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
-                  Sold by
-                </span>
-                <p className="font-extrabold text-xs sm:text-sm text-gray-900 mt-0.5">
-                  {item.soldBy || sellerDisplayName}
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                    Sold by
+                  </span>
+                  <p className="font-extrabold text-xs sm:text-sm text-gray-900 mt-0.5">
+                    {item.soldBy || sellerDisplayName}
+                  </p>
+                </div>
+                {item.supplierSku && (
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                      SKU
+                    </span>
+                    <span className="text-xs font-mono font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                      {item.supplierSku}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Feedback toast when added to cart */}
@@ -732,7 +746,13 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setQuantity((q) => q + 1)}
+                  onClick={() =>
+                    setQuantity((q) =>
+                      typeof item.stockQuantity === 'number' && item.stockQuantity > 0
+                        ? Math.min(item.stockQuantity, q + 1)
+                        : q + 1
+                    )
+                  }
                   className="w-7 h-7 rounded hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
                   aria-label="Increase quantity"
                 >

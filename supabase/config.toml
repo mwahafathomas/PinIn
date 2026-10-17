@@ -1,0 +1,4 @@
+project_id = "ygkyxxrrfcvypcvmnzke"
+
+[functions.sync-dummyjson]
+verify_jwt = false

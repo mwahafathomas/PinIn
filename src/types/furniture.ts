@@ -55,6 +55,11 @@ export interface FurnitureItem {
   saleTag?: string; // e.g. "Sale" or "sale"
   salePrice?: number; // New discounted price when on sale
   isSale?: boolean;
+  // Supplier / Automated Inventory Fields
+  supplierSku?: string;
+  stockQuantity?: number;
+  costPrice?: number;
+  isSupplierProduct?: boolean;
 }
 
 export interface CategoryOption {

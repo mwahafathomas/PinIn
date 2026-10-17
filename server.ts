@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
@@ -226,6 +227,75 @@ app.post('/api/contact', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: err.message || 'Internal server error processing contact message',
+    });
+  }
+});
+
+// 2.5 Supabase Edge Function Handler: sync-dummyjson
+app.all(['/api/sync-dummyjson', '/functions/v1/sync-dummyjson'], async (req, res) => {
+  try {
+    const rawUrl = process.env.VITE_SUPABASE_URL || 'https://ygkyxxrrfcvypcvmnzke.supabase.co';
+    const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      'sb_publishable__TcJkIYGsFBbmJ66gUcmzA_hJGn38yE';
+
+    const supabase = createClient(cleanUrl, supabaseKey);
+
+    // 1. Fetch all products (without filters, limit=100) from DummyJSON
+    const apiRes = await fetch('https://dummyjson.com/products?limit=100');
+    if (!apiRes.ok) {
+      throw new Error(`Failed to fetch DummyJSON: ${apiRes.status} ${apiRes.statusText}`);
+    }
+
+    const data: any = await apiRes.json();
+    const rawProducts = data.products || [];
+
+    // 2 & 3. Parse & Map fields to match Supabase `products` database table
+    const mappedProducts = rawProducts.map((item: any) => {
+      const costPrice = item.price;
+      const sellingPrice = parseFloat((costPrice * 1.15).toFixed(2));
+
+      return {
+        supplier_sku: `DUMMY-${item.id}`,
+        title: item.title,
+        description: item.description,
+        cost_price: costPrice,
+        selling_price: sellingPrice,
+        stock_quantity: item.stock,
+        image_url: item.thumbnail,
+      };
+    });
+
+    // 4. Upsert the data into the `products` table on conflict `supplier_sku`
+    const { data: upsertData, error: upsertError } = await supabase
+      .from('products')
+      .upsert(mappedProducts, { onConflict: 'supplier_sku' })
+      .select();
+
+    if (upsertError) {
+      console.error('[sync-dummyjson] Upsert error:', upsertError);
+      return res.status(500).json({
+        success: false,
+        error: upsertError.message,
+        details: upsertError,
+        count: mappedProducts.length,
+        mapped: mappedProducts,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Successfully synced ${mappedProducts.length} smartphone products to Supabase.`,
+      count: mappedProducts.length,
+      synced: upsertData || mappedProducts,
+    });
+  } catch (err: any) {
+    console.error('[sync-dummyjson] Error:', err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Internal error in sync-dummyjson',
     });
   }
 });

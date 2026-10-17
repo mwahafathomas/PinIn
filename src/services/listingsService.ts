@@ -4,6 +4,19 @@ import { INITIAL_FURNITURE } from '../data/mockData';
 import { getCoordinatesForLocation } from '../utils/geoUtils';
 import { uploadAllListingImages, uploadListingImage, uploadListingVideo } from './storageService';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+import {
+  type SupabaseProductRow,
+  mapProductRowToFurnitureItem,
+  fetchProducts,
+  fetchProductById,
+} from './productsService';
+
+export {
+  mapProductRowToFurnitureItem,
+  fetchProducts,
+  fetchProductById,
+};
+export type { SupabaseProductRow };
 
 const LOCAL_STORAGE_KEY = 'pinin_custom_furniture_listings';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
@@ -78,13 +91,17 @@ export interface SupabaseListingRow {
   image_url_6?: string | null;
   image_url_7?: string | null;
   electronics?: string | null;
+  sale_tag?: string | null;
+  sale_price?: number | string | null;
+  is_sale?: boolean | string | number | null;
+  [key: string]: unknown;
 }
 
 // Safe public listing fields (omits massive verification_video base64 so queries complete in <150ms)
 export const PUBLIC_LISTING_FIELDS = '*';
 
 // Check if a row is approved or active for public feed
-export function isListingRowApproved(row?: Partial<SupabaseListingRow> | Record<string, unknown> | null): boolean {
+export function isListingRowApproved(row?: Partial<SupabaseListingRow> | FurnitureItem | Record<string, any> | null): boolean {
   if (!row) return false;
 
   // Only filter out rows that have been explicitly rejected, deleted, or archived
@@ -94,7 +111,8 @@ export function isListingRowApproved(row?: Partial<SupabaseListingRow> | Record<
   }
 
   // If is_approved is explicitly false AND status is rejected/under_review
-  if ((row.is_approved === false || row.is_approved === 'false') && (statusStr === 'rejected' || statusStr === 'draft')) {
+  const isApprovedVal = (row as any).is_approved;
+  if ((isApprovedVal === false || isApprovedVal === 'false') && (statusStr === 'rejected' || statusStr === 'draft')) {
     return false;
   }
 
@@ -512,7 +530,7 @@ export function setLocalUserListings(userId: string | undefined, items: Furnitur
   } catch {}
 }
 
-// Fetch all listings for the public app feed and searches
+// Fetch all listings and supplier products for the public app feed, categories, and searches
 export async function fetchAllListings(forceRefresh: boolean = false): Promise<FurnitureItem[]> {
   const deleted = getDeletedListingIds();
   const now = Date.now();
@@ -524,40 +542,63 @@ export async function fetchAllListings(forceRefresh: boolean = false): Promise<F
     return valid;
   }
 
-  // 1. Try to fetch directly from Supabase first using select('*')
+  // 1. Fetch from Supabase: query both `listings` and `products` (stock_quantity > 0) in parallel
   try {
-    let rows: SupabaseListingRow[] | null = null;
+    let listingRows: SupabaseListingRow[] = [];
+    let productRows: SupabaseProductRow[] = [];
 
-    const { data, error } = await supabase.from('listings').select('*');
+    const [listingsResult, productsResult] = await Promise.allSettled([
+      supabase.from('listings').select('*'),
+      supabase.from('products').select('*'),
+    ]);
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      rows = data as SupabaseListingRow[];
-      // Sort by created_at or posted_at descending in memory
-      rows.sort((a, b) => {
-        const timeA = new Date(a.created_at || a.posted_at || 0).getTime();
-        const timeB = new Date(b.created_at || b.posted_at || 0).getTime();
-        return timeB - timeA;
-      });
-    } else if (error) {
-      console.warn('Supabase fetch error for listings:', error.message);
+    if (listingsResult.status === 'fulfilled') {
+      const { data, error } = listingsResult.value;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        listingRows = data as SupabaseListingRow[];
+        listingRows.sort((a, b) => {
+          const timeA = new Date(a.created_at || a.posted_at || 0).getTime();
+          const timeB = new Date(b.created_at || b.posted_at || 0).getTime();
+          return timeB - timeA;
+        });
+      } else if (error) {
+        console.warn('Supabase fetch error for listings:', error.message);
+      }
     }
 
-    if (rows && rows.length > 0) {
-      // Filter rows that are approved / active and NOT deleted
-      const approvedRows = rows.filter(
-        (row) => isListingRowApproved(row) && !MOCK_ITEM_IDS.has(String(row.id)) && !deleted.has(String(row.id))
-      );
-      const mapped = approvedRows.map(mapRowToFurnitureItem);
-
-      // Cache locally
-      if (mapped.length > 0) {
-        setLocalListings(mapped);
-        try {
-          localStorage.setItem(LISTINGS_CACHE_TIME_KEY, now.toString());
-        } catch {}
-        inMemoryListingsCache = { data: mapped, timestamp: now };
-        return mapped;
+    if (productsResult.status === 'fulfilled') {
+      const { data, error } = productsResult.value;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        productRows = data as SupabaseProductRow[];
+      } else if (error) {
+        console.warn('Supabase fetch error for products:', error.message);
       }
+    }
+
+    // Map approved listings
+    const approvedListings = listingRows
+      .filter(
+        (row) => isListingRowApproved(row) && !MOCK_ITEM_IDS.has(String(row.id)) && !deleted.has(String(row.id))
+      )
+      .map(mapRowToFurnitureItem);
+
+    // 1. Remove hardcoded furniture filter - fetch all products
+    const inStockProducts = productRows
+      .filter(
+        (prod) => !deleted.has(String(prod.id))
+      )
+      .map(mapProductRowToFurnitureItem);
+
+    // Combine both: listings alongside products
+    const combined = [...approvedListings, ...inStockProducts];
+
+    if (combined.length > 0) {
+      setLocalListings(combined);
+      try {
+        localStorage.setItem(LISTINGS_CACHE_TIME_KEY, now.toString());
+      } catch {}
+      inMemoryListingsCache = { data: combined, timestamp: now };
+      return combined;
     }
   } catch (e) {
     console.warn('Supabase fetch error in fetchAllListings, falling back to local cache:', e);
@@ -617,7 +658,7 @@ export async function fetchUserListings(userId: string): Promise<FurnitureItem[]
   }
 }
 
-// Fetch a single listing by ID with full fields including additional_images
+// Fetch a single listing or product by ID with full fields
 export async function fetchListingById(itemId: string): Promise<FurnitureItem | null> {
   if (!itemId) return null;
 
@@ -628,14 +669,21 @@ export async function fetchListingById(itemId: string): Promise<FurnitureItem | 
   }
 
   try {
-    const { data, error } = await supabase
-      .from('listings')
-      .select('*')
-      .eq('id', itemId)
-      .maybeSingle();
+    // Check both listings and products tables concurrently
+    const [listingRes, productRes] = await Promise.allSettled([
+      supabase.from('listings').select('*').eq('id', itemId).maybeSingle(),
+      supabase.from('products').select('*').eq('id', itemId).gt('stock_quantity', 0).maybeSingle(),
+    ]);
 
-    if (!error && data) {
-      return mapRowToFurnitureItem(data as SupabaseListingRow);
+    if (listingRes.status === 'fulfilled' && !listingRes.value.error && listingRes.value.data) {
+      return mapRowToFurnitureItem(listingRes.value.data as SupabaseListingRow);
+    }
+
+    if (productRes.status === 'fulfilled' && !productRes.value.error && productRes.value.data) {
+      const prod = productRes.value.data as SupabaseProductRow;
+      if (Number(prod.stock_quantity) > 0) {
+        return mapProductRowToFurnitureItem(prod);
+      }
     }
   } catch (err) {
     console.warn('fetchListingById error:', err);
