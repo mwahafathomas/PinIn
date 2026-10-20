@@ -195,7 +195,69 @@ function matchFurnitureWithCategories(item: FurnitureItem, categories?: string[]
     // Direct category ID or name match
     if (catLower === raw || catLower.includes(raw) || raw.includes(catLower)) return true;
 
-    // Category mapping semantics
+    // Clothing category mapping semantics
+    if (raw.includes('tee') || raw.includes('shirt')) {
+      if (
+        titleLower.includes('tee') ||
+        titleLower.includes('shirt') ||
+        titleLower.includes('top') ||
+        catLower.includes('tee') ||
+        catLower.includes('shirt') ||
+        descLower.includes('tee') ||
+        descLower.includes('shirt')
+      )
+        return true;
+    }
+    if (raw.includes('trouser')) {
+      if (
+        titleLower.includes('trouser') ||
+        titleLower.includes('pant') ||
+        titleLower.includes('slacks') ||
+        catLower.includes('trouser') ||
+        catLower.includes('pant') ||
+        descLower.includes('trouser')
+      )
+        return true;
+    }
+    if (raw.includes('jean')) {
+      if (
+        titleLower.includes('jean') ||
+        titleLower.includes('denim') ||
+        catLower.includes('jean') ||
+        descLower.includes('jean')
+      )
+        return true;
+    }
+    if (raw.includes('jacket') || raw.includes('hoodie')) {
+      if (
+        titleLower.includes('jacket') ||
+        titleLower.includes('hoodie') ||
+        titleLower.includes('coat') ||
+        titleLower.includes('sweater') ||
+        catLower.includes('jacket') ||
+        catLower.includes('hoodie') ||
+        descLower.includes('jacket') ||
+        descLower.includes('hoodie')
+      )
+        return true;
+    }
+    if (raw.includes('dress')) {
+      if (
+        titleLower.includes('dress') ||
+        titleLower.includes('gown') ||
+        catLower.includes('dress') ||
+        descLower.includes('dress')
+      )
+        return true;
+    }
+    if (raw.includes('skirt')) {
+      if (
+        titleLower.includes('skirt') ||
+        catLower.includes('skirt') ||
+        descLower.includes('skirt')
+      )
+        return true;
+    }
     if (raw.includes('couch') || raw.includes('sofa')) {
       if (
         catLower === 'sofas' ||
@@ -1017,45 +1079,9 @@ export default function App() {
       });
     }
 
-    initOneSignal(onesignalAppId).finally(() => {
-      // If inside an iframe (like AI Studio preview) or notifications denied, skip auto-prompt
-      if (isInsideIframe()) return;
-      if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return;
-
-      // 3-second delay after first launch to request notification permission
-      setTimeout(async () => {
-        try {
-          if (typeof window !== 'undefined') {
-            if (window.OneSignal?.Notifications?.requestPermission) {
-              await window.OneSignal.Notifications.requestPermission(true).catch(() => {});
-            } else if (window.OneSignalDeferred) {
-              window.OneSignalDeferred.push(async (OneSignal: any) => {
-                try {
-                  await OneSignal.Notifications?.requestPermission(true);
-                } catch (e) {
-                  console.warn('OneSignal requestPermission error:', e);
-                }
-              });
-            }
-          }
-
-          // If running inside Capacitor native Android shell, also prompt Capacitor PushNotifications
-          if (typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.()) {
-            try {
-              const { PushNotifications } = await import('@capacitor/push-notifications');
-              const permStatus = await PushNotifications.checkPermissions();
-              if (permStatus.receive === 'prompt') {
-                await PushNotifications.requestPermissions();
-              }
-              await PushNotifications.register();
-            } catch (capErr) {
-              console.warn('Capacitor PushNotifications request error:', capErr);
-            }
-          }
-        } catch (err) {
-          console.warn('Could not request notification permission:', err);
-        }
-      }, 3000);
+    // 0. Initialize OneSignal Push Notifications without auto-prompting on page load (Requirement 4)
+    initOneSignal(onesignalAppId).then(() => {
+      console.log('[OneSignal] Initialized. Auto-prompt on page load is disabled. Use button click to request permission.');
     });
 
     // 1. Fetch fresh listings from Supabase
@@ -2167,13 +2193,8 @@ export default function App() {
     }
   };
 
-  // 2. Dynamically build category pills/filters from DB
-  const categories = useMemo(() => {
-    const rawCats = furnitureList
-      .map((p) => p.category?.trim())
-      .filter((c): c is string => Boolean(c && c.length > 0));
-    return ['All', ...Array.from(new Set(rawCats))];
-  }, [furnitureList]);
+  // Clothing department pills after search box: Men & Women
+  const categories = ['Men', 'Women'];
 
   // Filtered & Sorted items (with km distance & <50km proximity prioritization)
   const { filteredFurniture, nearbyListingsCount } = useMemo(() => {
@@ -2208,12 +2229,72 @@ export default function App() {
     });
 
     const filtered = enrichedList.filter((item) => {
-      // 3. Filter logic - clicking "All" shows everything
+      // Clothing Gender filter (Men & Women)
       if (selectedCategory !== 'All') {
         const itemCat = (item.category || '').toLowerCase().trim();
-        const selCat = selectedCategory.toLowerCase().trim();
-        if (itemCat !== selCat && !itemCat.includes(selCat) && !selCat.includes(itemCat)) {
-          return false;
+        const itemTitle = (item.title || '').toLowerCase().trim();
+        const itemDesc = (item.description || '').toLowerCase().trim();
+        const sel = selectedCategory.toLowerCase().trim();
+
+        if (sel === 'men') {
+          const isMenMatch =
+            itemCat === 'men' ||
+            itemCat.includes('men') ||
+            itemTitle.includes('men') ||
+            itemDesc.includes('men') ||
+            itemCat.includes('male') ||
+            itemTitle.includes('male') ||
+            itemCat.includes('shirt') ||
+            itemTitle.includes('shirt') ||
+            itemCat.includes('jean') ||
+            itemTitle.includes('jean') ||
+            itemCat.includes('trouser') ||
+            itemTitle.includes('trouser') ||
+            itemCat.includes('hoodie') ||
+            itemTitle.includes('hoodie');
+
+          const isWomenOnly =
+            (itemCat.includes('women') ||
+              itemTitle.includes('women') ||
+              itemTitle.includes('dress') ||
+              itemTitle.includes('skirt') ||
+              itemCat.includes('dress') ||
+              itemCat.includes('skirt')) &&
+            !itemTitle.includes('men') &&
+            !itemCat.includes('men');
+
+          if (!isMenMatch || isWomenOnly) {
+            return false;
+          }
+        } else if (sel === 'women') {
+          const isWomenMatch =
+            itemCat === 'women' ||
+            itemCat.includes('women') ||
+            itemCat.includes('ladies') ||
+            itemTitle.includes('women') ||
+            itemDesc.includes('women') ||
+            itemCat.includes('female') ||
+            itemTitle.includes('female') ||
+            itemCat.includes('dress') ||
+            itemTitle.includes('dress') ||
+            itemCat.includes('skirt') ||
+            itemTitle.includes('skirt') ||
+            itemCat.includes('shirt') ||
+            itemTitle.includes('shirt') ||
+            itemCat.includes('trouser') ||
+            itemTitle.includes('trouser') ||
+            itemCat.includes('jean') ||
+            itemTitle.includes('jean') ||
+            itemCat.includes('hoodie') ||
+            itemTitle.includes('hoodie');
+
+          if (!isWomenMatch) {
+            return false;
+          }
+        } else {
+          if (itemCat !== sel && !itemCat.includes(sel) && !sel.includes(itemCat)) {
+            return false;
+          }
         }
       }
 
@@ -2532,14 +2613,21 @@ export default function App() {
                       hasLocationPermission={false}
                       isLocating={false}
                       nearbyCount={0}
-                      onOpenSearchPage={() => goTo('/search?type=furniture')}
+                      onOpenSearchPage={() => goTo('/search?type=clothes')}
                     />
 
-                    {/* Dynamic Category Pills */}
+                    {/* Clothing Department Pills: Men & Women */}
                     <CategoryPills
-                      categories={categories}
+                      categories={['Men', 'Women']}
                       selectedCategory={selectedCategory}
-                      onSelectCategory={setSelectedCategory}
+                      onSelectCategory={(cat) => {
+                        setSelectedCategory(cat);
+                        setFilters((prev) => ({
+                          ...prev,
+                          category: cat === 'All' ? 'all' : cat,
+                          categories: cat === 'All' ? [] : [cat],
+                        }));
+                      }}
                     />
                   </div>
 

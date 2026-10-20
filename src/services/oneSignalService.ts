@@ -101,6 +101,7 @@ export async function initOneSignal(customAppId?: string): Promise<boolean> {
   const appId = customAppId || getOneSignalAppId();
 
   if (!appId) {
+    console.warn('[OneSignal] Cannot init: No App ID found.');
     return false;
   }
 
@@ -108,41 +109,39 @@ export async function initOneSignal(customAppId?: string): Promise<boolean> {
     return false;
   }
 
-  // Inside sandboxed iframes (like AI Studio preview), Web Push service workers and
-  // user sync endpoints are blocked by browser cross-origin sandbox policies.
-  // We avoid initializing service workers inside iframes to prevent timeout errors.
-  if (isInsideIframe()) {
-    return false;
-  }
-
   if (isInitialized && window.OneSignal) {
+    console.log('[OneSignal] Already initialized. Permission status:', window.OneSignal.Notifications?.permission);
     return true;
   }
 
+  console.log('[OneSignal] Initializing OneSignal with App ID:', appId);
   await loadOneSignalScript();
 
   return new Promise((resolve) => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async (OneSignal: any) => {
       try {
-        // OneSignal init: OneSignal.init(appId) with fallback to object options
-        try {
-          await OneSignal.init(appId);
-        } catch {
-          await OneSignal.init({
-            appId: appId,
-            allowLocalhostAsSecureOrigin: true,
-            notifyButton: {
-              enable: false,
-            },
-            serviceWorkerPath: '/OneSignalSDKWorker.js',
-            serviceWorkerParam: { scope: '/' },
-          });
-        }
+        console.log('[OneSignal] Running OneSignal.init inside OneSignalDeferred...');
+        await OneSignal.init({
+          appId: appId,
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: false,
+          },
+          serviceWorkerPath: '/OneSignalSDKWorker.js',
+          serviceWorkerUpdaterPath: '/OneSignalSDKUpdaterWorker.js',
+          serviceWorkerParam: { scope: '/' },
+        });
+
         isInitialized = true;
+        // 7. Log OneSignal permission status to console to debug
+        const currentPerm = OneSignal.Notifications?.permission;
+        console.log('[OneSignal] Initialized successfully.');
+        console.log('[OneSignal] OneSignal.Notifications.permission:', currentPerm);
+        console.log('[OneSignal] Browser Notification.permission:', typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
         resolve(true);
       } catch (err) {
-        // Silently catch to prevent unhandled promise / timeout spam
+        console.warn('[OneSignal] OneSignal.init exception:', err);
         resolve(false);
       }
     });
@@ -247,6 +246,88 @@ export function isInsideIframe(): boolean {
   } catch {
     return true;
   }
+}
+
+/**
+ * 4. User-click triggered notification permission request (OneSignal.Notifications.requestPermission())
+ * 6. Custom button trigger for UI
+ * 7. Logs permission status to console to debug
+ */
+export async function requestOneSignalPermission(): Promise<boolean> {
+  console.log('[OneSignal] User clicked permission request button.');
+  console.log('[OneSignal] Current browser Notification.permission:', typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
+
+  if (typeof window === 'undefined') return false;
+
+  // 1. If running inside Capacitor native Android/iOS shell
+  if ((window as any).Capacitor?.isNativePlatform?.()) {
+    try {
+      console.log('[OneSignal] Requesting permission via Capacitor native bridge...');
+      const { PushNotifications } = await import('@capacitor/push-notifications');
+      const permStatus = await PushNotifications.requestPermissions();
+      console.log('[OneSignal] Capacitor permission status:', permStatus);
+      if (permStatus.receive === 'granted') {
+        await PushNotifications.register();
+        window.dispatchEvent(new CustomEvent('onesignal-permission-changed', { detail: { granted: true } }));
+        return true;
+      }
+      return false;
+    } catch (capErr) {
+      console.warn('[OneSignal] Capacitor PushNotifications error:', capErr);
+    }
+  }
+
+  // 2. Ensure OneSignal is initialized
+  const appId = getOneSignalAppId();
+  await initOneSignal(appId);
+
+  // 3. OneSignal Web SDK v16 request permission
+  return new Promise((resolve) => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async (OneSignal: any) => {
+      try {
+        console.log('[OneSignal] Calling OneSignal.Notifications.requestPermission()...');
+        const result = await OneSignal.Notifications?.requestPermission(true);
+        console.log('[OneSignal] OneSignal.Notifications.requestPermission result:', result);
+        console.log('[OneSignal] OneSignal.Notifications.permission:', OneSignal.Notifications?.permission);
+
+        const isGranted =
+          result === true ||
+          result === 'granted' ||
+          OneSignal.Notifications?.permission === true ||
+          (typeof Notification !== 'undefined' && Notification.permission === 'granted');
+
+        console.log('[OneSignal] Final Permission Granted state:', isGranted);
+        window.dispatchEvent(new CustomEvent('onesignal-permission-changed', { detail: { granted: isGranted } }));
+        resolve(isGranted);
+      } catch (err) {
+        console.warn('[OneSignal] OneSignal requestPermission caught error:', err);
+        // Fallback to native browser prompt on direct user gesture
+        if (typeof Notification !== 'undefined' && typeof Notification.requestPermission === 'function') {
+          try {
+            console.log('[OneSignal] Trying fallback native Notification.requestPermission()...');
+            const nativeRes = await Notification.requestPermission();
+            console.log('[OneSignal] Native Notification.requestPermission result:', nativeRes);
+            const isGranted = nativeRes === 'granted';
+            window.dispatchEvent(new CustomEvent('onesignal-permission-changed', { detail: { granted: isGranted } }));
+            resolve(isGranted);
+            return;
+          } catch (nativeErr) {
+            console.error('[OneSignal] Native permission error:', nativeErr);
+          }
+        }
+        resolve(false);
+      }
+    });
+  });
+}
+
+export function getNotificationPermissionStatus(): 'granted' | 'denied' | 'default' {
+  if (typeof window === 'undefined') return 'default';
+  if (typeof Notification !== 'undefined') {
+    return Notification.permission;
+  }
+  return 'default';
 }
 
 /**

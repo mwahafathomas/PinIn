@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { NotificationItem } from '../types/furniture';
 import { formatNotificationTime } from '../services/notificationsService';
+import { NotificationPermissionBanner } from './NotificationPermissionBanner';
 
 interface NotificationCardProps {
   notif: NotificationItem;
@@ -228,6 +229,9 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
             </h1>
           </div>
         </div>
+
+        {/* Custom Button Banner for Push Notification Permission (Requirement 6) */}
+        <NotificationPermissionBanner />
 
         {/* Notifications List */}
         {!isLoggedIn ? (

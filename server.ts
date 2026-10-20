@@ -15,6 +15,18 @@ const PININ_SUPPORT_INBOX = 'support@pinin.co.za';
 
 app.use(express.json());
 
+// 0. Enforce HTTPS in production (required for Web Push and Service Workers)
+app.use((req, res, next) => {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    req.headers['x-forwarded-proto'] &&
+    req.headers['x-forwarded-proto'] !== 'https'
+  ) {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
+
 // 1. Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'Pinin Marketplace Server' });

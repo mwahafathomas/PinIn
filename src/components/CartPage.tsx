@@ -30,6 +30,7 @@ import {
   DeliveryAddressPage,
   getSavedDeliveryAddress,
 } from './DeliveryAddressPage';
+import { CheckoutPage } from './CheckoutPage';
 
 interface CartPageProps {
   isOpen: boolean;
@@ -196,6 +197,7 @@ export const CartPage: React.FC<CartPageProps> = ({
   );
   const [buyerEmail, setBuyerEmail] = useState(user?.email || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<OrderRecord | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -657,7 +659,6 @@ export const CartPage: React.FC<CartPageProps> = ({
             <div className="shrink-0 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-3px_10px_rgba(0,0,0,0.04)]">
               <button
                 type="button"
-                disabled={isSubmitting}
                 onClick={(e) => {
                   if (!user?.isLoggedIn) {
                     e.preventDefault();
@@ -666,15 +667,20 @@ export const CartPage: React.FC<CartPageProps> = ({
                     }
                     return;
                   }
-                  handlePlaceOrder(e as any);
+
+                  // 6. dont allow user to go to this page if they havent added a delivery address in cart page
+                  if (!currentAddress && !deliveryAddress.trim()) {
+                    setErrorMessage('Please add a delivery address to proceed.');
+                    setIsAddressPageOpen(true);
+                    return;
+                  }
+
+                  setErrorMessage('');
+                  setIsCheckoutOpen(true);
                 }}
-                className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center capitalize"
+                className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-black text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center capitalize"
               >
-                {isSubmitting ? (
-                  <span>Proceeding to check out...</span>
-                ) : (
-                  <span>proceed to check out</span>
-                )}
+                <span>proceed to check out</span>
               </button>
             </div>
           </div>
@@ -756,6 +762,28 @@ export const CartPage: React.FC<CartPageProps> = ({
           }
         }}
         title="Delivery Address"
+      />
+
+      {/* Checkout Page */}
+      <CheckoutPage
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        items={items}
+        deliveryAddress={currentAddress}
+        onUpdateDeliveryAddress={(addr) => {
+          setCurrentAddress(addr);
+          setDeliveryAddress(
+            `${addr.streetAddressLine1}${addr.streetAddressLine2 ? `, ${addr.streetAddressLine2}` : ''}, ${addr.cityTown}, ${addr.province}`
+          );
+          if (addr.recipientName) {
+            setBuyerName(addr.recipientName);
+          }
+        }}
+        user={user}
+        onOrderSuccess={(order) => {
+          setIsCheckoutOpen(false);
+          setPlacedOrder(order);
+        }}
       />
     </div>
   );

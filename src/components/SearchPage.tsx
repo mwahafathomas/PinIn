@@ -32,30 +32,16 @@ interface SearchPageProps {
   onRequireAuth?: () => void;
 }
 
-// Comprehensive list of furniture categories & synonyms for search matching
+// List of clothing categories for search matching
 const SEARCH_CATEGORIES = [
-  'Sofas & Couches',
-  'TV & Media Units',
-  'Beds & Mattresses',
-  'Dining Tables & Chairs',
-  'Coffee Tables',
-  'Desks & Office Furniture',
-  'Wardrobes & Cupboards',
-  'Outdoor & Patio',
-  'Side Tables & Nightstands',
-  'Bookshelves & Storage',
-  'Kitchen & Appliances',
-  'Fridge',
-  'Stove & Oven',
-  'Microwave',
-  'Washing Machine',
-  'Living Room & Dining',
-  'Bedroom & Suites',
-  'Chairs & Recliners',
-  'Bar Stools',
-  'Gym & Fitness Equipment',
-  'Electronics',
-  'Mirrors & Decor',
+  'Tees, shirts',
+  'Trousers',
+  'Jeans',
+  'Jackets, hoodies',
+  'Dresses',
+  'Skirts',
+  'Men clothing',
+  'Women clothing',
 ];
 
 export const SearchPage: React.FC<SearchPageProps> = ({
@@ -184,8 +170,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               type="text"
               value={localQuery}
               onChange={(e) => handleQueryChange(e.target.value)}
-              placeholder="Search couches, TV, tables, beds..."
-              aria-label="Search furniture"
+              placeholder="Search shirts, jeans, dresses, hoodies..."
+              aria-label="Search clothes"
               className="w-full bg-transparent px-2.5 text-xs sm:text-sm font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
             />
             {localQuery.length > 0 && (

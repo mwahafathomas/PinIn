@@ -59,7 +59,16 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
     if (isOpen) {
       fetchCategoriesFromSupabase().then((data) => {
         if (data && data.length > 0) {
-          setCategories(data);
+          const hasOldFurniture = data.some((g) =>
+            g.title.toLowerCase().includes('living') ||
+            g.title.toLowerCase().includes('kitchen') ||
+            g.title.toLowerCase().includes('bedroom')
+          );
+          if (!hasOldFurniture) {
+            setCategories(data);
+          } else {
+            setCategories(DEFAULT_CATEGORY_GROUPS);
+          }
         }
       });
 

@@ -33,6 +33,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { UserAccount } from '../types/furniture';
+import { NotificationPermissionBanner } from './NotificationPermissionBanner';
 import { DEFAULT_AVATAR_IMAGE } from '../data/defaultAvatar';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import {
@@ -270,6 +271,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Push Notifications Custom Button (Requirement 6) */}
+            <NotificationPermissionBanner compact className="mb-3" />
 
             {/* Account Menu Navigation - Clean list with grey divider lines (no box/border background) */}
             <div className="divide-y divide-gray-200">
