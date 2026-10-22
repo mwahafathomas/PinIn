@@ -28,7 +28,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onOrderSuccess,
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('Card');
-  const [isAddressConfirmed, setIsAddressConfirmed] = useState<boolean>(true);
+  const [isAddressConfirmed, setIsAddressConfirmed] = useState<boolean>(false);
   const [isAddNewAddressOpen, setIsAddNewAddressOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -44,6 +44,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const handlePay = async () => {
     if (!deliveryAddress) {
       setErrorMessage('Please add a delivery address to proceed.');
+      return;
+    }
+
+    if (!isAddressConfirmed) {
+      setErrorMessage('Please confirm your delivery address before proceeding to pay.');
       return;
     }
 
@@ -65,7 +70,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         (user?.isLoggedIn ? (user.surname ? `${user.name} ${user.surname}` : user.name) : 'Customer');
       const buyerEmail = user?.email || 'customer@pinin.co.za';
 
-      const deliverySummary = `Free Delivery to: ${deliveryAddress.streetAddressLine1}${
+      const deliverySummary = `Delivery to: ${deliveryAddress.streetAddressLine1}${
         deliveryAddress.streetAddressLine2 ? `, ${deliveryAddress.streetAddressLine2}` : ''
       }, ${deliveryAddress.cityTown}, ${deliveryAddress.province} (${deliveryAddress.postalCode}) [Method: ${selectedMethod}]`;
 
@@ -102,6 +107,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           sellerId: i.sellerId || mainSellerId,
           quantity: i.quantity,
           imageUrl: i.imageUrl,
+          size: i.size,
         })),
       });
 
@@ -212,15 +218,23 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             {/* Confirm address option */}
             <button
               type="button"
-              onClick={() => setIsAddressConfirmed(true)}
+              disabled={!deliveryAddress}
+              onClick={() => {
+                if (!deliveryAddress) {
+                  setErrorMessage('Please add a delivery address first.');
+                  return;
+                }
+                setIsAddressConfirmed(true);
+                setErrorMessage('');
+              }}
               className={`py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 isAddressConfirmed
                   ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                  : 'bg-white border-gray-300 text-gray-800 hover:bg-gray-50'
+                  : 'bg-white border-[#2D8EDE] text-[#2D8EDE] hover:bg-blue-50/40 shadow-xs ring-1 ring-[#2D8EDE]/20'
               }`}
             >
               {isAddressConfirmed && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-              <span>{isAddressConfirmed ? 'Address Confirmed' : 'Confirm Address'}</span>
+              <span>{isAddressConfirmed ? 'Address confirmed' : 'Confirm address'}</span>
             </button>
 
             {/* Add new address option */}
@@ -290,12 +304,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           {/* 7: Pay with (the payment method selected) */}
           <button
             type="button"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isAddressConfirmed || !deliveryAddress}
             onClick={handlePay}
-            className="flex-1 max-w-xs py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center text-center capitalize"
+            className="flex-1 max-w-xs py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center text-center capitalize"
           >
             {isSubmitting ? (
               <span>Processing...</span>
+            ) : !isAddressConfirmed ? (
+              <span>Confirm address first</span>
             ) : (
               <span>Pay with {selectedMethod}</span>
             )}

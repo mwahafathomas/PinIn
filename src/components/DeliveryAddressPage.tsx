@@ -72,6 +72,18 @@ interface DeliveryAddressPageProps {
  * - Province is locked to Gauteng.
  * - Saves in user account address book and pre-populates at the top next time.
  */
+const SOUTH_AFRICAN_PROVINCES = [
+  'Gauteng',
+  'Eastern Cape',
+  'Free State',
+  'KwaZulu-Natal',
+  'Limpopo',
+  'Mpumalanga',
+  'North West',
+  'Northern Cape',
+  'Western Cape',
+];
+
 export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
   isOpen,
   onClose,
@@ -110,6 +122,9 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
         setStreetAddressLine2(current.streetAddressLine2 || '');
         setStreetAddressLine3(current.streetAddressLine3 || '');
         setCityTown(current.cityTown || '');
+        if (current.province) {
+          setProvince(current.province);
+        }
         setPostalCode(current.postalCode || '');
         setDeliveryInstructions(current.deliveryInstructions || '');
       }
@@ -162,7 +177,7 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
       streetAddressLine2: streetAddressLine2.trim(),
       streetAddressLine3: streetAddressLine3.trim() || undefined,
       cityTown: cityTown.trim(),
-      province: 'Gauteng',
+      province: province.trim() || 'Gauteng',
       postalCode: postalCode.trim(),
       deliveryInstructions: deliveryInstructions.trim(),
     };
@@ -381,7 +396,11 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
                   onChange={(e) => setProvince(e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-gray-900 bg-white text-xs font-semibold focus:outline-none focus:border-black cursor-pointer"
                 >
-                  <option value="Gauteng">Gauteng</option>
+                  {SOUTH_AFRICAN_PROVINCES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
                 </select>
               </div>
 

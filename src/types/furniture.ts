@@ -60,6 +60,7 @@ export interface FurnitureItem {
   stockQuantity?: number;
   costPrice?: number;
   isSupplierProduct?: boolean;
+  itemSize?: string;
 }
 
 export interface CategoryOption {

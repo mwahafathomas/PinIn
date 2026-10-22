@@ -634,20 +634,14 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </div>
 
               {/* Value Highlights */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+              <div className="grid grid-cols-2 gap-2 pt-2">
                 <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
                   {typeof item.stockQuantity === 'number' && item.stockQuantity > 0
                     ? `In stock (${item.stockQuantity})`
                     : 'In stock'}
                 </div>
                 <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
-                  Warranty
-                </div>
-                <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
                   Returns
-                </div>
-                <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
-                  Pay in person
                 </div>
               </div>
 

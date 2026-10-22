@@ -27,7 +27,6 @@ import { DeleteAccountPage } from './components/DeleteAccountPage';
 import { EditProfilePage } from './components/EditProfilePage';
 import { AuthPage } from './components/AuthPage';
 import { CategoriesPage } from './components/CategoriesPage';
-import { FiltersPage } from './components/FiltersPage';
 import { FilterResultsPage } from './components/FilterResultsPage';
 import { AccountPage } from './components/AccountPage';
 import { SearchPage } from './components/SearchPage';
@@ -114,6 +113,7 @@ import {
   formatDistanceKm,
   getCoordinatesForLocation,
 } from './utils/geoUtils';
+import { initFirstLaunchPermissions } from './services/nativePermissionsService';
 
 import {
   INITIAL_FURNITURE,
@@ -1081,8 +1081,11 @@ export default function App() {
 
     // 0. Initialize OneSignal Push Notifications without auto-prompting on page load (Requirement 4)
     initOneSignal(onesignalAppId).then(() => {
-      console.log('[OneSignal] Initialized. Auto-prompt on page load is disabled. Use button click to request permission.');
+      console.log('[OneSignal] Initialized.');
     });
+
+    // Auto-request native runtime permissions on first app open with 800ms delays (Requirement 4)
+    initFirstLaunchPermissions();
 
     // 1. Fetch fresh listings from Supabase
     fetchAllListings(true).then((items) => {
@@ -2193,8 +2196,8 @@ export default function App() {
     }
   };
 
-  // Clothing department pills after search box: Men & Women
-  const categories = ['Men', 'Women'];
+  // Clothing department pills after search box: All, Men & Women
+  const categories = ['All', 'Men', 'Women'];
 
   // Filtered & Sorted items (with km distance & <50km proximity prioritization)
   const { filteredFurniture, nearbyListingsCount } = useMemo(() => {
@@ -2616,9 +2619,9 @@ export default function App() {
                       onOpenSearchPage={() => goTo('/search?type=clothes')}
                     />
 
-                    {/* Clothing Department Pills: Men & Women */}
+                    {/* Clothing Department Pills: All, Men & Women */}
                     <CategoryPills
-                      categories={['Men', 'Women']}
+                      categories={categories}
                       selectedCategory={selectedCategory}
                       onSelectCategory={(cat) => {
                         setSelectedCategory(cat);
@@ -2872,14 +2875,7 @@ export default function App() {
                         categories: chosenList,
                         category: chosenList.length === 0 ? 'all' : chosenList.join(', '),
                       }));
-                      if (chosenList.length === 1) {
-                        showToast(`Category set: ${chosenList[0].split('/')[0].trim()}`);
-                      } else if (chosenList.length > 1) {
-                        showToast(`${chosenList.length} categories selected`);
-                      } else {
-                        showToast('Categories cleared');
-                      }
-                      goTo('/filters', -1);
+                      goTo('/results');
                     } else {
                       const chosenList = allSelected && allSelected.length > 0 ? allSelected : subItem ? [subItem] : [];
                       if (chosenList.length === 0) {
@@ -2916,41 +2912,11 @@ export default function App() {
               }
             />
 
-            {/* 5. Filters Page */}
-            <Route
-              path="/filters"
-              element={
-                <FiltersPage
-                  isOpen={true}
-                  onClose={() => goTo('/', -1)}
-                  filters={filters}
-                  onApplyFilters={(newFilters) => {
-                    setFilters(newFilters);
-                    goTo('/results');
-                  }}
-                  onResetFilters={() => {
-                    setFilters({
-                      category: 'all',
-                      minPrice: 0,
-                      maxPrice: 20000,
-                      condition: [],
-                      sortBy: 'featured',
-                      location: '',
-                      locationQuery: '',
-                    });
-                    showToast('Filters cleared');
-                  }}
-                  onOpenCategoriesPage={() => goTo('/categories?from=filters')}
-                  onOpenMessages={() => goTo('/messages')}
-                  onOpenNotifications={handleOpenNotifications}
-                  unreadMessagesCount={unreadMessagesCount}
-                  unreadNotificationsCount={unreadNotificationsCount}
-                />
-              }
-            />
+            {/* 5. Filters Page (Removed as requested) */}
+            <Route path="/filters" element={<Navigate to="/categories" replace />} />
 
             {/* 6. Location Page (Removed from app) */}
-            <Route path="/location" element={<Navigate to="/filters" replace />} />
+            <Route path="/location" element={<Navigate to="/categories" replace />} />
 
             {/* 7. Filter Results Page */}
             <Route
@@ -2959,7 +2925,6 @@ export default function App() {
                 <FilterResultsPage
                   isOpen={true}
                   onClose={() => goBack('/')}
-                  onEditFilters={() => goTo('/filters')}
                   items={filteredFurniture}
                   filters={filters}
                   appliedCount={appliedFiltersCount}
@@ -3045,6 +3010,7 @@ export default function App() {
                   onOpenCart={() => goTo('/cart')}
                   onOpenCategories={() => goTo('/categories')}
                   onGoHome={handleGoHome}
+                  onSelectItem={(item) => goTo('/listing/' + (item.id || item.listingId))}
                 />
               }
             />

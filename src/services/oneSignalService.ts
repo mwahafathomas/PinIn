@@ -260,21 +260,51 @@ export async function requestOneSignalPermission(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
 
   // 1. If running inside Capacitor native Android/iOS shell
-  if ((window as any).Capacitor?.isNativePlatform?.()) {
-    try {
+  try {
+    const isNative = (window as any).Capacitor?.isNativePlatform?.() || (window as any).Capacitor?.isPluginAvailable?.('PushNotifications');
+    if (isNative) {
       console.log('[OneSignal] Requesting permission via Capacitor native bridge...');
       const { PushNotifications } = await import('@capacitor/push-notifications');
-      const permStatus = await PushNotifications.requestPermissions();
-      console.log('[OneSignal] Capacitor permission status:', permStatus);
-      if (permStatus.receive === 'granted') {
-        await PushNotifications.register();
-        window.dispatchEvent(new CustomEvent('onesignal-permission-changed', { detail: { granted: true } }));
-        return true;
+
+      // CRITICAL FIX: Check if permission is already granted before requesting
+      try {
+        const checkStatus = await PushNotifications.checkPermissions();
+        if (checkStatus.receive === 'granted') {
+          console.log('[OneSignal] Native push permission already granted.');
+          window.dispatchEvent(new CustomEvent('onesignal-permission-changed', { detail: { granted: true } }));
+          return true;
+        }
+      } catch (checkErr) {
+        console.warn('[OneSignal] PushNotifications.checkPermissions warning:', checkErr);
       }
-      return false;
-    } catch (capErr) {
-      console.warn('[OneSignal] Capacitor PushNotifications error:', capErr);
+
+      // Wrap requestPermissions in try/catch to prevent app crash
+      try {
+        const permStatus = await PushNotifications.requestPermissions();
+        console.log('[OneSignal] Capacitor permission status:', permStatus);
+        if (permStatus.receive === 'granted') {
+          try {
+            await PushNotifications.register();
+          } catch (regErr) {
+            console.warn('[OneSignal] PushNotifications.register optional warning:', regErr);
+          }
+          window.dispatchEvent(new CustomEvent('onesignal-permission-changed', { detail: { granted: true } }));
+          return true;
+        }
+        return false;
+      } catch (reqErr) {
+        console.error('[OneSignal] PushNotifications.requestPermissions caught error:', reqErr);
+        return false;
+      }
     }
+  } catch (capErr) {
+    console.warn('[OneSignal] Capacitor PushNotifications error:', capErr);
+  }
+
+  // Quick check for web: if already granted, do not prompt again
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    window.dispatchEvent(new CustomEvent('onesignal-permission-changed', { detail: { granted: true } }));
+    return true;
   }
 
   // 2. Ensure OneSignal is initialized

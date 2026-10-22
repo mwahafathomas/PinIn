@@ -21,19 +21,21 @@ export default function MediaPermissionSheet({
     setBlockedMessage(null);
     try {
       try {
-        // Ask for permissions if supported by native Capacitor
-        const perm = await Camera.requestPermissions({ permissions: ['camera', 'photos'] });
-
-        if (mode === 'camera' && perm.camera === 'denied') {
-          setBlockedMessage("Camera access blocked. Please enable Camera permissions in your browser or device settings.");
-          return;
+        // Pre-check permissions before requesting
+        const check = await Camera.checkPermissions();
+        if ((mode === 'camera' && check.camera !== 'granted') || (mode === 'gallery' && check.photos !== 'granted')) {
+          const perm = await Camera.requestPermissions({ permissions: ['camera', 'photos'] });
+          if (mode === 'camera' && perm.camera === 'denied') {
+            setBlockedMessage("Camera access blocked. Please enable Camera permissions in your settings.");
+            return;
+          }
+          if (mode === 'gallery' && perm.photos === 'denied') {
+            setBlockedMessage("Photo gallery access blocked. Please enable Photos permissions in your settings.");
+            return;
+          }
         }
-        if (mode === 'gallery' && perm.photos === 'denied') {
-          setBlockedMessage("Photo gallery access blocked. Please enable Photos permissions in your browser or device settings.");
-          return;
-        }
-      } catch {
-        // Fallback gracefully if platform does not implement requestPermissions (e.g. web browser)
+      } catch (err) {
+        console.warn('[Camera] Permission check/request caught warning:', err);
       }
 
       const photo = await Camera.getPhoto({

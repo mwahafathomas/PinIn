@@ -11,7 +11,6 @@ import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 interface FilterResultsPageProps {
   isOpen: boolean;
   onClose: () => void;
-  onEditFilters: () => void;
   items: FurnitureItem[];
   filters: FilterState;
   appliedCount: number;
@@ -28,7 +27,6 @@ interface FilterResultsPageProps {
 export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
   isOpen,
   onClose,
-  onEditFilters,
   items,
   filters,
   appliedCount,
@@ -236,17 +234,8 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
               No matching listings
             </h2>
             <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
-              We couldn't find any furniture matching these active filters.
+              We couldn't find any listings under this category.
             </p>
-            <div className="pt-2 flex items-center justify-center">
-              <button
-                type="button"
-                onClick={onEditFilters}
-                className="py-2.5 px-6 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all cursor-pointer text-center"
-              >
-                Modify Filters
-              </button>
-            </div>
           </div>
         )}
       </main>

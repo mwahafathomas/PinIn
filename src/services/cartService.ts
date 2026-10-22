@@ -13,6 +13,7 @@ export interface CartItem {
   sellerEmail?: string;
   quantity: number;
   addedAt: string;
+  size?: string;
 }
 
 const CART_STORAGE_KEY = 'pinin_cart_items_v1';
@@ -63,6 +64,7 @@ export function addToCart(item: FurnitureItem, quantity: number = 1): CartItem[]
       sellerEmail: (item.seller as any)?.email,
       quantity: Math.max(1, quantity),
       addedAt: new Date().toISOString(),
+      size: item.itemSize || (item as any).size || undefined,
     };
     current.push(newItem);
   }

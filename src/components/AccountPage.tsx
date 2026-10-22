@@ -41,12 +41,13 @@ import {
   OrderRecord,
 } from '../services/ordersService';
 import {
-  submitReturnRequest,
   fetchUserRefunds,
   RefundRecord,
 } from '../services/returnsAndRefundsService';
 import { getCartCount } from '../services/cartService';
 import { DeliveryAddressPage } from './DeliveryAddressPage';
+import { ReturnsFlowModal } from './ReturnsFlowModal';
+import { OrdersFlowModal } from './OrdersFlowModal';
 
 interface AccountPageProps {
   isOpen: boolean;
@@ -95,6 +96,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   onOpenCart,
   onOpenCategories,
   onGoHome,
+  onSelectItem,
 }) => {
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -113,41 +115,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
 
   // Refunds state
   const [refunds, setRefunds] = useState<RefundRecord[]>([]);
-
-  // Returns state
-  const [returnSuccessMsg, setReturnSuccessMsg] = useState('');
-  const [selectedReturnOrder, setSelectedReturnOrder] = useState<string>('');
-  const [returnReason, setReturnReason] = useState("description doesn't match product");
-  const [returnDetails, setReturnDetails] = useState('');
-
-  // Submit return
-  const handleSubmitReturn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedReturnOrder) return;
-
-    const matchedOrder = orders.find((o) => o.orderNumber === selectedReturnOrder);
-
-    // Save to Supabase returns_requests table
-    await submitReturnRequest({
-      orderNumber: selectedReturnOrder,
-      orderId: matchedOrder?.id,
-      userEmail: user.email || '',
-      userName: user.surname ? `${user.name} ${user.surname}` : user.name,
-      listingId: matchedOrder?.listingId,
-      itemBought: matchedOrder?.itemBought || 'Item',
-      reason: returnReason,
-      description: returnDetails,
-    });
-
-    setReturnSuccessMsg(
-      `Return request for order #${selectedReturnOrder} submitted. Our logistics team will contact you within 24 hours.`
-    );
-    setTimeout(() => {
-      setReturnSuccessMsg('');
-      setSelectedReturnOrder('');
-      setReturnDetails('');
-    }, 4000);
-  };
 
   useEffect(() => {
     if (isOpen) {
@@ -317,7 +284,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <Package className="w-4 h-4 text-[#2D8EDE]" />
                   </div>
                   <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">My Orders</p>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Orders</p>
                     <p className="text-[11px] text-gray-400">
                       {orders.length > 0 ? `${orders.length} order(s) placed` : 'View order history & status'}
                     </p>
@@ -611,232 +578,39 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* FULL PAGE 2: MY ORDERS                                                    */}
+      {/* FULL PAGE 2: ORDERS (Pages 10, 20, 30 Flow)                               */}
       {/* ========================================================================= */}
-      {activeModal === 'my-orders' && (
-        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
-          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
-            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
-              <div className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  aria-label="Go back"
-                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
-                >
-                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
-                </button>
-              </div>
-
-              <div className="absolute left-1/2 -translate-x-1/2">
-                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-                  Pin<span className="text-[#2D8EDE]">In</span>
-                </span>
-              </div>
-
-              <div className="w-8" aria-hidden="true" />
-            </div>
-          </header>
-
-          <main className="flex-1 w-full max-w-md md:max-w-3xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
-            <div className="border-b border-gray-200 pb-3 flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">My Orders</h1>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {orders.length > 0 ? `${orders.length} order(s) placed` : 'No orders placed yet'}
-                </p>
-              </div>
-            </div>
-
-            {isSubpageLoading ? (
-              <div className="space-y-3 animate-pulse">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-white p-4 border border-gray-200 rounded-3xl space-y-3">
-                    <div className="flex justify-between">
-                      <div className="h-4 w-28 bg-gray-200 rounded" />
-                      <div className="h-4 w-16 bg-gray-200 rounded-full" />
-                    </div>
-                    <div className="h-4 w-3/4 bg-gray-200 rounded" />
-                    <div className="h-3 w-1/2 bg-gray-200 rounded" />
-                  </div>
-                ))}
-              </div>
-            ) : orders.length > 0 ? (
-              <div className="space-y-3">
-                {orders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="bg-white p-4 border border-gray-200 rounded-3xl space-y-2.5 text-xs shadow-xs"
-                  >
-                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                      <span className="font-black text-[#2D8EDE] text-sm">{order.orderNumber}</span>
-                      <span
-                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
-                          (order.deliveryStatus || order.status || '').toLowerCase().includes('delivered') &&
-                          !(order.deliveryStatus || '').toLowerCase().includes('still')
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        <CheckCircle className="w-3 h-3" />
-                        <span>{order.deliveryStatus || order.status || 'Still being delivered'}</span>
-                      </span>
-                    </div>
-
-                    <p className="font-extrabold text-sm text-gray-900">{order.itemBought}</p>
-
-                    <div className="flex items-center justify-between text-xs text-gray-600">
-                      <span className="font-bold text-gray-900">
-                        R{order.price}{' '}
-                        {order.quantity && order.quantity > 1 ? `(Qty: ${order.quantity})` : ''}
-                      </span>
-                      <span className="flex items-center gap-1 text-gray-400">
-                        <Clock className="w-3.5 h-3.5" />
-                        {order.dateBought}
-                      </span>
-                    </div>
-
-                    {order.deliveryEstimation && (
-                      <div className="text-[11px] font-bold text-blue-700 bg-blue-50/70 p-2.5 rounded-xl border border-blue-100 flex items-center justify-between">
-                        <span>Delivery Estimation:</span>
-                        <span>{order.deliveryEstimation}</span>
-                      </div>
-                    )}
-
-                    <p className="text-[11px] text-gray-500 pt-1 border-t border-gray-100">
-                      {order.delivery}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center text-xs text-gray-500 shadow-xs">
-                You haven't placed any orders yet. Browse furniture to get started!
-              </div>
-            )}
-          </main>
-        </div>
-      )}
+      <OrdersFlowModal
+        isOpen={activeModal === 'my-orders'}
+        onClose={() => setActiveModal(null)}
+        orders={orders}
+        onOpenReturns={(_selectedReturnOrder) => {
+          setActiveModal('returns');
+        }}
+        onOpenListing={(listingId) => {
+          setActiveModal(null);
+          if (onSelectItem) {
+            onSelectItem({ id: listingId });
+          } else {
+            window.location.hash = `#/listing/${listingId}`;
+          }
+        }}
+      />
 
       {/* ========================================================================= */}
-      {/* FULL PAGE 3: RETURNS                                                      */}
+      {/* FULL PAGE 3: RETURNS (3-Step Return Flow)                                 */}
       {/* ========================================================================= */}
-      {activeModal === 'returns' && (
-        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
-          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
-            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
-              <div className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  aria-label="Go back"
-                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
-                >
-                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
-                </button>
-              </div>
-
-              <div className="absolute left-1/2 -translate-x-1/2">
-                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-                  Pin<span className="text-[#2D8EDE]">In</span>
-                </span>
-              </div>
-
-              <div className="w-8" aria-hidden="true" />
-            </div>
-          </header>
-
-          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
-            <div className="border-b border-gray-200 pb-3">
-              <h1 className="text-xl font-bold text-gray-900">Returns</h1>
-              <p className="text-xs text-gray-500 mt-0.5">7-Day Hassle-Free Return Guarantee</p>
-            </div>
-
-            {returnSuccessMsg && (
-              <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl text-xs font-bold">
-                {returnSuccessMsg}
-              </div>
-            )}
-
-            {/* Policy badge */}
-            <div className="p-4 bg-white border border-gray-200 rounded-3xl text-xs space-y-1 shadow-xs">
-              <p className="font-extrabold text-gray-900 text-sm">PinIn Return Policy</p>
-              <p className="text-[11px] text-gray-600 leading-relaxed">
-                You can return any purchased furniture item within 7 days of delivery if the condition does not match the listing description or is defective.
-              </p>
-            </div>
-
-            {/* Request Return Form */}
-            {orders.length > 0 ? (
-              <div className="bg-white border border-gray-200 rounded-3xl p-5 shadow-xs space-y-4">
-                <h2 className="text-sm font-bold text-gray-900">Request a Return</h2>
-                <form onSubmit={handleSubmitReturn} className="space-y-3.5 text-xs">
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                      Select Order to Return *
-                    </label>
-                    <select
-                      required
-                      value={selectedReturnOrder}
-                      onChange={(e) => setSelectedReturnOrder(e.target.value)}
-                      className="w-full text-xs font-medium px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white cursor-pointer"
-                    >
-                      <option value="">-- Choose an order --</option>
-                      {orders.map((o) => (
-                        <option key={o.id} value={o.orderNumber}>
-                          {o.orderNumber} - {o.itemBought} (R{o.price})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                      Reason for Return *
-                    </label>
-                    <select
-                      value={returnReason}
-                      onChange={(e) => setReturnReason(e.target.value)}
-                      className="w-full text-xs font-medium px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white cursor-pointer"
-                    >
-                      <option value="description doesn't match product">Description doesn't match product</option>
-                      <option value="wrong product image">Wrong product image</option>
-                      <option value="item arrived damaged">Item arrived damaged / scratched</option>
-                      <option value="changed mind">Changed mind</option>
-                      <option value="other">Other reason</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                      Additional Details
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={returnDetails}
-                      onChange={(e) => setReturnDetails(e.target.value)}
-                      placeholder="Describe any specifics to arrange pickup..."
-                      className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white resize-none"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={!selectedReturnOrder}
-                    className="w-full py-3 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
-                  >
-                    Submit Return Request
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <div className="bg-white border border-gray-200 rounded-3xl p-8 text-center text-xs text-gray-500 shadow-xs">
-                You have no completed orders eligible for return at this time.
-              </div>
-            )}
-          </main>
-        </div>
-      )}
+      <ReturnsFlowModal
+        isOpen={activeModal === 'returns'}
+        onClose={() => setActiveModal(null)}
+        user={user}
+        orders={orders}
+        onOpenPolicies={() => {
+          setActiveModal(null);
+          if (onOpenPolicies) onOpenPolicies();
+          else if (onOpenPrivacyPolicy) onOpenPrivacyPolicy();
+        }}
+      />
 
       {/* ========================================================================= */}
       {/* FULL PAGE 4: INVOICES                                                     */}

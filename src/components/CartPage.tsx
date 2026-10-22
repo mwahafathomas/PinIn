@@ -286,10 +286,10 @@ export const CartPage: React.FC<CartPageProps> = ({
       const finalBuyerPhone = currentAddress?.recipientPhone || '';
 
       const deliveryText = currentAddress
-        ? `Free Delivery to: ${currentAddress.streetAddressLine1}${
+        ? `Delivery to: ${currentAddress.streetAddressLine1}${
             currentAddress.streetAddressLine2 ? `, ${currentAddress.streetAddressLine2}` : ''
           }, ${currentAddress.cityTown}, ${currentAddress.province} (${currentAddress.postalCode})`
-        : `Free Delivery to: ${deliveryAddress.trim()}`;
+        : `Delivery to: ${deliveryAddress.trim()}`;
 
       const totalQuantity = items.reduce((acc, i) => acc + (i.quantity || 1), 0);
       const res = await createOrder({
@@ -323,6 +323,7 @@ export const CartPage: React.FC<CartPageProps> = ({
           sellerId: i.sellerId || mainSellerId,
           quantity: i.quantity,
           imageUrl: i.imageUrl,
+          size: i.size,
         })),
       });
 
@@ -574,9 +575,6 @@ export const CartPage: React.FC<CartPageProps> = ({
                   <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                     <span>Delivery</span>
                   </h2>
-                  <span className="text-xs font-black text-[#2D8EDE]">
-                    Free delivery
-                  </span>
                 </div>
 
                 <div className="space-y-2">
@@ -639,7 +637,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                 </div>
                 <div className="flex items-center justify-between text-gray-600">
                   <span>Delivery</span>
-                  <span className="font-bold text-[#2D8EDE]">Free delivery</span>
+                  <span className="font-bold text-gray-900">R0</span>
                 </div>
                 <div className="h-px bg-gray-200 my-1" />
                 <div className="flex items-center justify-between text-sm">

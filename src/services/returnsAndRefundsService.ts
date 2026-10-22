@@ -86,23 +86,28 @@ export async function submitReturnRequest(data: {
   saveLocalReturn(record);
 
   try {
-    const { error } = await supabase.from('returns_requests').insert([
-      {
-        id: record.id,
-        order_number: record.orderNumber,
-        order_id: record.orderId || null,
-        user_email: record.userEmail,
-        user_name: record.userName,
-        listing_id: record.listingId || null,
-        item_bought: record.itemBought,
-        reason: record.reason,
-        description: record.description || null,
-        status: record.status,
-      },
-    ]);
+    const insertPayload: any = {
+      order_number: record.orderNumber,
+      order_id: null,
+      user_email: record.userEmail,
+      user_name: record.userName,
+      listing_id: null,
+      item_bought: record.itemBought,
+      reason: record.reason,
+      description: record.description || null,
+      status: record.status,
+    };
+
+    const { data: inserted, error } = await supabase
+      .from('returns_requests')
+      .insert([insertPayload])
+      .select();
 
     if (error) {
       console.warn('Supabase returns_requests notice:', error.message);
+    } else if (inserted && inserted[0]) {
+      record.id = inserted[0].id;
+      saveLocalReturn(record);
     }
   } catch (err) {
     console.warn('Returns request error:', err);

@@ -1,3 +1,6 @@
+import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
+
 export interface Coordinates {
   lat: number;
   lng: number;
@@ -178,9 +181,48 @@ export function getCachedUserLocation(): { coords: Coordinates | null; hasPermis
 }
 
 /**
- * Requests GPS position from browser with user consent
+ * Requests GPS position using native Capacitor Geolocation on Android, falling back to browser API
  */
-export function requestBrowserLocation(): Promise<{ coords: Coordinates; cityName?: string }> {
+export async function requestBrowserLocation(): Promise<{ coords: Coordinates; cityName?: string }> {
+  // 1. Native Capacitor Geolocation for Android devices
+  try {
+    if (Capacitor.isPluginAvailable('Geolocation') || (window as any).Capacitor?.isNativePlatform?.()) {
+      // Pre-check permission before requesting
+      try {
+        const check = await Geolocation.checkPermissions();
+        if (check.location !== 'granted') {
+          const req = await Geolocation.requestPermissions();
+          if (req.location !== 'granted') {
+            throw new Error('Location permission denied');
+          }
+        }
+      } catch (permErr) {
+        console.warn('[Geo] Native permission check warning:', permErr);
+      }
+
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 60000,
+      });
+
+      const coords: Coordinates = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+
+      try {
+        localStorage.setItem(STORAGE_KEY_PERMISSION, 'true');
+        localStorage.setItem(STORAGE_KEY_LOCATION, JSON.stringify(coords));
+      } catch {}
+
+      return { coords };
+    }
+  } catch (capErr) {
+    console.warn('[Geo] Capacitor Geolocation notice, falling back to browser API:', capErr);
+  }
+
+  // 2. Standard browser fallback
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocation is not supported by your browser'));

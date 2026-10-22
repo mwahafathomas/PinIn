@@ -7,11 +7,12 @@ interface CategoryPillsProps {
 }
 
 export const CategoryPills: React.FC<CategoryPillsProps> = ({
-  categories = ['Men', 'Women'],
+  categories = ['All', 'Men', 'Women'],
   selectedCategory,
   onSelectCategory,
 }) => {
-  const displayCategories = categories && categories.length > 0 ? categories : ['Men', 'Women'];
+  const displayCategories =
+    categories && categories.length > 0 ? categories : ['All', 'Men', 'Women'];
 
   return (
     <div className="w-full bg-white border-b border-gray-100 shadow-2xs">
@@ -32,11 +33,7 @@ export const CategoryPills: React.FC<CategoryPillsProps> = ({
                 role="tab"
                 aria-selected={isSelected}
                 onClick={() => {
-                  if (isSelected) {
-                    onSelectCategory('All');
-                  } else {
-                    onSelectCategory(category);
-                  }
+                  onSelectCategory(category);
                 }}
                 className={`flex-1 py-2 px-4 rounded-xl text-xs font-black transition-all duration-150 cursor-pointer text-center select-none active:scale-95 ${
                   isSelected

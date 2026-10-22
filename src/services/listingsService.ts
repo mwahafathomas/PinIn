@@ -94,6 +94,7 @@ export interface SupabaseListingRow {
   sale_tag?: string | null;
   sale_price?: number | string | null;
   is_sale?: boolean | string | number | null;
+  item_size?: string | null;
   [key: string]: unknown;
 }
 
@@ -324,6 +325,7 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
       String(row.is_sale).toLowerCase() === 'true' ||
       String(row.sale_tag || (row as any).sale || '').toLowerCase().trim() === 'sale' ||
       (row.sale_price !== undefined && row.sale_price !== null && Number(row.sale_price) > 0),
+    itemSize: row.item_size ? String(row.item_size).trim() : (row as any).itemSize || (row as any).size || undefined,
   };
 }
 

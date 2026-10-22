@@ -1,5 +1,16 @@
 import { supabase } from '../supabaseClient';
 
+export interface OrderItem {
+  listingId?: string;
+  itemBought: string;
+  itemPrice: number;
+  quantity: number;
+  imageUrl?: string;
+  size?: string;
+  sellerName?: string;
+  sellerId?: string;
+}
+
 export interface OrderRecord {
   id: string;
   orderNumber: string;
@@ -27,10 +38,18 @@ export interface OrderRecord {
   price: number;
   quantity: number;
   dateBought: string;
-  status: string;
+  status: string; // e.g. 'Delivered', 'Out for delivery', 'Being processed'
   deliveryStatus?: string;
   imageUrl?: string;
+  images?: string[];
+  items?: OrderItem[];
   created_at?: string;
+  packageInfo?: string;
+  courier?: string;
+  trackingNumber?: string;
+  shippingStatus?: 'order_paid' | 'shipped' | 'delivered' | string;
+  latestUpdate?: string;
+  latestUpdateTime?: string;
 }
 
 const ORDERS_STORAGE_KEY = 'pinin_orders_history_v1';
@@ -64,7 +83,6 @@ export function getLocalOrders(): OrderRecord[] {
 export function saveLocalOrder(order: OrderRecord): void {
   try {
     const orders = getLocalOrders();
-    // Prepend new order
     const updated = [order, ...orders.filter((o) => o.id !== order.id && o.orderNumber !== order.orderNumber)];
     localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updated));
   } catch (e) {
@@ -75,8 +93,8 @@ export function saveLocalOrder(order: OrderRecord): void {
 export function saveMultipleLocalOrders(newOrders: OrderRecord[]): void {
   try {
     const orders = getLocalOrders();
-    const newIds = new Set(newOrders.map((o) => o.id));
-    const filteredOld = orders.filter((o) => !newIds.has(o.id));
+    const newNumbers = new Set(newOrders.map((o) => o.orderNumber));
+    const filteredOld = orders.filter((o) => !newNumbers.has(o.orderNumber));
     const combined = [...newOrders, ...filteredOld];
     localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(combined));
   } catch (e) {
@@ -88,13 +106,14 @@ export interface PlaceOrderItemInput {
   listingId?: string;
   itemBought: string;
   itemPrice: number;
-  sellerName: string;
+  sellerName?: string;
   sellerId?: string;
   quantity: number;
   imageUrl?: string;
+  size?: string;
 }
 
-// Create a new order (or multiple orders for cart items) in Supabase and update stats
+// Create a new unified order for all items in the cart
 export async function createOrder(data: {
   orderNumber?: string;
   username: string;
@@ -136,16 +155,16 @@ export async function createOrder(data: {
   const deliveryEstimation = data.deliveryEstimation || calculateDeliveryEstimation(now);
 
   const username = data.username.trim() || data.buyerName?.trim() || 'PinIn Buyer';
-  const userEmail = data.userEmail.trim().toLowerCase() || data.buyerEmail?.trim().toLowerCase() || '';
+  const userEmail = data.userEmail.trim().toLowerCase() || data.buyerEmail?.trim().toLowerCase() || 'customer@pinin.co.za';
 
-  // Determine items to insert
+  // Determine items in cart
   const itemsToProcess: PlaceOrderItemInput[] =
     data.items && data.items.length > 0
       ? data.items
       : [
           {
             listingId: data.listingId,
-            itemBought: data.itemBought || 'Furniture Item',
+            itemBought: data.itemBought || 'Item',
             itemPrice: data.itemPrice ?? data.price ?? 0,
             sellerName: data.sellerName || 'PinIn Verified Seller',
             sellerId: data.sellerId,
@@ -154,146 +173,218 @@ export async function createOrder(data: {
           },
         ];
 
-  const createdOrders: OrderRecord[] = [];
+  // Calculate totals across cart items
+  const totalCalculatedPrice =
+    data.price !== undefined
+      ? Number(data.price)
+      : itemsToProcess.reduce(
+          (sum, item) => sum + (Number(item.itemPrice) || 0) * (Number(item.quantity) || 1),
+          0
+        );
 
-  for (let index = 0; index < itemsToProcess.length; index++) {
-    const item = itemsToProcess[index];
-    const orderId = `ord_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 6)}`;
-    const lineTotal = (Number(item.itemPrice) || 0) * (Number(item.quantity) || 1);
+  const totalQuantity =
+    data.quantity !== undefined
+      ? Number(data.quantity)
+      : itemsToProcess.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
 
-    const record: OrderRecord = {
-      id: orderId,
-      orderNumber,
-      listingId: item.listingId,
-      username,
-      userEmail,
-      buyerName: username,
-      buyerEmail: userEmail,
-      buyerId: data.buyerId,
-      sellerName: item.sellerName.trim() || 'PinIn Verified Seller',
-      sellerId: item.sellerId,
-      delivery: data.delivery.trim(),
-      deliveryEstimation,
-      recipientName: data.recipientName?.trim(),
-      recipientPhone: data.recipientPhone?.trim(),
-      streetAddressLine1: data.streetAddressLine1?.trim(),
-      streetAddressLine2: data.streetAddressLine2?.trim(),
-      streetAddressLine3: data.streetAddressLine3?.trim(),
-      cityTown: data.cityTown?.trim(),
-      province: data.province?.trim() || 'Gauteng',
-      postalCode: data.postalCode?.trim(),
-      deliveryInstructions: data.deliveryInstructions?.trim(),
-      itemBought: item.itemBought.trim(),
-      itemPrice: Number(item.itemPrice) || 0,
-      price: lineTotal,
-      quantity: Number(item.quantity) || 1,
-      dateBought: dateBoughtFormatted,
-      status: 'Completed',
-      imageUrl: item.imageUrl,
-      created_at: dateBoughtIso,
-    };
-
-    createdOrders.push(record);
+  // Extract all item images for Page 10 (first 4 displayed)
+  const imagesList = itemsToProcess
+    .map((item) => item.imageUrl)
+    .filter((img): img is string => typeof img === 'string' && img.length > 0);
+  if (data.imageUrl && !imagesList.includes(data.imageUrl)) {
+    imagesList.unshift(data.imageUrl);
   }
 
+  // Generate valid RFC4122 UUID so it works for both uuid and text column types in Postgres
+  const orderId =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'a' + Date.now().toString(16).padStart(31, '0');
+  const summaryTitle =
+    itemsToProcess.length === 1
+      ? itemsToProcess[0].itemBought
+      : `${itemsToProcess[0].itemBought} + ${itemsToProcess.length - 1} more`;
+
+  const orderItemsList: OrderItem[] = itemsToProcess.map((item) => ({
+    listingId: item.listingId,
+    itemBought: item.itemBought,
+    itemPrice: Number(item.itemPrice) || 0,
+    quantity: Number(item.quantity) || 1,
+    imageUrl: item.imageUrl,
+    size: item.size || 'Standard',
+    sellerName: item.sellerName,
+    sellerId: item.sellerId,
+  }));
+
+  const trackingNumber = orderNumber.replace('PIN-', 'PIN-TRK-');
+
+  // Single unified order record for the entire cart
+  const record: OrderRecord = {
+    id: orderId,
+    orderNumber,
+    listingId: itemsToProcess[0]?.listingId,
+    username,
+    userEmail,
+    buyerName: username,
+    buyerEmail: userEmail,
+    buyerId: data.buyerId,
+    sellerName: itemsToProcess[0]?.sellerName?.trim() || 'PinIn Verified Seller',
+    sellerId: itemsToProcess[0]?.sellerId,
+    delivery: data.delivery.trim(),
+    deliveryEstimation,
+    recipientName: data.recipientName?.trim(),
+    recipientPhone: data.recipientPhone?.trim(),
+    streetAddressLine1: data.streetAddressLine1?.trim(),
+    streetAddressLine2: data.streetAddressLine2?.trim(),
+    streetAddressLine3: data.streetAddressLine3?.trim(),
+    cityTown: data.cityTown?.trim(),
+    province: data.province?.trim() || 'Gauteng',
+    postalCode: data.postalCode?.trim(),
+    deliveryInstructions: data.deliveryInstructions?.trim(),
+    itemBought: summaryTitle,
+    itemPrice: itemsToProcess[0]?.itemPrice || 0,
+    price: totalCalculatedPrice,
+    quantity: totalQuantity,
+    dateBought: dateBoughtFormatted,
+    status: 'Being processed',
+    deliveryStatus: 'Being processed',
+    shippingStatus: 'order_paid',
+    packageInfo: 'Standard parcel',
+    courier: 'PinIn Express',
+    trackingNumber,
+    latestUpdate: 'Order confirmed and being prepared',
+    latestUpdateTime: dateBoughtIso,
+    imageUrl: imagesList[0] || data.imageUrl,
+    images: imagesList,
+    items: orderItemsList,
+    created_at: dateBoughtIso,
+  };
+
   // Cache locally immediately so user confirmation is guaranteed
-  saveMultipleLocalOrders(createdOrders);
+  saveLocalOrder(record);
 
-  // 1. Insert into Supabase `orders` table
+  // 1. Insert into Supabase `orders` table with multi-tier fallback resilience
   try {
-    const rowsToInsert = createdOrders.map((rec) => ({
-      id: rec.id,
-      order_number: rec.orderNumber,
-      listing_id: rec.listingId || null,
-      username: rec.username,
-      user_email: rec.userEmail,
-      buyer_name: rec.buyerName,
-      buyer_email: rec.buyerEmail,
-      buyer_id: rec.buyerId || null,
-      seller_name: rec.sellerName,
-      seller_id: rec.sellerId || null,
-      item_bought: rec.itemBought,
-      item_price: rec.itemPrice,
-      price: rec.price,
-      quantity: rec.quantity,
-      delivery_estimation: rec.deliveryEstimation,
-      delivery: rec.delivery,
-      recipient_name: rec.recipientName || null,
-      recipient_phone: rec.recipientPhone || null,
-      street_address_line1: rec.streetAddressLine1 || null,
-      street_address_line2: rec.streetAddressLine2 || null,
-      street_address_line3: rec.streetAddressLine3 || null,
-      city_town: rec.cityTown || null,
-      province: rec.province || 'Gauteng',
-      postal_code: rec.postalCode || null,
-      delivery_instructions: rec.deliveryInstructions || null,
-      date_bought: rec.dateBought,
-      status: rec.status,
-      delivery_status: rec.deliveryStatus || 'Still being delivered',
-    }));
+    const fullRow: Record<string, any> = {
+      id: record.id,
+      order_number: record.orderNumber,
+      listing_id: record.listingId || null,
+      username: record.username,
+      user_email: record.userEmail,
+      buyer_name: record.buyerName,
+      buyer_email: record.buyerEmail,
+      buyer_id: record.buyerId || null,
+      seller_name: record.sellerName,
+      seller_id: record.sellerId || null,
+      item_bought: record.itemBought,
+      item_price: record.itemPrice,
+      price: record.price,
+      quantity: record.quantity,
+      delivery_estimation: record.deliveryEstimation,
+      delivery: record.delivery,
+      recipient_name: record.recipientName || null,
+      recipient_phone: record.recipientPhone || null,
+      street_address_line1: record.streetAddressLine1 || null,
+      street_address_line2: record.streetAddressLine2 || null,
+      street_address_line3: record.streetAddressLine3 || null,
+      city_town: record.cityTown || null,
+      province: record.province || 'Gauteng',
+      postal_code: record.postalCode || null,
+      delivery_instructions: record.deliveryInstructions || null,
+      date_bought: record.dateBought,
+      status: record.status,
+      delivery_status: record.deliveryStatus,
+      shipping_status: record.shippingStatus,
+      package_info: record.packageInfo,
+      courier: record.courier,
+      tracking_number: record.trackingNumber,
+      latest_update: record.latestUpdate,
+      latest_update_time: record.latestUpdateTime,
+      items: record.items,
+      images: record.images,
+    };
 
-    const { error: insertError } = await supabase.from('orders').insert(rowsToInsert);
+    const { error: fullError } = await supabase.from('orders').insert([fullRow]);
 
-    if (insertError) {
-      console.warn('Supabase orders insert notice (using local storage cache):', insertError.message);
-      // Fallback: try inserting with legacy columns if newer ones are not yet migrated
-      try {
-        const fallbackRows = createdOrders.map((rec) => ({
-          id: rec.id,
-          order_number: rec.orderNumber,
-          listing_id: rec.listingId || null,
-          buyer_name: rec.buyerName,
-          buyer_email: rec.buyerEmail,
-          buyer_id: rec.buyerId || null,
-          seller_name: rec.sellerName,
-          seller_id: rec.sellerId || null,
-          delivery: rec.delivery,
-          item_bought: rec.itemBought,
-          price: rec.price,
-          date_bought: rec.dateBought,
-          status: rec.status,
-        }));
-        await supabase.from('orders').insert(fallbackRows);
-      } catch (fallbackErr) {
-        console.warn('Fallback insert error:', fallbackErr);
+    if (fullError) {
+      console.warn('[Supabase Orders] Full schema insert notice:', fullError.message, fullError.code);
+      // Attempt 2: Standard row with only core columns guaranteed by base setup_orders_and_analytics.sql
+      const baseRow: Record<string, any> = {
+        id: record.id,
+        order_number: record.orderNumber,
+        username: record.username,
+        user_email: record.userEmail,
+        date_bought: record.dateBought,
+        item_bought: record.itemBought,
+        item_price: Number(record.itemPrice) || 0,
+        seller_name: record.sellerName,
+        quantity: Number(record.quantity) || 1,
+        delivery_estimation: record.deliveryEstimation,
+        delivery: record.delivery,
+        buyer_name: record.buyerName,
+        buyer_email: record.buyerEmail,
+        buyer_id: record.buyerId || null,
+        seller_id: record.sellerId || null,
+        price: Number(record.price) || 0,
+        listing_id: record.listingId || null,
+        status: record.status,
+      };
+
+      const { error: baseError } = await supabase.from('orders').insert([baseRow]);
+
+      if (baseError) {
+        console.warn('[Supabase Orders] Base row insert notice:', baseError.message, baseError.code);
+        // Attempt 3: Omit id so Postgres can use its default gen_random_uuid() or serial
+        const { id: _omitId, ...rowWithoutId } = baseRow;
+        const { error: noIdError } = await supabase.from('orders').insert([rowWithoutId]);
+
+        if (noIdError) {
+          console.error('[Supabase Orders] All insert tiers failed:', noIdError.message, noIdError.details);
+        } else {
+          console.log('[Supabase Orders] Insert succeeded with DB-generated ID');
+        }
+      } else {
+        console.log('[Supabase Orders] Insert succeeded with base schema');
       }
+    } else {
+      console.log('[Supabase Orders] Insert succeeded with full schema');
     }
   } catch (e) {
-    console.warn('Supabase orders table error:', e);
+    console.warn('[Supabase Orders] Insert error:', e);
   }
 
   // 2. If listing exists, update buyer info in `listings` table
-  for (const ord of createdOrders) {
-    if (ord.listingId) {
+  for (const item of itemsToProcess) {
+    if (item.listingId) {
       try {
         await supabase
           .from('listings')
           .update({
-            buyer_name: ord.username,
-            buyer_email: ord.userEmail,
-            seller_name: ord.sellerName,
-            delivery: ord.delivery,
-            order_number: ord.orderNumber,
-            date_bought: ord.dateBought,
-            item_bought: ord.itemBought,
-            price: ord.itemPrice,
+            buyer_name: record.username,
+            buyer_email: record.userEmail,
+            seller_name: record.sellerName,
+            delivery: record.delivery,
+            order_number: record.orderNumber,
+            date_bought: record.dateBought,
+            item_bought: item.itemBought,
+            price: item.itemPrice,
           })
-          .eq('id', ord.listingId);
+          .eq('id', item.listingId);
       } catch (e) {
         console.warn('Listing table order columns update notice:', e);
       }
     }
 
     // 3. Record in `most_bought_items`
-    recordBoughtItem(ord.itemBought, ord.listingId, ord.itemPrice * ord.quantity, ord.quantity).catch(
+    recordBoughtItem(item.itemBought, item.listingId, item.itemPrice * item.quantity, item.quantity).catch(
       (err) => console.warn('Record bought item stats notice:', err)
     );
   }
 
   return {
     success: true,
-    orders: createdOrders,
-    order: createdOrders[0],
+    orders: [record],
+    order: record,
   };
 }
 
@@ -308,7 +399,6 @@ export async function recordBoughtItem(
   if (!cleanTitle) return;
 
   try {
-    // Check if item exists in `most_bought_items`
     const { data: existing } = await supabase
       .from('most_bought_items')
       .select('id, total_sold, total_revenue')
@@ -375,51 +465,128 @@ export async function recordSearchQuery(query: string, category?: string): Promi
   }
 }
 
-// Fetch user's orders from Supabase (or local cache fallback)
+// Fetch user's orders from Supabase (or local cache fallback) with unified cart grouping
 export async function getUserOrders(userEmail?: string, buyerId?: string): Promise<OrderRecord[]> {
   const localOrders = getLocalOrders();
 
   try {
     let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
 
-    if (userEmail) {
-      query = query.ilike('buyer_email', userEmail.trim().toLowerCase());
-    } else if (buyerId) {
+    if (userEmail && userEmail.trim()) {
+      const cleanEmail = userEmail.trim().toLowerCase();
+      query = query.or(`buyer_email.ilike.${cleanEmail},user_email.ilike.${cleanEmail}`);
+    } else if (buyerId && buyerId !== 'guest') {
       query = query.eq('buyer_id', buyerId);
     }
 
     const { data, error } = await query;
 
     if (!error && data && data.length > 0) {
-      const parsedSupabaseOrders: OrderRecord[] = data.map((row) => ({
-        id: row.id,
-        orderNumber: row.order_number,
-        listingId: row.listing_id,
-        username: row.username || row.buyer_name || 'PinIn Buyer',
-        userEmail: row.user_email || row.buyer_email || '',
-        buyerName: row.buyer_name || row.username || 'PinIn Buyer',
-        buyerEmail: row.buyer_email || row.user_email || '',
-        buyerId: row.buyer_id,
-        sellerName: row.seller_name || 'PinIn Verified Seller',
-        sellerId: row.seller_id,
-        delivery: row.delivery || 'Standard Delivery',
-        deliveryEstimation: row.delivery_estimation || '2 to 5 days',
-        itemBought: row.item_bought || 'Furniture Item',
-        itemPrice: Number(row.item_price) || Number(row.price) || 0,
-        price: Number(row.price) || Number(row.item_price) || 0,
-        quantity: Number(row.quantity) || 1,
-        dateBought: row.date_bought || new Date(row.created_at || Date.now()).toLocaleDateString(),
-        status: row.status || 'Completed',
-        deliveryStatus: row.delivery_status || row.deliveryStatus || row.status || 'Still being delivered',
-        created_at: row.created_at,
-      }));
+      // Group rows by order_number to ensure multi-item cart purchases are 1 single order
+      const groupedMap = new Map<string, any[]>();
+      for (const row of data) {
+        const num = row.order_number || row.id;
+        if (!groupedMap.has(num)) {
+          groupedMap.set(num, []);
+        }
+        groupedMap.get(num)!.push(row);
+      }
 
-      // Merge with local orders, avoiding duplicates
-      const seenIds = new Set(parsedSupabaseOrders.map((o) => o.id));
+      const parsedSupabaseOrders: OrderRecord[] = [];
+
+      groupedMap.forEach((rows, orderNum) => {
+        const first = rows[0];
+
+        // Parse items if stored as JSON/array on row, or build from rows
+        let items: OrderItem[] = [];
+        if (first.items) {
+          try {
+            items = typeof first.items === 'string' ? JSON.parse(first.items) : first.items;
+          } catch {
+            items = [];
+          }
+        }
+
+        if (!Array.isArray(items) || items.length === 0) {
+          items = rows.map((r) => ({
+            listingId: r.listing_id,
+            itemBought: r.item_bought || 'Item',
+            itemPrice: Number(r.item_price) || Number(r.price) || 0,
+            quantity: Number(r.quantity) || 1,
+            imageUrl: r.image_url || r.imageUrl,
+            size: r.item_size || r.size || 'Standard',
+            sellerName: r.seller_name,
+            sellerId: r.seller_id,
+          }));
+        }
+
+        // Collect images from items or row
+        let images: string[] = [];
+        if (first.images && Array.isArray(first.images)) {
+          images = first.images.filter(Boolean);
+        } else {
+          images = items.map((i) => i.imageUrl).filter((img): img is string => !!img);
+        }
+        if (first.image_url && !images.includes(first.image_url)) {
+          images.unshift(first.image_url);
+        }
+
+        const totalPrice = rows.reduce(
+          (sum, r) => sum + (Number(r.price) || Number(r.item_price) || 0),
+          0
+        );
+        const totalQuantity = rows.reduce((sum, r) => sum + (Number(r.quantity) || 1), 0);
+
+        parsedSupabaseOrders.push({
+          id: first.id,
+          orderNumber: orderNum,
+          listingId: first.listing_id,
+          username: first.username || first.buyer_name || 'PinIn Buyer',
+          userEmail: first.user_email || first.buyer_email || '',
+          buyerName: first.buyer_name || first.username || 'PinIn Buyer',
+          buyerEmail: first.buyer_email || first.user_email || '',
+          buyerId: first.buyer_id,
+          sellerName: first.seller_name || 'PinIn Verified Seller',
+          sellerId: first.seller_id,
+          delivery: first.delivery || 'Standard Delivery',
+          deliveryEstimation: first.delivery_estimation || '2 to 5 days',
+          recipientName: first.recipient_name,
+          recipientPhone: first.recipient_phone,
+          streetAddressLine1: first.street_address_line1,
+          streetAddressLine2: first.street_address_line2,
+          streetAddressLine3: first.street_address_line3,
+          cityTown: first.city_town,
+          province: first.province || 'Gauteng',
+          postalCode: first.postal_code,
+          deliveryInstructions: first.delivery_instructions,
+          itemBought:
+            items.length > 1
+              ? `${items[0].itemBought} + ${items.length - 1} more`
+              : first.item_bought || items[0]?.itemBought || 'Item',
+          itemPrice: Number(first.item_price) || items[0]?.itemPrice || 0,
+          price: totalPrice > 0 ? totalPrice : Number(first.price) || 0,
+          quantity: totalQuantity > 0 ? totalQuantity : Number(first.quantity) || 1,
+          dateBought: first.date_bought || new Date(first.created_at || Date.now()).toLocaleDateString(),
+          status: first.status || first.delivery_status || 'Being processed',
+          deliveryStatus: first.delivery_status || first.status || 'Being processed',
+          shippingStatus: first.shipping_status || 'order_paid',
+          packageInfo: first.package_info || 'Standard parcel',
+          courier: first.courier || 'PinIn Express',
+          trackingNumber: first.tracking_number || orderNum.replace('PIN-', 'PIN-TRK-'),
+          latestUpdate: first.latest_update || 'Order confirmed and being prepared',
+          latestUpdateTime: first.latest_update_time || first.created_at || new Date().toISOString(),
+          imageUrl: images[0] || first.image_url,
+          images,
+          items,
+          created_at: first.created_at,
+        });
+      });
+
+      // Merge with local orders, avoiding duplicate orderNumbers
       const seenNumbers = new Set(parsedSupabaseOrders.map((o) => o.orderNumber));
       const combined = [
         ...parsedSupabaseOrders,
-        ...localOrders.filter((l) => !seenIds.has(l.id) && !seenNumbers.has(l.orderNumber)),
+        ...localOrders.filter((l) => !seenNumbers.has(l.orderNumber)),
       ];
       return combined;
     }
