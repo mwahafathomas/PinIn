@@ -50,6 +50,7 @@ export interface OrderRecord {
   shippingStatus?: 'order_paid' | 'shipped' | 'delivered' | string;
   latestUpdate?: string;
   latestUpdateTime?: string;
+  invoiceNumber?: string;
 }
 
 const ORDERS_STORAGE_KEY = 'pinin_orders_history_v1';
@@ -217,11 +218,13 @@ export async function createOrder(data: {
   }));
 
   const trackingNumber = orderNumber.replace('PIN-', 'PIN-TRK-');
+  const invoiceNumber = orderNumber.replace('PIN-', 'INV-');
 
   // Single unified order record for the entire cart
   const record: OrderRecord = {
     id: orderId,
     orderNumber,
+    invoiceNumber,
     listingId: itemsToProcess[0]?.listingId,
     username,
     userEmail,
@@ -268,6 +271,7 @@ export async function createOrder(data: {
     const fullRow: Record<string, any> = {
       id: record.id,
       order_number: record.orderNumber,
+      invoice_number: record.invoiceNumber,
       listing_id: record.listingId || null,
       username: record.username,
       user_email: record.userEmail,
@@ -540,6 +544,7 @@ export async function getUserOrders(userEmail?: string, buyerId?: string): Promi
         parsedSupabaseOrders.push({
           id: first.id,
           orderNumber: orderNum,
+          invoiceNumber: first.invoice_number || orderNum.replace('PIN-', 'INV-'),
           listingId: first.listing_id,
           username: first.username || first.buyer_name || 'PinIn Buyer',
           userEmail: first.user_email || first.buyer_email || '',

@@ -78,7 +78,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
           <div className="flex items-center">
             <button
               type="button"
-              onClick={onClose}
+              onClick={onGoHome || onClose}
               aria-label="Go back"
               className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
@@ -98,7 +98,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-md md:max-w-5xl lg:max-w-6xl mx-auto px-4 md:px-6 lg:px-8 pt-3 md:pt-6 pb-4 flex flex-col min-h-0 overflow-hidden">
+      <main className="flex-1 w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto px-4 md:px-6 lg:px-8 pt-3 md:pt-5 pb-4 flex flex-col min-h-0 overflow-hidden">
         {/* Categories Section Title */}
         <div className="mb-3 shrink-0">
           <h1 className="text-sm md:text-base font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -110,27 +110,29 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
           </p>
         </div>
 
-        {/* Scrollable Box for Categories */}
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1 rounded-2xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5 pb-4">
+        {/* Clean text list for categories like settings menu list */}
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+          <div className="space-y-6">
             {categories.map((group) => (
-              <div key={group.id} className="bg-white border border-gray-200 rounded-3xl p-4 shadow-xs space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-xs md:text-sm font-extrabold text-gray-900 uppercase tracking-wide">
+              <div key={group.id} className="space-y-1">
+                <div className="py-2 px-1">
+                  <span className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-wider">
                     {group.title}
                   </span>
                 </div>
 
-                {/* Inside Category Buttons */}
-                <div className="space-y-1.5">
+                {/* Clean text list only with arrow >, no border, no background, no card */}
+                <div className="divide-y divide-gray-200">
                   {group.items.map((item) => (
                     <button
                       key={item}
                       type="button"
                       onClick={() => handleItemClick(group, item)}
-                      className="w-full py-3 px-3.5 rounded-xl border border-gray-200 bg-white hover:bg-blue-50/60 hover:border-blue-300 text-left font-bold text-xs md:text-sm text-gray-800 transition-all flex items-center justify-between group cursor-pointer active:scale-[0.99] shadow-2xs"
+                      className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-100/60 text-left transition-colors cursor-pointer group active:scale-[0.99]"
                     >
-                      <span className="capitalize">{item}</span>
+                      <span className="text-xs sm:text-sm font-bold text-gray-900 capitalize">
+                        {item}
+                      </span>
                       <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#2D8EDE] group-hover:translate-x-0.5 transition-all" />
                     </button>
                   ))}

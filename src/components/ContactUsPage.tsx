@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ChevronLeft,
+  ChevronRight,
   Headphones,
   Send,
   Mail,
@@ -217,45 +218,59 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto pb-16 flex flex-col px-4 md:px-6 lg:px-8 pt-4 space-y-4 text-left">
-        {/* Banner */}
-        <div className="bg-white rounded-3xl border-2 border-gray-200 p-5 shadow-xs flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
-            <Headphones className="w-6 h-6 stroke-[2.5]" />
+      <main className="flex-1 w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto pb-16 flex flex-col px-4 md:px-6 lg:px-8 pt-4 space-y-6 text-left">
+        {/* Header Title */}
+        <div className="space-y-1 px-1">
+          <h1 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
+            Contact Support
+          </h1>
+          <p className="text-xs font-medium text-gray-500">
+            We are here to help buyers and sellers 24/7
+          </p>
+        </div>
+
+        {/* Clean text list only with arrow >, no border, no background, no card (Like settings menu list) */}
+        <div className="divide-y divide-gray-200">
+          <a
+            href="mailto:support@pinin.co.za?subject=PinIn%20Support%20Inquiry"
+            className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-100/60 text-left transition-colors cursor-pointer group"
+          >
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-gray-900">Email Support</p>
+              <p className="text-[11px] text-gray-500">support@pinin.co.za</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#2D8EDE] group-hover:translate-x-0.5 transition-all" />
+          </a>
+
+          <div className="w-full flex items-center justify-between py-3.5 px-2 text-left">
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-gray-900">Response Time</p>
+              <p className="text-[11px] text-gray-500">&lt; 24 Hours average turnaround</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
-          <div>
-            <h1 className="text-lg font-black text-gray-900 tracking-tight">
-              Contact PinIn Support
-            </h1>
-            <p className="text-xs font-semibold text-gray-500 mt-0.5">
-              We are here to help buyers and sellers 24/7
-            </p>
+
+          <div className="w-full flex items-center justify-between py-3.5 px-2 text-left">
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-gray-900">Trust &amp; Safety</p>
+              <p className="text-[11px] text-gray-500">Buyer and seller protection protocols</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
         </div>
 
-        {/* Quick Highlights */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="bg-white rounded-2xl border-2 border-gray-200 p-3 shadow-2xs flex items-center gap-2.5">
-            <Clock className="w-4 h-4 text-[#2D8EDE] shrink-0" />
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase">Response Time</p>
-              <p className="text-xs font-bold text-gray-900">&lt; 24 Hours</p>
-            </div>
+        {/* Clean Form Container (No card border or background box) */}
+        <div className="space-y-4 pt-1">
+          <div className="px-1">
+            <h2 className="text-xs sm:text-sm font-black text-gray-900 uppercase tracking-wider">
+              Send a Message
+            </h2>
           </div>
-          <div className="bg-white rounded-2xl border-2 border-gray-200 p-3 shadow-2xs flex items-center gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase">Trust & Safety</p>
-              <p className="text-xs font-bold text-gray-900"></p>
-            </div>
-          </div>
-        </div>
 
-        {/* Form Container */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-3xl border-2 border-gray-200 p-5 shadow-xs space-y-4"
-        >
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+          >
           {/* Inline Feedback Banner */}
           {toast && (
             <div
@@ -360,11 +375,11 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
             className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 text-white font-extrabold text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             <Send className={`w-4 h-4 ${isSubmitting ? 'animate-pulse' : ''}`} />
-            <span>{isSubmitting ? 'Sending Message...' : 'Send Message'}</span>
           </button>
         </form>
-      </main>
-    </div>
-  );
+      </div>
+    </main>
+  </div>
+);
 };
 

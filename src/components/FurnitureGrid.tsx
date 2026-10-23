@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FurnitureItem } from '../types/furniture';
 import { FurnitureCard } from './FurnitureCard';
 import { RefreshCw } from 'lucide-react';
@@ -62,25 +62,15 @@ export const FurnitureGrid: React.FC<FurnitureGridProps> = ({
     );
   }
 
+  // If coming from categories or active filter with 0 items, automatically reset filters so user sees products
+  useEffect(() => {
+    if (items.length === 0 && onResetFilters) {
+      onResetFilters();
+    }
+  }, [items.length, onResetFilters]);
+
   if (items.length === 0) {
-    return (
-      <div className="w-full max-w-md md:max-w-xl mx-auto px-4 py-16 text-center">
-        <h3 className="text-base font-bold text-gray-900 mb-1">No furniture found</h3>
-        <p className="text-sm text-gray-500 mb-5 max-w-xs mx-auto">
-          We couldn't find any furniture matching your current search or filters.
-        </p>
-        {onResetFilters && (
-          <button
-            type="button"
-            onClick={onResetFilters}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2D8EDE] text-white text-sm font-semibold hover:bg-[#2579BE] active:scale-95 transition-all shadow-sm cursor-pointer"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Reset all filters
-          </button>
-        )}
-      </div>
-    );
+    return null;
   }
 
   return (

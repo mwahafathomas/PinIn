@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeft, Check, Plus } from 'lucide-react';
-import { CartItem, clearCart } from '../services/cartService';
+import { CartItem, clearCart, removeFromCart } from '../services/cartService';
 import { createOrder, OrderRecord } from '../services/ordersService';
 import { UserAccount, DeliveryAddress } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
@@ -112,7 +112,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       });
 
       if (res.success && res.order) {
-        clearCart();
+        items.forEach((i) => {
+          if (i.listingId || i.id) {
+            removeFromCart(i.listingId || i.id);
+          }
+        });
         onOrderSuccess(res.order);
       } else {
         setErrorMessage(res.error || 'Payment failed. Please try again.');

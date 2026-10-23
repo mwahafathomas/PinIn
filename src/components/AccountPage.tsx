@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
+  ChevronRight,
   Home,
   ShoppingCart,
   User as UserIcon,
@@ -48,6 +49,7 @@ import { getCartCount } from '../services/cartService';
 import { DeliveryAddressPage } from './DeliveryAddressPage';
 import { ReturnsFlowModal } from './ReturnsFlowModal';
 import { OrdersFlowModal } from './OrdersFlowModal';
+import { InvoicesFlowModal } from './InvoicesFlowModal';
 
 interface AccountPageProps {
   isOpen: boolean;
@@ -510,68 +512,66 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             </div>
           </header>
 
-          {/* Main Content Area: Only Account Profile and Delete Account */}
-          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
+          {/* Main Content Area: Clean text list only with arrow >, no border, no background, no card */}
+          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-4">
             {isSubpageLoading ? (
-              <div className="space-y-4 animate-pulse pt-1">
-                <div className="bg-white rounded-3xl border border-gray-200 p-5 space-y-3">
-                  <div className="h-3.5 w-24 bg-gray-200 rounded" />
-                  <div className="h-4 w-40 bg-gray-200 rounded" />
-                  <div className="h-3.5 w-52 bg-gray-200 rounded" />
-                  <div className="h-10 w-full bg-gray-200 rounded-xl mt-3" />
+              <div className="divide-y divide-gray-200 animate-pulse pt-2">
+                <div className="py-4 space-y-2">
+                  <div className="h-4 w-32 bg-gray-200 rounded" />
+                  <div className="h-3 w-48 bg-gray-200 rounded" />
                 </div>
-                <div className="bg-white rounded-3xl border border-gray-200 p-5">
-                  <div className="h-10 w-full bg-gray-200 rounded-xl" />
+                <div className="py-4">
+                  <div className="h-4 w-28 bg-gray-200 rounded" />
                 </div>
               </div>
             ) : (
-              <>
-                {/* Account Profile (name & user email) with Edit Profile button */}
-                <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs space-y-3">
-                  <p className="text-xs font-black uppercase tracking-wider text-gray-500">
-                    Account Profile
-                  </p>
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-gray-900">{fullName}</p>
-                    <p className="text-xs text-gray-500">{user.email || 'No email attached'}</p>
-                  </div>
-
-                  {/* Edit Profile placed under account settings */}
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveModal(null);
-                        if (onOpenEditProfile) onOpenEditProfile();
-                      }}
-                      className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 font-extrabold text-xs rounded-xl transition-colors cursor-pointer text-center"
-                    >
+              <div className="divide-y divide-gray-200">
+                {/* 1. Account Profile / Edit Profile row */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveModal(null);
+                    if (onOpenEditProfile) onOpenEditProfile();
+                  }}
+                  className="w-full flex items-center justify-between py-4 px-2 hover:bg-gray-100/60 text-left transition-colors cursor-pointer group"
+                >
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">
                       Edit Profile
-                    </button>
+                    </p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      {fullName} {user.email ? `• ${user.email}` : ''}
+                    </p>
                   </div>
-                </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#2D8EDE] group-hover:translate-x-0.5 transition-all" />
+                </button>
 
-                {/* Delete Account */}
-                <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!user.isLoggedIn) {
-                        setActiveModal(null);
-                        onOpenAuth?.('signin');
-                        return;
-                      }
+                {/* 2. Delete Account row: clean text list with arrow >, no icon with x, same color as other words (not red) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!user.isLoggedIn) {
                       setActiveModal(null);
-                      if (onOpenDeleteAccount) onOpenDeleteAccount();
-                      else setShowDeleteConfirm(true);
-                    }}
-                    className="w-full py-3 px-4 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <UserX className="w-4 h-4 text-red-600" />
-                    <span>Delete Account</span>
-                  </button>
-                </div>
-              </>
+                      onOpenAuth?.('signin');
+                      return;
+                    }
+                    setActiveModal(null);
+                    if (onOpenDeleteAccount) onOpenDeleteAccount();
+                    else setShowDeleteConfirm(true);
+                  }}
+                  className="w-full flex items-center justify-between py-4 px-2 hover:bg-gray-100/60 text-left transition-colors cursor-pointer group"
+                >
+                  <div>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">
+                      Delete Account
+                    </p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Permanently remove your profile and personal data
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#2D8EDE] group-hover:translate-x-0.5 transition-all" />
+                </button>
+              </div>
             )}
           </main>
         </div>
@@ -613,134 +613,16 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       />
 
       {/* ========================================================================= */}
-      {/* FULL PAGE 4: INVOICES                                                     */}
+      {/* FULL PAGE 4: INVOICES (Overview & Details Flow)                           */}
       {/* ========================================================================= */}
-      {activeModal === 'invoices' && (
-        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
-          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
-            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
-              <div className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedInvoice(null);
-                    setActiveModal(null);
-                  }}
-                  aria-label="Go back"
-                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
-                >
-                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
-                </button>
-              </div>
-
-              <div className="absolute left-1/2 -translate-x-1/2">
-                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-                  Pin<span className="text-[#2D8EDE]">In</span>
-                </span>
-              </div>
-
-              <div className="w-8" aria-hidden="true" />
-            </div>
-          </header>
-
-          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
-            <div className="border-b border-gray-200 pb-3">
-              <h1 className="text-xl font-bold text-gray-900">Invoices</h1>
-              <p className="text-xs text-gray-500 mt-0.5">View receipts &amp; download tax invoices</p>
-            </div>
-
-            {selectedInvoice ? (
-              /* Printable digital invoice view */
-              <div className="space-y-4">
-                <div className="p-5 bg-white border border-gray-200 rounded-3xl text-xs space-y-4 font-mono shadow-xs">
-                  <div className="flex items-center justify-between pb-3 border-b border-gray-200 font-sans">
-                    <span className="font-black text-lg text-gray-900">PinIn INVOICE</span>
-                    <span className="text-emerald-700 font-bold bg-emerald-100 px-2.5 py-0.5 rounded-full text-xs">
-                      PAID
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <p className="text-gray-400 uppercase text-[10px]">Invoice Number</p>
-                      <p className="font-bold text-gray-900">INV-{selectedInvoice.orderNumber}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 uppercase text-[10px]">Date</p>
-                      <p className="font-bold text-gray-900">{selectedInvoice.dateBought}</p>
-                    </div>
-                  </div>
-
-                  <div className="text-xs">
-                    <p className="text-gray-400 uppercase text-[10px]">Billed To</p>
-                    <p className="font-bold text-gray-900">{selectedInvoice.buyerName}</p>
-                    <p className="text-gray-600">{selectedInvoice.buyerEmail}</p>
-                  </div>
-
-                  <div className="text-xs border-t border-gray-100 pt-3">
-                    <p className="text-gray-400 uppercase text-[10px]">Item Description</p>
-                    <p className="font-bold text-gray-900">{selectedInvoice.itemBought}</p>
-                    <p className="text-gray-600">Seller: {selectedInvoice.sellerName}</p>
-                    <p className="text-gray-600">{selectedInvoice.delivery}</p>
-                  </div>
-
-                  <div className="border-t border-gray-200 pt-3 flex items-center justify-between font-sans">
-                    <span className="font-bold text-gray-800 text-sm">Total Amount</span>
-                    <span className="font-black text-[#2D8EDE] text-lg">R{selectedInvoice.price}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="flex-1 py-3 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Printer className="w-4 h-4" />
-                    <span>Print Invoice</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedInvoice(null)}
-                    className="py-3 px-5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-xs rounded-xl cursor-pointer"
-                  >
-                    Back to List
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Invoices list */
-              <div className="space-y-3">
-                {orders.length > 0 ? (
-                  orders.map((o) => (
-                    <div
-                      key={o.id}
-                      className="p-4 bg-white border border-gray-200 rounded-3xl flex items-center justify-between text-xs hover:border-[#2D8EDE] transition-colors shadow-xs"
-                    >
-                      <div className="min-w-0 pr-3">
-                        <p className="font-black text-gray-900 text-sm">INV-{o.orderNumber}</p>
-                        <p className="text-xs text-gray-600 truncate mt-0.5">{o.itemBought}</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5">{o.dateBought} • R{o.price}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedInvoice(o)}
-                        className="py-2 px-4 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-[#2D8EDE] font-extrabold text-xs rounded-xl shadow-2xs shrink-0 cursor-pointer"
-                      >
-                        View
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="bg-white border border-gray-200 rounded-3xl p-8 text-center text-xs text-gray-500 shadow-xs">
-                    No orders have been placed yet. Invoices will automatically appear here once you place an order.
-                  </div>
-                )}
-              </div>
-            )}
-          </main>
-        </div>
-      )}
+      <InvoicesFlowModal
+        isOpen={activeModal === 'invoices'}
+        onClose={() => setActiveModal(null)}
+        orders={orders}
+        onOpenReturns={(_selectedReturnOrder) => {
+          setActiveModal('returns');
+        }}
+      />
 
       {/* ========================================================================= */}
       {/* FULL PAGE 5: ADDRESS BOOK                                                 */}

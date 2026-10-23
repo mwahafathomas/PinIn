@@ -5,6 +5,7 @@ import {
   Minus,
   ShoppingCart,
   CheckCircle,
+  Check,
   Truck,
   MapPin,
   Home,
@@ -45,10 +46,12 @@ interface CartPageProps {
 
 const SwipeableCartCard: React.FC<{
   item: CartItem;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
   onSelectItem?: (item: any) => void;
   onUpdateQuantity: (listingId: string, qty: number) => void;
   onRemove: (listingId: string) => void;
-}> = ({ item, onSelectItem, onUpdateQuantity, onRemove }) => {
+}> = ({ item, isSelected, onToggleSelect, onSelectItem, onUpdateQuantity, onRemove }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
@@ -58,6 +61,8 @@ const SwipeableCartCard: React.FC<{
       setIsOpen(false);
     }
   };
+
+  const itemId = item.listingId || item.id;
 
   return (
     <div className="relative overflow-hidden rounded-2xl group select-none">
@@ -86,8 +91,29 @@ const SwipeableCartCard: React.FC<{
             setIsOpen(false);
           }
         }}
-        className="relative z-10 bg-white py-3 border-b border-gray-200 last:border-b-0 flex items-center gap-3 cursor-grab active:cursor-grabbing touch-pan-y"
+        className="relative z-10 bg-white py-3 border-b border-gray-200 last:border-b-0 flex items-center gap-2.5 cursor-grab active:cursor-grabbing touch-pan-y"
       >
+        {/* Selection Checkbox on left side next to each item picture */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(itemId);
+          }}
+          className="cursor-pointer shrink-0 p-1 -ml-1 text-gray-500 hover:text-[#2D8EDE] focus:outline-none flex items-center justify-center"
+          aria-label={isSelected ? `Deselect ${item.title}` : `Select ${item.title}`}
+        >
+          <div
+            className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${
+              isSelected
+                ? 'bg-[#2D8EDE] text-white shadow-xs'
+                : 'border-2 border-gray-300 bg-white hover:border-[#2D8EDE]'
+            }`}
+          >
+            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+          </div>
+        </button>
+
         <button
           type="button"
           onClick={(e) => {
@@ -242,9 +268,34 @@ export const CartPage: React.FC<CartPageProps> = ({
     }
   }, [user]);
 
+  const [unselectedItemIds, setUnselectedItemIds] = useState<Set<string>>(new Set());
+
+  const handleToggleSelect = (id: string) => {
+    setUnselectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectedItems = items.filter((item) => !unselectedItemIds.has(item.listingId || item.id));
+  const allSelected = items.length > 0 && selectedItems.length === items.length;
+
+  const handleToggleSelectAll = () => {
+    if (allSelected) {
+      setUnselectedItemIds(new Set(items.map((i) => i.listingId || i.id)));
+    } else {
+      setUnselectedItemIds(new Set());
+    }
+  };
+
   if (!isOpen) return null;
 
-  const subtotal = items.reduce((acc, i) => acc + (i.price || 0) * (i.quantity || 1), 0);
+  const subtotal = selectedItems.reduce((acc, i) => acc + (Number(i.price) || 0) * (i.quantity || 1), 0);
   const deliveryFee = 0;
   const grandTotal = subtotal;
 
@@ -543,10 +594,26 @@ export const CartPage: React.FC<CartPageProps> = ({
               {/* Items List */}
               <div className="space-y-3 pb-3">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                  <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <span>Items in Cart</span>
-                    <span className="text-gray-400 font-medium">({items.length})</span>
-                  </h2>
+                  <button
+                    type="button"
+                    onClick={handleToggleSelectAll}
+                    className="flex items-center gap-2 cursor-pointer focus:outline-none text-left select-none"
+                    aria-label={allSelected ? 'Deselect all items' : 'Select all items'}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${
+                        allSelected
+                          ? 'bg-[#2D8EDE] text-white shadow-xs'
+                          : 'border-2 border-gray-300 bg-white hover:border-[#2D8EDE]'
+                      }`}
+                    >
+                      {allSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                    <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <span>Items in Cart</span>
+                      <span className="text-gray-400 font-medium">({selectedItems.length}/{items.length})</span>
+                    </h2>
+                  </button>
                   <button
                     type="button"
                     onClick={() => clearCart()}
@@ -557,15 +624,21 @@ export const CartPage: React.FC<CartPageProps> = ({
                 </div>
 
                 <div className="divide-y divide-gray-200">
-                  {items.map((item) => (
-                    <SwipeableCartCard
-                      key={item.listingId || item.id}
-                      item={item}
-                      onSelectItem={onSelectItem}
-                      onUpdateQuantity={updateCartQuantity}
-                      onRemove={removeFromCart}
-                    />
-                  ))}
+                  {items.map((item) => {
+                    const id = item.listingId || item.id;
+                    const isSelected = !unselectedItemIds.has(id);
+                    return (
+                      <SwipeableCartCard
+                        key={id}
+                        item={item}
+                        isSelected={isSelected}
+                        onToggleSelect={handleToggleSelect}
+                        onSelectItem={onSelectItem}
+                        onUpdateQuantity={updateCartQuantity}
+                        onRemove={removeFromCart}
+                      />
+                    );
+                  })}
                 </div>
               </div>
 
@@ -652,38 +725,45 @@ export const CartPage: React.FC<CartPageProps> = ({
                 </div>
               )}
             </div>
-
-            {/* Pinned & Always Visible "Proceed to check out" Bottom Box */}
-            <div className="shrink-0 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-3px_10px_rgba(0,0,0,0.04)]">
-              <button
-                type="button"
-                onClick={(e) => {
-                  if (!user?.isLoggedIn) {
-                    e.preventDefault();
-                    if (onOpenAuth) {
-                      onOpenAuth('signin');
-                    }
-                    return;
-                  }
-
-                  // 6. dont allow user to go to this page if they havent added a delivery address in cart page
-                  if (!currentAddress && !deliveryAddress.trim()) {
-                    setErrorMessage('Please add a delivery address to proceed.');
-                    setIsAddressPageOpen(true);
-                    return;
-                  }
-
-                  setErrorMessage('');
-                  setIsCheckoutOpen(true);
-                }}
-                className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-black text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center capitalize"
-              >
-                <span>proceed to check out</span>
-              </button>
-            </div>
           </div>
         )}
       </main>
+
+      {/* Pinned & Always Visible "Proceed to check out" Bottom Box (Directly on top of bottom icons) */}
+      {items.length > 0 && !placedOrder && (
+        <div className="shrink-0 z-30 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-3px_10px_rgba(0,0,0,0.04)]">
+          <button
+            type="button"
+            disabled={selectedItems.length === 0}
+            onClick={(e) => {
+              if (selectedItems.length === 0) return;
+
+              if (!user?.isLoggedIn) {
+                e.preventDefault();
+                if (onOpenAuth) {
+                  onOpenAuth('signin');
+                }
+                return;
+              }
+
+              // check delivery address
+              if (!currentAddress && !deliveryAddress.trim()) {
+                setErrorMessage('Please add a delivery address to proceed.');
+                setIsAddressPageOpen(true);
+                return;
+              }
+
+              setErrorMessage('');
+              setIsCheckoutOpen(true);
+            }}
+            className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-black text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center capitalize"
+          >
+            <span>
+              proceed to check out {selectedItems.length > 0 ? `(${selectedItems.length})` : ''}
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Bottom Navigation Dock */}
       <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
@@ -766,7 +846,7 @@ export const CartPage: React.FC<CartPageProps> = ({
       <CheckoutPage
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
-        items={items}
+        items={selectedItems}
         deliveryAddress={currentAddress}
         onUpdateDeliveryAddress={(addr) => {
           setCurrentAddress(addr);

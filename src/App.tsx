@@ -2834,7 +2834,7 @@ export default function App() {
                     } else if (location.search.includes('from=filters')) {
                       goTo('/filters', -1);
                     } else {
-                      goTo('/', -1);
+                      handleGoHome();
                     }
                   }}
                   selectedCategory={

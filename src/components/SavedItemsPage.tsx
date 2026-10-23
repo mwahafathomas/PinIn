@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ChevronLeft,
+  ChevronRight,
   Bookmark,
   Trash2,
   MapPin,
@@ -49,30 +50,28 @@ const SwipeableSavedCard: React.FC<SwipeableSavedCardProps> = ({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-3xl group select-none">
-      {/* Background Revealed Action: Red Delete / Recycle Bin button on the right */}
-      <div className="absolute inset-y-0 right-0 w-24 bg-red-600 rounded-3xl flex items-center justify-center pr-1 z-0 shadow-inner">
+    <div className="relative overflow-hidden group select-none">
+      {/* Background Revealed Action: Red Delete button on the right */}
+      <div className="absolute inset-y-0 right-0 w-20 bg-red-600 flex items-center justify-center z-0">
         <motion.button
           type="button"
           style={{ opacity: deleteOpacity, scale: deleteScale }}
           onClick={(e) => onRemoveSaved(item.id, e)}
-          className="flex flex-col items-center justify-center text-white hover:text-red-100 active:scale-95 transition-transform p-3 w-full h-full cursor-pointer"
+          className="flex flex-col items-center justify-center text-white active:scale-95 transition-transform p-2 w-full h-full cursor-pointer font-black text-xs uppercase"
           aria-label="Remove from saved"
         >
-          <div className="w-10 h-10 rounded-full bg-red-700 flex items-center justify-center shadow-md">
-            <Trash2 className="w-5 h-5 stroke-[2.2]" />
-          </div>
-          <span className="text-[10px] font-extrabold mt-1">Remove</span>
+          <Trash2 className="w-4 h-4 mb-0.5" />
+          <span>Remove</span>
         </motion.button>
       </div>
 
-      {/* Foreground Swipeable Card */}
+      {/* Foreground Swipeable Item: clean list row with arrow >, no border, no background, no card */}
       <motion.div
         drag="x"
-        dragConstraints={{ left: -90, right: 0 }}
+        dragConstraints={{ left: -80, right: 0 }}
         dragElastic={0.15}
         onDragEnd={handleDragEnd}
-        animate={{ x: isOpen ? -85 : 0 }}
+        animate={{ x: isOpen ? -80 : 0 }}
         transition={{ type: 'spring', stiffness: 450, damping: 35 }}
         style={{ x }}
         onClick={() => {
@@ -82,41 +81,26 @@ const SwipeableSavedCard: React.FC<SwipeableSavedCardProps> = ({
             setIsOpen(false);
           }
         }}
-        className="relative z-10 bg-white rounded-3xl border-2 border-gray-200 p-3.5 shadow-xs hover:border-[#0052FF] transition-colors flex items-center gap-3.5 cursor-pointer group touch-pan-y"
+        className="relative z-10 bg-white py-3 px-2 flex items-center justify-between gap-3 cursor-pointer group hover:bg-gray-50 transition-colors touch-pan-y"
       >
-        {/* Image with sharp 90-degree corners */}
-        <div className="relative w-20 h-20 rounded-none overflow-hidden bg-gray-100 shrink-0 border border-gray-200 pointer-events-none">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <img
-            src={getOptimizedImageUrl(item.imageUrl, { width: 400, quality: 70, format: 'webp' })}
+            src={getOptimizedImageUrl(item.imageUrl, { width: 140, quality: 75, format: 'webp' })}
             alt={item.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 rounded-none"
+            className="w-14 h-14 rounded-lg object-cover shrink-0 border border-gray-200"
             loading="lazy"
-            decoding="async"
           />
-          <div className="absolute top-1 left-1 bg-black/60 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md backdrop-blur-xs">
-            {item.condition}
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold text-xs sm:text-sm text-gray-900 truncate group-hover:text-[#2D8EDE] transition-colors">
+              {item.title}
+            </h3>
+            <p className="text-[11px] text-gray-500 truncate mt-0.5">
+              {item.location} • <span className="font-bold text-[#2D8EDE]">R{item.price}</span>
+            </p>
           </div>
         </div>
 
-        {/* Info */}
-        <div className="flex-1 min-w-0 pointer-events-none">
-          <h3 className="font-extrabold text-xs sm:text-sm text-gray-900 truncate">
-            {item.title}
-          </h3>
-          <p className="text-[11px] font-semibold text-gray-500 flex items-center gap-1 mt-0.5 truncate">
-            <MapPin className="w-3 h-3 text-[#0052FF] shrink-0" />
-            <span>{item.location}</span>
-          </p>
-
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs font-black text-[#0052FF] bg-blue-50 px-2 py-0.5 rounded-md">
-              R{item.price}
-            </span>
-            <span className="text-[10px] text-gray-400 font-bold capitalize">
-              {item.category}
-            </span>
-          </div>
-        </div>
+        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#2D8EDE] group-hover:translate-x-0.5 transition-all shrink-0" />
       </motion.div>
     </div>
   );
@@ -201,7 +185,7 @@ export const SavedItemsPage: React.FC<SavedItemsPageProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <div className="divide-y divide-gray-200">
             {savedItems.map((item) => (
               <SwipeableSavedCard
                 key={item.id}
