@@ -216,6 +216,17 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
                         Return
                       </button>
 
+                      {/* Refund button (does not lead to any page yet, nothing happens on click) */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="py-1.5 px-3 rounded-xl text-xs font-black bg-white hover:bg-gray-100 text-gray-900 border border-gray-300 text-center cursor-pointer active:scale-95 transition-all shadow-2xs"
+                      >
+                        Refund
+                      </button>
+
                       {/* 12: Track order button */}
                       <button
                         type="button"

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronLeft, Check, Plus } from 'lucide-react';
 import { CartItem, clearCart, removeFromCart } from '../services/cartService';
 import { createOrder, OrderRecord } from '../services/ordersService';
+import { recordListingAsBought } from '../services/listingStockService';
 import { UserAccount, DeliveryAddress } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import { DeliveryAddressPage } from './DeliveryAddressPage';
@@ -113,8 +114,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
       if (res.success && res.order) {
         items.forEach((i) => {
-          if (i.listingId || i.id) {
-            removeFromCart(i.listingId || i.id);
+          const targetId = i.listingId || i.id;
+          if (targetId) {
+            removeFromCart(targetId);
+            recordListingAsBought(targetId);
           }
         });
         onOrderSuccess(res.order);

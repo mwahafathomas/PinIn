@@ -55,6 +55,68 @@ export function getLocalRefunds(): RefundRecord[] {
   }
 }
 
+export function saveLocalRefund(ref: RefundRecord) {
+  try {
+    const existing = getLocalRefunds();
+    localStorage.setItem(LOCAL_REFUNDS_KEY, JSON.stringify([ref, ...existing.filter((r) => r.id !== ref.id)]));
+  } catch {}
+}
+
+/**
+ * Record a wallet withdrawal in the Supabase `refunds` table
+ */
+export async function recordRefundWithdrawal(data: {
+  userId?: string;
+  userEmail?: string;
+  userName?: string;
+  amount: number;
+}): Promise<{ success: boolean; data?: RefundRecord; error?: string }> {
+  const refundNumber = `WDR-${Date.now().toString().slice(-6)}`;
+  const record: RefundRecord = {
+    id: `wdr_${Date.now()}`,
+    refundNumber,
+    orderNumber: 'WALLET-WITHDRAWAL',
+    userEmail: data.userEmail || '',
+    userName: data.userName || 'Account Holder',
+    amount: data.amount,
+    status: 'Processing',
+    reason: 'Wallet balance withdrawal to bank',
+    itemBought: 'Wallet Balance Withdrawal',
+    created_at: new Date().toISOString(),
+  };
+
+  saveLocalRefund(record);
+
+  try {
+    const insertPayload: any = {
+      refund_number: record.refundNumber,
+      order_number: record.orderNumber,
+      user_email: record.userEmail,
+      user_name: record.userName,
+      amount: record.amount,
+      status: record.status,
+      reason: record.reason,
+      item_bought: record.itemBought,
+    };
+
+    const { data: inserted, error } = await supabase
+      .from('refunds')
+      .insert([insertPayload])
+      .select();
+
+    if (error) {
+      console.warn('Supabase refunds insert notice:', error.message);
+    } else if (inserted && inserted[0]) {
+      record.id = String(inserted[0].id);
+      saveLocalRefund(record);
+    }
+  } catch (err) {
+    console.warn('Refund withdrawal recording error:', err);
+  }
+
+  return { success: true, data: record };
+}
+
 /**
  * Submit return request to Supabase `returns_requests` table
  */

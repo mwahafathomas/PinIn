@@ -326,6 +326,18 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
       String(row.sale_tag || (row as any).sale || '').toLowerCase().trim() === 'sale' ||
       (row.sale_price !== undefined && row.sale_price !== null && Number(row.sale_price) > 0),
     itemSize: row.item_size ? String(row.item_size).trim() : (row as any).itemSize || (row as any).size || undefined,
+    availabilityStatus: row.availability_status
+      ? String(row.availability_status).trim()
+      : (row as any).availabilityStatus
+      ? String((row as any).availabilityStatus).trim()
+      : (row as any).stock_status
+      ? String((row as any).stock_status).trim()
+      : undefined,
+    availableDate: row.available_date
+      ? String(row.available_date).trim()
+      : (row as any).availableDate
+      ? String((row as any).availableDate).trim()
+      : undefined,
   };
 }
 

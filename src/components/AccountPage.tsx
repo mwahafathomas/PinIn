@@ -34,7 +34,6 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { UserAccount } from '../types/furniture';
-import { NotificationPermissionBanner } from './NotificationPermissionBanner';
 import { DEFAULT_AVATAR_IMAGE } from '../data/defaultAvatar';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import {
@@ -50,6 +49,7 @@ import { DeliveryAddressPage } from './DeliveryAddressPage';
 import { ReturnsFlowModal } from './ReturnsFlowModal';
 import { OrdersFlowModal } from './OrdersFlowModal';
 import { InvoicesFlowModal } from './InvoicesFlowModal';
+import { CreditsPage } from './CreditsPage';
 
 interface AccountPageProps {
   isOpen: boolean;
@@ -241,9 +241,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               </div>
             )}
 
-            {/* Push Notifications Custom Button (Requirement 6) */}
-            <NotificationPermissionBanner compact className="mb-3" />
-
             {/* Account Menu Navigation - Clean list with grey divider lines (no box/border background) */}
             <div className="divide-y divide-gray-200">
               {/* 1. Account Settings (Contains Account Profile, Edit Profile & Delete Account) */}
@@ -264,7 +261,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-gray-900">Account Settings</p>
-                    <p className="text-[11px] text-gray-400">Profile, edit details &amp; delete account</p>
                   </div>
                 </div>
               </button>
@@ -287,9 +283,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-gray-900">Orders</p>
-                    <p className="text-[11px] text-gray-400">
-                      {orders.length > 0 ? `${orders.length} order(s) placed` : 'View order history & status'}
-                    </p>
                   </div>
                 </div>
               </button>
@@ -312,7 +305,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-gray-900">Returns</p>
-                    <p className="text-[11px] text-gray-400">7-day guarantee, track &amp; request return</p>
                   </div>
                 </div>
               </button>
@@ -335,7 +327,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-gray-900">Invoices</p>
-                    <p className="text-[11px] text-gray-400">View receipts &amp; download tax invoices</p>
                   </div>
                 </div>
               </button>
@@ -358,7 +349,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-gray-900">Address Book</p>
-                    <p className="text-[11px] text-gray-400">Manage delivery locations &amp; defaults</p>
                   </div>
                 </div>
               </button>
@@ -375,12 +365,11 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-gray-900">Help &amp; Support</p>
-                    <p className="text-[11px] text-gray-400">FAQs, ordering guides &amp; contact</p>
                   </div>
                 </div>
               </button>
 
-              {/* 7. Credits & Refunds */}
+              {/* 7. Refunds */}
               <button
                 type="button"
                 onClick={() => {
@@ -388,7 +377,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     onOpenAuth?.('signin');
                     return;
                   }
-                  setActiveModal('credits-refunds');
+                  setActiveModal('credits');
                 }}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
@@ -397,8 +386,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     <Coins className="w-4 h-4 text-[#2D8EDE]" />
                   </div>
                   <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Credits &amp; Refunds</p>
-                    <p className="text-[11px] text-gray-400">Wallet balance &amp; refund status</p>
+                    <p className="text-xs sm:text-sm font-bold text-gray-900">Refunds</p>
                   </div>
                 </div>
               </button>
@@ -421,7 +409,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-gray-900">Saved Items</p>
-                    <p className="text-[11px] text-gray-400">View bookmarks &amp; favorited furniture</p>
                   </div>
                 </div>
               </button>
@@ -441,7 +428,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-gray-900">Policies</p>
-                    <p className="text-[11px] text-gray-400">Terms, privacy policy, and safety</p>
                   </div>
                 </div>
               </button>
@@ -458,7 +444,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-gray-900">Contact Us</p>
-                    <p className="text-[11px] text-gray-400">24/7 customer support &amp; inquiries</p>
                   </div>
                 </div>
               </button>
@@ -720,119 +705,13 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* FULL PAGE 7: CREDITS & REFUNDS                                            */}
+      {/* FULL PAGE 7: CREDITS (Refunds & Wallet Balance Flow)                      */}
       {/* ========================================================================= */}
-      {activeModal === 'credits-refunds' && (
-        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
-          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
-            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
-              <div className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  aria-label="Go back"
-                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
-                >
-                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
-                </button>
-              </div>
-
-              <div className="absolute left-1/2 -translate-x-1/2">
-                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-                  Pin<span className="text-[#2D8EDE]">In</span>
-                </span>
-              </div>
-
-              <div className="w-8" aria-hidden="true" />
-            </div>
-          </header>
-
-          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
-            <div className="border-b border-gray-200 pb-3">
-              <h1 className="text-xl font-bold text-gray-900">Credits &amp; Refunds</h1>
-              <p className="text-xs text-gray-500 mt-0.5">Your store wallet balance &amp; payout history</p>
-            </div>
-
-            {/* Wallet Balance Card */}
-            <div className="p-6 bg-white border border-gray-200 rounded-3xl text-center space-y-2 shadow-xs">
-              <p className="text-xs font-black uppercase tracking-wider text-gray-500">Available Store Credit</p>
-              <p className="text-3xl font-black text-[#2D8EDE]">R0.00</p>
-              <p className="text-xs text-gray-500">
-                Credits are automatically applied as discounts during cart checkout.
-              </p>
-            </div>
-
-            {/* Refund History */}
-            <div className="space-y-3 text-xs">
-              <p className="font-extrabold text-gray-900 text-xs uppercase tracking-wider">Refund History</p>
-              <div className="p-4 bg-white rounded-3xl border border-gray-200 space-y-1.5 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-gray-800">Standard Payout Speed</span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                    Active
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Processed refunds take 2 to 5 business days to appear on your bank card statement or reflect immediately as store credit.
-                </p>
-              </div>
-
-              {refunds.length > 0 ? (
-                <div className="space-y-2.5">
-                  {refunds.map((ref) => {
-                    const statusLower = (ref.status || 'processing').toLowerCase();
-                    const statusColor =
-                      statusLower === 'approved' || statusLower === 'refunded' || statusLower === 'completed'
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                        : statusLower === 'rejected' || statusLower === 'declined'
-                        ? 'bg-red-100 text-red-800 border-red-200'
-                        : 'bg-amber-100 text-amber-800 border-amber-200';
-
-                    return (
-                      <div
-                        key={ref.id}
-                        className="p-4 bg-white rounded-3xl border border-gray-200 space-y-2 shadow-xs"
-                      >
-                        <div className="flex items-center justify-between pb-1.5 border-b border-gray-100">
-                          <div>
-                            <span className="font-black text-gray-900 text-xs">{ref.refundNumber}</span>
-                            <span className="text-[11px] text-gray-400 ml-2">Order #{ref.orderNumber}</span>
-                          </div>
-                          <span
-                            className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${statusColor}`}
-                          >
-                            {ref.status || 'Processing'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-gray-800 truncate max-w-[180px]">
-                            {ref.itemBought}
-                          </span>
-                          <span className="font-black text-[#2D8EDE] text-sm">
-                            R{ref.amount}
-                          </span>
-                        </div>
-                        {ref.reason && (
-                          <p className="text-[11px] text-gray-500 italic">
-                            Reason: {ref.reason}
-                          </p>
-                        )}
-                        <p className="text-[10px] text-gray-400 pt-1 border-t border-gray-100">
-                          Live status updates automatically from our admin console.
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="p-4 bg-white rounded-3xl border border-gray-200 text-center text-gray-500 text-xs shadow-xs">
-                  No pending or processed refunds.
-                </div>
-              )}
-            </div>
-          </main>
-        </div>
-      )}
+      <CreditsPage
+        isOpen={activeModal === 'credits' || activeModal === 'credits-refunds'}
+        onClose={() => setActiveModal(null)}
+        user={user}
+      />
 
       {/* Sign Out Confirmation Modal */}
       {showSignOutConfirm && (

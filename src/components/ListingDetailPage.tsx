@@ -20,6 +20,7 @@ import {
 import { FurnitureItem, UserAccount } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import { addToCart } from '../services/cartService';
+import { isListingInStock, getListingAvailableDate } from '../services/listingStockService';
 import { Share as NativeShare } from '@capacitor/share';
 
 interface ListingDetailPageProps {
@@ -101,7 +102,8 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
   if (!isOpen || !item) return null;
 
-  // Multiple photos support
+  const isItemInStock = isListingInStock(item);
+  const itemAvailableDate = getListingAvailableDate(item);
   const rawImages: string[] = [];
   const addImageToList = (img: unknown) => {
     if (img && typeof img === 'string') {
@@ -635,10 +637,16 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
               {/* Value Highlights */}
               <div className="grid grid-cols-2 gap-2 pt-2">
-                <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
-                  {typeof item.stockQuantity === 'number' && item.stockQuantity > 0
-                    ? `In stock (${item.stockQuantity})`
-                    : 'In stock'}
+                <div
+                  className={`text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center ${
+                    isItemInStock ? 'bg-[#2D8EDE]' : 'bg-gray-600'
+                  }`}
+                >
+                  {isItemInStock
+                    ? typeof item.stockQuantity === 'number' && item.stockQuantity > 0
+                      ? `In stock (${item.stockQuantity})`
+                      : 'In stock'
+                    : 'Out of stock'}
                 </div>
                 <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
                   Returns
@@ -724,46 +732,52 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </span>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              {/* Quantity Selector */}
-              <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50 p-0.5">
+            {isItemInStock ? (
+              <div className="flex items-center gap-2.5">
+                {/* Quantity Selector */}
+                <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    className="w-7 h-7 rounded hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="w-6 text-center text-xs font-black text-gray-900">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setQuantity((q) =>
+                        typeof item.stockQuantity === 'number' && item.stockQuantity > 0
+                          ? Math.min(item.stockQuantity, q + 1)
+                          : q + 1
+                      )
+                    }
+                    className="w-7 h-7 rounded hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Action Button: Add to Cart */}
                 <button
                   type="button"
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-7 h-7 rounded hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
-                  aria-label="Decrease quantity"
+                  onClick={handleAddToCart}
+                  className="py-3 px-5 sm:px-8 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-black text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="w-6 text-center text-xs font-black text-gray-900">
-                  {quantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setQuantity((q) =>
-                      typeof item.stockQuantity === 'number' && item.stockQuantity > 0
-                        ? Math.min(item.stockQuantity, q + 1)
-                        : q + 1
-                    )
-                  }
-                  className="w-7 h-7 rounded hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
-                  aria-label="Increase quantity"
-                >
-                  <Plus className="w-3.5 h-3.5" />
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Add to Cart</span>
                 </button>
               </div>
-
-              {/* Action Button: Add to Cart */}
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                className="py-3 px-5 sm:px-8 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-black text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                <span>Add to Cart</span>
-              </button>
-            </div>
+            ) : (
+              <div className="flex-1 max-w-sm py-3 px-3 sm:px-4 bg-gray-100 border border-gray-300 text-gray-800 font-black text-[11px] sm:text-xs rounded-xl text-center select-none shadow-2xs">
+                Out of stock, will be available on {itemAvailableDate}
+              </div>
+            )}
           </div>
         </div>
       )}

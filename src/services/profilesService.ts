@@ -14,6 +14,7 @@ export interface SupabaseProfileRow {
   phone: string | null;
   location: string | null;
   bio: string | null;
+  refunds?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -110,6 +111,7 @@ export async function fetchUserProfile(userId: string): Promise<Partial<UserAcco
       phone: row.phone || '',
       location: row.location || '',
       bio: row.bio || '',
+      refunds: typeof row.refunds === 'number' ? row.refunds : Number(row.refunds) || 0,
     };
 
     setLocalUserProfile(userId, result);
@@ -313,5 +315,67 @@ export async function fetchUserProfilePicture(userId: string): Promise<string | 
     console.warn('fetchUserProfilePicture failed:', err);
   }
   return null;
+}
+
+/**
+ * Fetch user's current refunds / wallet balance from Supabase 'profiles' table.
+ */
+export async function fetchUserRefunds(userId: string): Promise<number> {
+  if (!userId) return 0;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('refunds')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!error && data && data.refunds !== undefined && data.refunds !== null) {
+      const val = Number(data.refunds) || 0;
+      try {
+        localStorage.setItem(`pinin_refunds_${userId}`, String(val));
+      } catch {}
+      return val;
+    }
+  } catch (err) {
+    console.warn('fetchUserRefunds error:', err);
+  }
+
+  try {
+    const cached = localStorage.getItem(`pinin_refunds_${userId}`);
+    if (cached !== null) return Number(cached) || 0;
+  } catch {}
+
+  return 0;
+}
+
+/**
+ * Withdraw user's wallet balance: turns amount to zero in Supabase profiles and local state.
+ */
+export async function withdrawUserRefunds(
+  userId: string
+): Promise<{ success: boolean; amount: number; error?: string }> {
+  if (!userId) return { success: false, amount: 0, error: 'User not logged in' };
+  try {
+    const currentBalance = await fetchUserRefunds(userId);
+
+    // Update refunds to 0 in Supabase profiles table
+    const { error } = await supabase
+      .from('profiles')
+      .update({ refunds: 0 })
+      .eq('id', userId);
+
+    if (error) {
+      console.warn('Supabase withdraw update error:', error);
+    }
+
+    try {
+      localStorage.setItem(`pinin_refunds_${userId}`, '0');
+    } catch {}
+
+    return { success: true, amount: currentBalance };
+  } catch (err: any) {
+    console.error('withdrawUserRefunds exception:', err);
+    return { success: false, amount: 0, error: err?.message || 'Withdrawal failed' };
+  }
 }
 

@@ -61,6 +61,9 @@ export interface FurnitureItem {
   costPrice?: number;
   isSupplierProduct?: boolean;
   itemSize?: string;
+  // Availability & Stock Status
+  availabilityStatus?: string;
+  availableDate?: string;
 }
 
 export interface CategoryOption {
@@ -162,6 +165,7 @@ export interface UserAccount {
   isLoggedIn: boolean;
   isProfileUpdated?: boolean;
   profileCompleted?: boolean;
+  refunds?: number;
 }
 
 export interface DeliveryAddress {
