@@ -1,27 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="pininGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3AA3F7"/>
-      <stop offset="100%" stop-color="#2178C9"/>
+    <linearGradient id="pininBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3498EB"/>
+      <stop offset="100%" stop-color="#1E7CCE"/>
     </linearGradient>
-    <filter id="subtleGlow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.15"/>
+    <filter id="iconShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.18"/>
     </filter>
   </defs>
 
-  <!-- Perfectly Round Icon on Transparent Canvas -->
-  <circle cx="256" cy="256" r="244" fill="url(#pininGrad)"/>
-  
-  <!-- Inner Ring Accent -->
-  <circle cx="256" cy="256" r="226" fill="none" stroke="#ffffff" stroke-width="4" stroke-opacity="0.25"/>
+  <!-- Squircle App Icon Background -->
+  <rect width="512" height="512" rx="116" fill="url(#pininBg)"/>
 
-  <!-- PinIn Icon Symbol: Bold "P" and Location Pin Motif -->
-  <g filter="url(#subtleGlow)">
-    <!-- Primary P Stem and Loop -->
-    <path d="M184 136h96c48 0 82 28 82 72s-34 72-82 72h-48v96h-48V136zm48 100h48c24 0 40-12 40-28s-16-28-40-28h-48v56z" fill="#ffffff"/>
+  <!-- Centered PinIn Location Pin with Furniture Motif -->
+  <g filter="url(#iconShadow)">
+    <!-- White Map Pin -->
+    <path d="M 256 425 C 236 395 144 285 144 216 C 144 154 194 104 256 104 C 318 104 368 154 368 216 C 368 285 276 395 256 425 Z" fill="#ffffff"/>
     
-    <!-- Pin Accent Indicator (In) -->
-    <circle cx="360" cy="340" r="30" fill="#ffffff"/>
-    <path d="M360 268l18 36h-36z" fill="#ffffff"/>
+    <!-- Inner Pin Circle (Blue) -->
+    <circle cx="256" cy="216" r="82" fill="#2484D8"/>
+
+    <!-- Cozy Modern Armchair Silhouette inside Pin -->
+    <!-- Armchair Backrest & Seat Cushion -->
+    <path d="M 230 168 C 230 162 235 158 242 158 L 270 158 C 277 158 282 162 282 168 L 285 195 C 285 200 281 204 276 204 L 236 204 C 231 204 227 200 227 195 Z" fill="#ffffff"/>
+    
+    <!-- Plump Seat Cushion Base -->
+    <path d="M 222 198 C 220 198 217 201 217 205 C 217 218 228 228 242 228 L 270 228 C 284 228 295 218 295 205 C 295 201 292 198 290 198 Z" fill="#ffffff"/>
+    
+    <!-- Left Armrest -->
+    <path d="M 221 182 C 214 182 208 188 208 196 C 208 206 215 214 224 214 C 226 214 228 213 229 211 L 229 190 C 229 185 225 182 221 182 Z" fill="#ffffff"/>
+    
+    <!-- Right Armrest -->
+    <path d="M 291 182 C 298 182 304 188 304 196 C 304 206 297 214 288 214 C 286 214 284 213 283 211 L 283 190 C 283 185 287 182 291 182 Z" fill="#ffffff"/>
+    
+    <!-- Armchair Legs -->
+    <line x1="228" y1="228" x2="222" y2="244" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="284" y1="228" x2="290" y2="244" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="244" y1="228" x2="242" y2="238" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="268" y1="228" x2="270" y2="238" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
   </g>
 </svg>

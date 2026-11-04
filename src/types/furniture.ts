@@ -63,7 +63,10 @@ export interface FurnitureItem {
   itemSize?: string;
   // Availability & Stock Status
   availabilityStatus?: string;
+  stockType?: string; // 'made to order' | 'in stock'
   availableDate?: string;
+  // Department / Gender (e.g. 'men', 'women', 'unisex')
+  gender?: string;
 }
 
 export interface CategoryOption {
@@ -82,6 +85,7 @@ export interface FilterState {
   sortBy: 'featured' | 'price-asc' | 'price-desc' | 'newest';
   locationQuery: string;
   location?: string;
+  gender?: string;
 }
 
 export interface ChatMessage {

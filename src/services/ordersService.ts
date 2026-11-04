@@ -114,6 +114,46 @@ export interface PlaceOrderItemInput {
   size?: string;
 }
 
+/**
+ * Try to claim the next available order number and tracking number from `order_tracking_pool` table
+ */
+export async function claimOrderTrackingFromPool(): Promise<{
+  orderNumber?: string;
+  trackingNumber?: string;
+  poolId?: number | string;
+} | null> {
+  try {
+    const { data, error } = await supabase
+      .from('order_tracking_pool')
+      .select('*')
+      .ilike('status', 'available')
+      .order('id', { ascending: true })
+      .limit(1);
+
+    if (!error && Array.isArray(data) && data.length > 0 && data[0].order_number) {
+      const row = data[0];
+      // Mark row as used
+      try {
+        await supabase
+          .from('order_tracking_pool')
+          .update({ status: 'used', used_at: new Date().toISOString() })
+          .eq('id', row.id);
+      } catch (updErr) {
+        console.warn('Notice updating order_tracking_pool status:', updErr);
+      }
+
+      return {
+        orderNumber: String(row.order_number).trim(),
+        trackingNumber: row.tracking_number ? String(row.tracking_number).trim() : undefined,
+        poolId: row.id,
+      };
+    }
+  } catch (err) {
+    console.warn('order_tracking_pool query notice:', err);
+  }
+  return null;
+}
+
 // Create a new unified order for all items in the cart
 export async function createOrder(data: {
   orderNumber?: string;
@@ -143,7 +183,19 @@ export async function createOrder(data: {
   imageUrl?: string;
   items?: PlaceOrderItemInput[];
 }): Promise<{ success: boolean; orders: OrderRecord[]; order: OrderRecord; error?: string }> {
-  const orderNumber = data.orderNumber || generateOrderNumber();
+  // Claim order & tracking number from Supabase `order_tracking_pool` if available
+  let orderNumber = data.orderNumber;
+  let pooledTrackingNumber: string | undefined = undefined;
+
+  if (!orderNumber) {
+    const pooled = await claimOrderTrackingFromPool();
+    if (pooled?.orderNumber) {
+      orderNumber = pooled.orderNumber;
+      pooledTrackingNumber = pooled.trackingNumber;
+    } else {
+      orderNumber = generateOrderNumber();
+    }
+  }
   const now = new Date();
   const dateBoughtIso = now.toISOString();
   const dateBoughtFormatted = now.toLocaleDateString('en-ZA', {
@@ -217,7 +269,7 @@ export async function createOrder(data: {
     sellerId: item.sellerId,
   }));
 
-  const trackingNumber = orderNumber.replace('PIN-', 'PIN-TRK-');
+  const trackingNumber = pooledTrackingNumber || orderNumber.replace('PIN-', 'PIN-TRK-');
   const invoiceNumber = orderNumber.replace('PIN-', 'INV-');
 
   // Single unified order record for the entire cart
@@ -249,13 +301,13 @@ export async function createOrder(data: {
     price: totalCalculatedPrice,
     quantity: totalQuantity,
     dateBought: dateBoughtFormatted,
-    status: 'Being processed',
-    deliveryStatus: 'Being processed',
+    status: 'Order placed',
+    deliveryStatus: 'Order placed',
     shippingStatus: 'order_paid',
     packageInfo: 'Standard parcel',
     courier: 'PinIn Express',
     trackingNumber,
-    latestUpdate: 'Order confirmed and being prepared',
+    latestUpdate: 'Order placed and confirmed',
     latestUpdateTime: dateBoughtIso,
     imageUrl: imagesList[0] || data.imageUrl,
     images: imagesList,
@@ -352,6 +404,26 @@ export async function createOrder(data: {
       }
     } else {
       console.log('[Supabase Orders] Insert succeeded with full schema');
+    }
+
+    // Also record into Supabase `orders_history` table
+    try {
+      await supabase.from('orders_history').insert([
+        {
+          order_number: record.orderNumber,
+          user_email: record.userEmail,
+          user_id: record.buyerId || null,
+          buyer_name: record.buyerName,
+          item_bought: record.itemBought,
+          price: record.price,
+          quantity: record.quantity,
+          status: record.status,
+          delivery: record.delivery,
+          tracking_number: record.trackingNumber,
+        },
+      ]);
+    } catch (histErr) {
+      console.warn('orders_history insert notice:', histErr);
     }
   } catch (e) {
     console.warn('[Supabase Orders] Insert error:', e);
@@ -572,8 +644,8 @@ export async function getUserOrders(userEmail?: string, buyerId?: string): Promi
           price: totalPrice > 0 ? totalPrice : Number(first.price) || 0,
           quantity: totalQuantity > 0 ? totalQuantity : Number(first.quantity) || 1,
           dateBought: first.date_bought || new Date(first.created_at || Date.now()).toLocaleDateString(),
-          status: first.status || first.delivery_status || 'Being processed',
-          deliveryStatus: first.delivery_status || first.status || 'Being processed',
+          status: first.status || first.delivery_status || 'Order placed',
+          deliveryStatus: first.delivery_status || first.status || 'Order placed',
           shippingStatus: first.shipping_status || 'order_paid',
           packageInfo: first.package_info || 'Standard parcel',
           courier: first.courier || 'PinIn Express',

@@ -12,6 +12,8 @@ interface CheckoutPageProps {
   onClose: () => void;
   items: CartItem[];
   deliveryAddress: DeliveryAddress | null;
+  deliveryMethodName?: string;
+  deliveryFee?: number;
   onUpdateDeliveryAddress: (address: DeliveryAddress) => void;
   user?: UserAccount;
   onOrderSuccess: (order: OrderRecord) => void;
@@ -24,6 +26,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onClose,
   items,
   deliveryAddress,
+  deliveryMethodName = 'Door to door',
+  deliveryFee = 0,
   onUpdateDeliveryAddress,
   user,
   onOrderSuccess,
@@ -36,11 +40,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   if (!isOpen) return null;
 
-  // Calculate total amount
-  const totalAmount = items.reduce(
+  // Calculate total amount including delivery fee
+  const itemsSubtotal = items.reduce(
     (sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1),
     0
   );
+  const totalAmount = itemsSubtotal + (deliveryFee || 0);
 
   const handlePay = async () => {
     if (!deliveryAddress) {
@@ -231,7 +236,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   setErrorMessage('Please add a delivery address first.');
                   return;
                 }
-                setIsAddressConfirmed(true);
+                setIsAddressConfirmed((prev) => !prev);
                 setErrorMessage('');
               }}
               className={`py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${

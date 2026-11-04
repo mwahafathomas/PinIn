@@ -1,4 +1,5 @@
 import { FurnitureItem } from '../types/furniture';
+import { supabase } from '../supabaseClient';
 
 export interface CartItem {
   id: string; // unique cart entry id
@@ -31,6 +32,37 @@ export function getCartItems(): CartItem[] {
   }
 }
 
+// Sync to Supabase `user_cart_items` table
+async function syncCartItemToSupabase(item: CartItem) {
+  try {
+    let userEmail: string | undefined;
+    let userId: string | undefined;
+    try {
+      const stored = localStorage.getItem('user_data');
+      if (stored) {
+        const u = JSON.parse(stored);
+        userEmail = u.email;
+        userId = u.id;
+      }
+    } catch {}
+
+    await supabase.from('user_cart_items').upsert([
+      {
+        id: item.id,
+        user_id: userId || null,
+        user_email: userEmail || null,
+        listing_id: item.listingId,
+        title: item.title,
+        price: item.price,
+        quantity: item.quantity,
+        image_url: item.imageUrl,
+        size: item.size || null,
+        updated_at: new Date().toISOString(),
+      },
+    ]);
+  } catch {}
+}
+
 // Helper to save cart to localStorage and trigger change event
 function saveCartItems(items: CartItem[]): void {
   try {
@@ -43,13 +75,21 @@ function saveCartItems(items: CartItem[]): void {
   }
 }
 
-// Add item to cart (if already in cart, increment quantity)
-export function addToCart(item: FurnitureItem, quantity: number = 1): CartItem[] {
+// Add item to cart (if already in cart with same size, increment quantity)
+export function addToCart(item: FurnitureItem, quantity: number = 1, size?: string): CartItem[] {
   const current = getCartItems();
-  const existingIndex = current.findIndex((c) => c.listingId === item.id);
+  const selectedSize = size || item.itemSize || (item as any).size || undefined;
+  const existingIndex = current.findIndex(
+    (c) => c.listingId === item.id && (!selectedSize || c.size === selectedSize)
+  );
 
+  let targetItem: CartItem;
   if (existingIndex > -1) {
     current[existingIndex].quantity += quantity;
+    if (selectedSize) {
+      current[existingIndex].size = selectedSize;
+    }
+    targetItem = current[existingIndex];
   } else {
     const newItem: CartItem = {
       id: `cart_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -64,12 +104,14 @@ export function addToCart(item: FurnitureItem, quantity: number = 1): CartItem[]
       sellerEmail: (item.seller as any)?.email,
       quantity: Math.max(1, quantity),
       addedAt: new Date().toISOString(),
-      size: item.itemSize || (item as any).size || undefined,
+      size: selectedSize,
     };
     current.push(newItem);
+    targetItem = newItem;
   }
 
   saveCartItems(current);
+  syncCartItemToSupabase(targetItem);
   return current;
 }
 
@@ -78,6 +120,9 @@ export function removeFromCart(listingId: string): CartItem[] {
   const current = getCartItems();
   const updated = current.filter((c) => c.listingId !== listingId);
   saveCartItems(updated);
+  try {
+    supabase.from('user_cart_items').delete().eq('listing_id', listingId).then();
+  } catch {}
   return updated;
 }
 

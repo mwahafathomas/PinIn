@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,6 +14,18 @@ import {
 import { UserAccount } from '../types/furniture';
 import { SUPABASE_PUBLIC_KEY, supabase } from '../supabaseClient';
 
+export const CONTACT_TOPICS_LIST = [
+  'where is my order/ i want return',
+  'item damaged',
+  'wrong item received',
+  'refund not received',
+  'payment failed but money deducted',
+  'can i change my order address',
+  'size guide',
+  'delete my account',
+  'other',
+] as const;
+
 interface ContactUsPageProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,7 +39,9 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
   user,
   showToast: parentShowToast,
 }) => {
-  const [topic, setTopic] = useState('support');
+  const [topics, setTopics] = useState<string[]>([...CONTACT_TOPICS_LIST]);
+  const [topic, setTopic] = useState<string>('where is my order/ i want return');
+  const [customTopic, setCustomTopic] = useState('');
   const [name, setName] = useState(user.isLoggedIn ? user.name : '');
   const [email, setEmail] = useState(user.isLoggedIn ? user.email : '');
   const [subject, setSubject] = useState('');
@@ -37,6 +51,26 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
     message: string;
     type: 'success' | 'error';
   } | null>(null);
+
+  // Load custom topics from Supabase contact_topics table if created
+  useEffect(() => {
+    async function loadTopics() {
+      try {
+        const { data, error } = await supabase
+          .from('contact_topics')
+          .select('name')
+          .order('id', { ascending: true });
+        if (!error && Array.isArray(data) && data.length > 0) {
+          const names = data.map((d: any) => String(d.name || '').trim()).filter(Boolean);
+          if (names.length > 0) {
+            if (!names.includes('other')) names.push('other');
+            setTopics(names);
+          }
+        }
+      } catch {}
+    }
+    loadTopics();
+  }, []);
 
   if (!isOpen) return null;
 
@@ -57,14 +91,17 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
     setIsSubmitting(true);
     setToast(null);
 
+    const effectiveTopic = topic === 'other' ? (customTopic.trim() || 'Other Inquiry') : topic;
+    const finalSubject = subject.trim() ? `${effectiveTopic}: ${subject.trim()}` : effectiveTopic;
+
     // Save to Supabase contact_messages table in the background
     try {
       await supabase.from('contact_messages').insert([
         {
           name: name.trim() || 'Valued User',
           email: email.trim(),
-          subject: subject.trim() || 'General Inquiry',
-          message: message.trim(),
+          subject: finalSubject,
+          message: `[Inquiry Topic: ${effectiveTopic}]\n\n${message.trim()}`,
           status: 'new',
         },
       ]);
@@ -201,7 +238,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -225,7 +262,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
             Contact Support
           </h1>
           <p className="text-xs font-medium text-gray-500">
-            We are here to help buyers and sellers 24/7
+            we are here to help 24/7
           </p>
         </div>
 
@@ -245,17 +282,8 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
           <div className="w-full flex items-center justify-between py-3.5 px-2 text-left">
             <div>
               <p className="text-xs sm:text-sm font-bold text-gray-900">Response Time</p>
-              <p className="text-[11px] text-gray-500">&lt; 24 Hours average turnaround</p>
+              <p className="text-[11px] text-gray-500">Less than 24 Hours</p>
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
-          </div>
-
-          <div className="w-full flex items-center justify-between py-3.5 px-2 text-left">
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-gray-900">Trust &amp; Safety</p>
-              <p className="text-[11px] text-gray-500">Buyer and seller protection protocols</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
           </div>
         </div>
 
@@ -298,12 +326,51 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
               onChange={(e) => setTopic(e.target.value)}
               className="w-full text-xs font-semibold px-3.5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#2D8EDE] bg-gray-50"
             >
-              <option value="support">Help with a Furniture Listing or Pickup</option>
-              <option value="safety">Trust & Safety / Report a User</option>
-              <option value="account">Account & Login Inquiries</option>
-              <option value="feedback">Feature Suggestions & Feedback</option>
-              <option value="general">Other Inquiries</option>
+              {topics.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
             </select>
+
+            {/* When 'other' is clicked, open a box for user to type topic with 25 words maximum */}
+            {topic === 'other' && (
+              <div className="mt-3 space-y-1">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Type your topic
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={customTopic}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const words = val.trim().split(/\s+/).filter(Boolean);
+                    if (words.length <= 25) {
+                      setCustomTopic(val);
+                    } else {
+                      // Disallow typing beyond 25 words
+                      const truncated = words.slice(0, 25).join(' ');
+                      setCustomTopic(truncated);
+                    }
+                  }}
+                  placeholder="Describe your inquiry topic (maximum 25 words)..."
+                  className="w-full text-xs font-semibold p-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#2D8EDE] bg-gray-50 resize-none"
+                />
+                <div className="flex justify-between items-center text-[11px] text-gray-400 font-bold px-1">
+                  <span>Maximum 25 words</span>
+                  <span
+                    className={
+                      customTopic.trim().split(/\s+/).filter(Boolean).length >= 25
+                        ? 'text-amber-600 font-extrabold'
+                        : ''
+                    }
+                  >
+                    {customTopic.trim() ? customTopic.trim().split(/\s+/).filter(Boolean).length : 0} / 25 words
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ChevronLeft,
+  ChevronDown,
   SlidersHorizontal,
-  MapPin,
   Bookmark,
 } from 'lucide-react';
 import { FurnitureItem, FilterState } from '../types/furniture';
@@ -24,6 +24,110 @@ interface FilterResultsPageProps {
   onOpenSell?: () => void;
 }
 
+const PAGE_SIZE = 12;
+
+const ResultItemCard: React.FC<{
+  item: FurnitureItem;
+  isSaved: boolean;
+  onSelectItem: (item: FurnitureItem) => void;
+  onToggleSave?: (itemId: string, e: React.MouseEvent) => void;
+}> = ({ item, isSaved, onSelectItem, onToggleSave }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div
+      onClick={() => onSelectItem(item)}
+      className="group bg-white rounded-none border border-gray-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col cursor-pointer"
+    >
+      {/* Photo Container with sharp 90-degree corners */}
+      <div className="relative aspect-4/3 bg-gray-100 rounded-none overflow-hidden">
+        {/* Shimmer Skeleton while image loads */}
+        {!isLoaded && (
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse z-0" />
+        )}
+
+        <img
+          src={getOptimizedImageUrl(item.imageUrl, { width: 400, quality: 70, format: 'webp' })}
+          alt={item.title}
+          onLoad={() => setIsLoaded(true)}
+          onError={(e) => {
+            setIsLoaded(true);
+            const target = e.currentTarget;
+            if (!target.dataset.fallback) {
+              target.dataset.fallback = 'true';
+              target.src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
+            }
+          }}
+          className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-300 rounded-none ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+          loading="lazy"
+          decoding="async"
+        />
+
+        {/* Price Blue Badge with Rand 'R' */}
+        <div className="absolute top-2 left-2 z-10">
+          {item.salePrice !== undefined && item.salePrice !== null && item.salePrice > 0 ? (
+            <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex flex-col items-start leading-tight">
+              <span className="line-through text-white/70 text-[10px] font-semibold">
+                R{item.originalPrice || item.price}
+              </span>
+              <span className="text-white text-xs font-black">
+                R{item.salePrice}
+              </span>
+            </div>
+          ) : (
+            <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1">
+              <span>R{item.price}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Bookmark Save Button */}
+        {onToggleSave && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSave(item.id, e);
+            }}
+            aria-label={isSaved ? 'Remove from saved' : 'Save item'}
+            className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-gray-700 hover:text-[#2D8EDE] active:scale-90 transition-all shadow-xs cursor-pointer"
+          >
+            <Bookmark
+              className={`w-4 h-4 ${
+                isSaved
+                  ? 'fill-[#2D8EDE] text-[#2D8EDE]'
+                  : 'text-gray-700 hover:text-[#2D8EDE]'
+              }`}
+            />
+          </button>
+        )}
+      </div>
+
+      {/* Info Area */}
+      <div className="p-2.5 flex-1 flex flex-col justify-between">
+        <div>
+          <h3 className="font-extrabold text-xs text-gray-900 line-clamp-1 group-hover:text-[#2D8EDE] transition-colors">
+            {item.title}
+          </h3>
+          {(item.isSale || (item.saleTag && item.saleTag.toLowerCase() === 'sale') || (item.salePrice !== undefined && item.salePrice > 0)) && (
+            <span className="text-[11px] font-black text-[#2D8EDE] uppercase tracking-wide leading-tight mt-0.5 block">
+              {item.saleTag || 'Sale'}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
+          <span className="font-semibold text-gray-400 capitalize truncate">
+            {item.category}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
   isOpen,
   onClose,
@@ -36,8 +140,11 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
   onOpenSell,
 }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Sort items by category order if specified in listings table
+  // Sort items by category order if specified
   const sortedItems = React.useMemo(() => {
     return [...items].sort((a, b) => {
       const orderA = typeof a.categoryOrder === 'number' ? a.categoryOrder : 999999;
@@ -52,14 +159,40 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true);
+      setVisibleCount(PAGE_SIZE);
       const timer = setTimeout(() => {
         setIsLoading(false);
-      }, 1200);
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, items]);
+
+  // Infinite scroll intersection observer
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && visibleCount < sortedItems.length && !isLoadingMore) {
+          setIsLoadingMore(true);
+          setTimeout(() => {
+            setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, sortedItems.length));
+            setIsLoadingMore(false);
+          }, 300);
+        }
+      },
+      { threshold: 0.1, rootMargin: '250px' }
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [visibleCount, sortedItems.length, isLoadingMore]);
 
   if (!isOpen) return null;
+
+  const visibleItems = sortedItems.slice(0, visibleCount);
+  const hasMore = visibleCount < sortedItems.length;
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans select-none">
@@ -71,7 +204,7 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -120,7 +253,7 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
       </div>
 
       {/* Main Grid Area (Scrollable in middle) */}
-      <main className="flex-1 w-full max-w-md md:max-w-7xl mx-auto overflow-y-auto px-3 md:px-6 lg:px-8 pt-3 pb-6">
+      <main className="flex-1 w-full max-w-md md:max-w-7xl mx-auto overflow-y-auto px-3 md:px-6 lg:px-8 pt-3 pb-8">
         {isLoading ? (
           /* Shimmer Skeleton Grid Loader */
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4 animate-pulse">
@@ -142,94 +275,56 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
             ))}
           </div>
         ) : sortedItems.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
-            {sortedItems.map((item) => {
-              const isSaved = savedItemIds.includes(item.id);
-
-              return (
-                <div
+          <div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4">
+              {visibleItems.map((item) => (
+                <ResultItemCard
                   key={item.id}
-                  onClick={() => onSelectItem(item)}
-                  className="group bg-white rounded-none border border-gray-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col cursor-pointer"
+                  item={item}
+                  isSaved={savedItemIds.includes(item.id)}
+                  onSelectItem={onSelectItem}
+                  onToggleSave={onToggleSave}
+                />
+              ))}
+            </div>
+
+            {/* Shimmer skeleton while loading more */}
+            {isLoadingMore && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4 mt-3 animate-pulse">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-white border border-gray-200 overflow-hidden shadow-xs flex flex-col">
+                    <div className="aspect-4/3 bg-gray-200" />
+                    <div className="p-2.5 space-y-2">
+                      <div className="h-3.5 bg-gray-200 rounded w-3/4" />
+                      <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Sentinel for infinite scroll */}
+            <div ref={sentinelRef} className="h-6 w-full" />
+
+            {/* Pagination Button */}
+            {hasMore && !isLoadingMore && (
+              <div className="text-center pt-5 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, sortedItems.length))}
+                  className="py-2.5 px-6 rounded-full bg-white border border-gray-300 hover:border-[#2D8EDE] text-gray-800 hover:text-[#2D8EDE] text-xs font-black shadow-xs active:scale-95 transition-all inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  {/* Photo Container with sharp 90-degree corners */}
-                  <div className="relative aspect-4/3 bg-gray-100 rounded-none overflow-hidden">
-                    <img
-                      src={getOptimizedImageUrl(item.imageUrl, { width: 400, quality: 70, format: 'webp' })}
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 rounded-none"
-                      loading="lazy"
-                      decoding="async"
-                    />
-
-                    {/* Price Blue Badge with Rand 'R' */}
-                    <div className="absolute top-2 left-2 z-10">
-                      {item.salePrice !== undefined && item.salePrice !== null && item.salePrice > 0 ? (
-                        <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex flex-col items-start leading-tight">
-                          <span className="line-through text-white/70 text-[10px] font-semibold">
-                            R{item.originalPrice || item.price}
-                          </span>
-                          <span className="text-white text-xs font-black">
-                            R{item.salePrice}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="bg-[#2D8EDE] text-white text-xs font-black px-2 py-0.5 rounded-lg shadow-sm flex items-center gap-1">
-                          <span>R{item.price}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bookmark Save Button */}
-                    {onToggleSave && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleSave(item.id, e);
-                        }}
-                        aria-label={isSaved ? 'Remove from saved' : 'Save item'}
-                        className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-gray-700 hover:text-[#2D8EDE] active:scale-90 transition-all shadow-xs cursor-pointer"
-                      >
-                        <Bookmark
-                          className={`w-4 h-4 ${
-                            isSaved
-                              ? 'fill-[#2D8EDE] text-[#2D8EDE]'
-                              : 'text-gray-700 hover:text-[#2D8EDE]'
-                          }`}
-                        />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Info Area */}
-                  <div className="p-2.5 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h3 className="font-extrabold text-xs text-gray-900 line-clamp-1 group-hover:text-[#2D8EDE] transition-colors">
-                        {item.title}
-                      </h3>
-                      {(item.isSale || (item.saleTag && item.saleTag.toLowerCase() === 'sale') || (item.salePrice !== undefined && item.salePrice > 0)) && (
-                        <span className="text-[11px] font-black text-[#2D8EDE] uppercase tracking-wide leading-tight mt-0.5 block">
-                          {item.saleTag || 'Sale'}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-gray-400 capitalize truncate">
-                        {item.category}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                  <span>Load more results</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                <p className="text-[11px] text-gray-400 font-bold mt-2">
+                  Showing {visibleItems.length} of {sortedItems.length} items
+                </p>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="my-auto py-16 text-center space-y-3 bg-white rounded-3xl border-2 border-gray-200 p-6">
-            <div className="w-14 h-14 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
-              <SlidersHorizontal className="w-6 h-6" />
-            </div>
+          <div className="py-20 text-center space-y-2">
             <h2 className="text-base font-black text-gray-900">
               No matching listings
             </h2>

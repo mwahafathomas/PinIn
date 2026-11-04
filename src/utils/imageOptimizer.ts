@@ -32,11 +32,79 @@ export function getOptimizedImageUrl(
     return '';
   }
 
-  const trimmed = url.trim();
+  let trimmed = url.trim();
   if (!trimmed) return '';
 
-  // Data URIs or Blob URIs cannot be transformed on the server
+  // Clean brackets, curly braces, quotes if stored as array/JSON in Supabase
+  if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+    trimmed = trimmed.slice(1, -1).trim();
+  }
+  // Strip surrounding quotes
+  trimmed = trimmed.replace(/^["']+|["']+$/g, '').trim();
+
+  // If multiple comma-separated URLs, take the first one
+  if (trimmed.includes(',')) {
+    const parts = trimmed.split(',');
+    trimmed = parts[0].trim().replace(/^["']+|["']+$/g, '');
+  }
+
+  if (!trimmed) return '';
+
+  // Data URIs or Blob URIs cannot be transformed
   if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+    return trimmed;
+  }
+
+  // Handle Google Drive share links: convert to direct view
+  if (trimmed.includes('drive.google.com/file/d/')) {
+    const match = trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+    }
+  }
+
+  const SUPABASE_BASE_URL = 'https://ygkyxxrrfcvypcvmnzke.supabase.co';
+
+  // If user provided a storage path or relative filename:
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    // If it starts with storage/v1/
+    if (trimmed.startsWith('storage/v1/')) {
+      trimmed = `${SUPABASE_BASE_URL}/${trimmed}`;
+    } else if (trimmed.startsWith('/storage/v1/')) {
+      trimmed = `${SUPABASE_BASE_URL}${trimmed}`;
+    } else if (
+      trimmed.startsWith('listings/') ||
+      trimmed.startsWith('product-images/') ||
+      trimmed.startsWith('products/') ||
+      trimmed.startsWith('public/') ||
+      trimmed.startsWith('images/') ||
+      trimmed.startsWith('uploads/')
+    ) {
+      trimmed = `${SUPABASE_BASE_URL}/storage/v1/object/public/${trimmed}`;
+    } else {
+      // Just a filename e.g. "my-photo.jpg" -> assume listings bucket
+      const cleanPath = trimmed.replace(/^\/+/, '');
+      trimmed = `${SUPABASE_BASE_URL}/storage/v1/object/public/listings/${cleanPath}`;
+    }
+  }
+
+  // CRITICAL FIX: Supabase Image Transformation (/storage/v1/render/image/public/) requires
+  // a paid Pro plan. Free tier returns 404 or 400 for /render/image/.
+  // Always use the direct, guaranteed public storage endpoint: /storage/v1/object/public/
+  if (trimmed.includes('/storage/v1/render/image/public/')) {
+    trimmed = trimmed.replace('/storage/v1/render/image/public/', '/storage/v1/object/public/');
+    // Strip render query parameters
+    try {
+      const u = new URL(trimmed);
+      u.searchParams.delete('width');
+      u.searchParams.delete('quality');
+      u.searchParams.delete('format');
+      trimmed = u.toString();
+    } catch {}
+  }
+
+  // If it's a standard Supabase storage object URL, do NOT append query parameters that cause some CDN issues
+  if (trimmed.includes('supabase.co/storage/v1/object/public/')) {
     return trimmed;
   }
 
@@ -51,30 +119,8 @@ export function getOptimizedImageUrl(
   let optimized = trimmed;
 
   try {
-    // 1. Check for Supabase Storage URLs
-    const isSupabase =
-      trimmed.includes('supabase.co/storage/v1') ||
-      trimmed.includes('/storage/v1/object/public/') ||
-      trimmed.includes('/storage/v1/render/image/public/') ||
-      trimmed.includes('product-images') ||
-      trimmed.includes('listings');
-
-    if (isSupabase) {
-      // If it uses the object/public endpoint, transform to render/image/public for Supabase Image Transformation
-      let baseUrl = trimmed;
-      if (baseUrl.includes('/storage/v1/object/public/')) {
-        baseUrl = baseUrl.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
-      }
-
-      // Parse and apply/update transformation parameters
-      const urlObj = new URL(baseUrl, window?.location?.origin || 'https://pinin.app');
-      urlObj.searchParams.set('width', width.toString());
-      urlObj.searchParams.set('quality', quality.toString());
-      urlObj.searchParams.set('format', format);
-
-      optimized = urlObj.toString();
-    } else if (trimmed.includes('images.unsplash.com')) {
-      // 2. Unsplash Image Optimization
+    if (trimmed.includes('images.unsplash.com')) {
+      // Unsplash Image Optimization
       const urlObj = new URL(trimmed);
       urlObj.searchParams.set('w', width.toString());
       urlObj.searchParams.set('q', quality.toString());
@@ -83,17 +129,7 @@ export function getOptimizedImageUrl(
       urlObj.searchParams.set('fit', 'crop');
       optimized = urlObj.toString();
     }
-  } catch {
-    // Fallback: If URL parsing fails, append query string manually if it looks like Supabase storage
-    if (
-      trimmed.includes('supabase.co') ||
-      trimmed.includes('product-images') ||
-      trimmed.includes('listings')
-    ) {
-      const separator = trimmed.includes('?') ? '&' : '?';
-      optimized = `${trimmed}${separator}width=${width}&quality=${quality}&format=${format}`;
-    }
-  }
+  } catch {}
 
   transformedUrlCache.set(cacheKey, optimized);
   return optimized;

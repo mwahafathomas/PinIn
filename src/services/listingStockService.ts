@@ -1,38 +1,56 @@
 import { supabase } from '../supabaseClient';
 import { FurnitureItem } from '../types/furniture';
 
-const BOUGHT_PREFIX = 'pinin_bought_item_';
+const BOUGHT_COUNT_PREFIX = 'pinin_bought_count_';
+const BOUGHT_TIME_PREFIX = 'pinin_bought_time_';
+const OUT_OF_STOCK_THRESHOLD = 5;
 
 /**
- * Record an item as bought in the app
+ * Record an item as bought in the app (increments bought count)
  */
-export function recordListingAsBought(listingId: string | number) {
+export function recordListingAsBought(listingId: string | number, quantity: number = 1) {
   if (!listingId) return;
   const idStr = String(listingId);
   try {
-    localStorage.setItem(`${BOUGHT_PREFIX}${idStr}`, String(Date.now()));
-  } catch {}
+    const currentCount = getListingBoughtCount(idStr);
+    const newCount = currentCount + Math.max(1, quantity);
+    localStorage.setItem(`${BOUGHT_COUNT_PREFIX}${idStr}`, String(newCount));
+    localStorage.setItem(`${BOUGHT_TIME_PREFIX}${idStr}`, String(Date.now()));
 
-  // Also best-effort update Supabase listings table if column exists
-  try {
-    (async () => {
-      try {
-        await supabase
-          .from('listings')
-          .update({ availability_status: 'out of stock' })
-          .eq('id', idStr);
-      } catch {}
-    })();
+    // If bought 5 or more items, mark as out of stock in Supabase listings table
+    if (newCount >= OUT_OF_STOCK_THRESHOLD) {
+      (async () => {
+        try {
+          await supabase
+            .from('listings')
+            .update({ availability_status: 'out of stock' })
+            .eq('id', idStr);
+        } catch {}
+      })();
+    }
   } catch {}
 }
 
 /**
- * Check if an item has been bought locally
+ * Get total number of times an item has been bought
+ */
+export function getListingBoughtCount(listingId: string | number): number {
+  if (!listingId) return 0;
+  try {
+    const val = localStorage.getItem(`${BOUGHT_COUNT_PREFIX}${String(listingId)}`);
+    return val ? Number(val) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Get timestamp when the item was last bought
  */
 export function getListingBoughtTimestamp(listingId: string | number): number | null {
   if (!listingId) return null;
   try {
-    const val = localStorage.getItem(`${BOUGHT_PREFIX}${String(listingId)}`);
+    const val = localStorage.getItem(`${BOUGHT_TIME_PREFIX}${String(listingId)}`);
     return val ? Number(val) : null;
   } catch {
     return null;
@@ -41,14 +59,14 @@ export function getListingBoughtTimestamp(listingId: string | number): number | 
 
 /**
  * Determine if a listing is available for purchase.
- * If the admin sets availability_status in Supabase to 'available', it is in stock!
+ * Changed to make item display as out of stock once 5 items are bought.
  */
 export function isListingInStock(item?: Partial<FurnitureItem> | null): boolean {
   if (!item || !item.id) return true;
 
   const status = (item.availabilityStatus || '').trim().toLowerCase();
 
-  // If the admin manually wrote "available" or "in stock" in Supabase, show Add to Cart!
+  // If admin manually set "available" or "in stock" in Supabase, show Add to Cart!
   if (status === 'available' || status === 'in stock') {
     return true;
   }
@@ -58,9 +76,17 @@ export function isListingInStock(item?: Partial<FurnitureItem> | null): boolean 
     return false;
   }
 
-  // If bought in the app and admin hasn't reset to "available"
-  const boughtTime = getListingBoughtTimestamp(item.id);
-  if (boughtTime) {
+  // Rule: out of stock once 5 items are bought
+  const boughtCount = getListingBoughtCount(item.id);
+  const salesCount = typeof (item as any).sales_count === 'number' ? (item as any).sales_count : 0;
+  const totalBought = boughtCount + salesCount;
+
+  if (totalBought >= OUT_OF_STOCK_THRESHOLD) {
+    return false;
+  }
+
+  // Also check if stockQuantity was set and reached 0
+  if (typeof item.stockQuantity === 'number' && item.stockQuantity <= 0) {
     return false;
   }
 

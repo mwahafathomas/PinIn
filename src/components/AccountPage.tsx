@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -50,6 +51,7 @@ import { ReturnsFlowModal } from './ReturnsFlowModal';
 import { OrdersFlowModal } from './OrdersFlowModal';
 import { InvoicesFlowModal } from './InvoicesFlowModal';
 import { CreditsPage } from './CreditsPage';
+import { HelpSupportPage } from './HelpSupportPage';
 
 interface AccountPageProps {
   isOpen: boolean;
@@ -172,8 +174,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-1 text-xs font-bold text-gray-700">
-            <UserIcon className="w-4 h-4 text-[#2D8EDE]" />
+          <div className="flex items-center text-xs font-bold text-gray-700">
             <span>Account</span>
           </div>
         </div>
@@ -188,14 +189,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             <div className="p-2 space-y-3">
               {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                 <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-none">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gray-200" />
-                    <div className="space-y-1.5">
-                      <div className="h-4 w-32 bg-gray-200 rounded" />
-                      <div className="h-3 w-48 bg-gray-200 rounded" />
-                    </div>
-                  </div>
-                  <div className="w-4 h-4 bg-gray-200 rounded" />
+                  <div className="h-4 w-32 bg-gray-200 rounded" />
                 </div>
               ))}
             </div>
@@ -212,9 +206,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             ) : (
               /* Logged out state - Keep box and border for Welcome to PinIn */
               <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
-                  <UserIcon className="w-6 h-6 text-[#2D8EDE]" />
-                </div>
                 <div>
                   <h2 className="text-sm font-extrabold text-gray-900">Welcome to PinIn</h2>
                   <p className="text-xs text-gray-500 mt-0.5">
@@ -225,9 +216,8 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   <button
                     type="button"
                     onClick={() => onOpenAuth?.('signin')}
-                    className="py-2.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                    className="py-2.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center"
                   >
-                    <LogIn className="w-3.5 h-3.5" />
                     <span>Sign In</span>
                   </button>
                   <button
@@ -241,9 +231,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               </div>
             )}
 
-            {/* Account Menu Navigation - Clean list with grey divider lines (no box/border background) */}
+            {/* Account Menu Navigation - Clean list with grey divider lines (no icons, no box/border background) */}
             <div className="divide-y divide-gray-200">
-              {/* 1. Account Settings (Contains Account Profile, Edit Profile & Delete Account) */}
+              {/* 1. Account Settings */}
               <button
                 type="button"
                 onClick={() => {
@@ -255,14 +245,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 }}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <Settings className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Account Settings</p>
-                  </div>
-                </div>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">Account Settings</p>
               </button>
 
               {/* 2. My Orders */}
@@ -277,14 +260,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 }}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <Package className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Orders</p>
-                  </div>
-                </div>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">Orders</p>
               </button>
 
               {/* 3. Returns */}
@@ -299,14 +275,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 }}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <RotateCcw className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Returns</p>
-                  </div>
-                </div>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">Returns</p>
               </button>
 
               {/* 4. Invoices */}
@@ -321,14 +290,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 }}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <FileText className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Invoices</p>
-                  </div>
-                </div>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">Invoices</p>
               </button>
 
               {/* 5. Address Book */}
@@ -343,14 +305,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 }}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <BookOpen className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Address Book</p>
-                  </div>
-                </div>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">Address Book</p>
               </button>
 
               {/* 6. Help & Support */}
@@ -359,14 +314,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 onClick={() => setActiveModal('help')}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <HelpCircle className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Help &amp; Support</p>
-                  </div>
-                </div>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">Help &amp; Support</p>
               </button>
 
               {/* 7. Refunds */}
@@ -381,14 +329,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 }}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <Coins className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Refunds</p>
-                  </div>
-                </div>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">Refunds</p>
               </button>
 
               {/* 8. Saved Items */}
@@ -403,14 +344,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 }}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <Bookmark className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Saved Items</p>
-                  </div>
-                </div>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">Saved Items</p>
               </button>
 
               {/* 9. Policies */}
@@ -422,14 +356,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 }}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Policies</p>
-                  </div>
-                </div>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">Policies</p>
               </button>
 
               {/* 10. Contact Us */}
@@ -438,14 +365,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 onClick={onOpenContactUs}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                    <Headphones className="w-4 h-4 text-[#2D8EDE]" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-gray-900">Contact Us</p>
-                  </div>
-                </div>
+                <p className="text-xs sm:text-sm font-bold text-gray-900">Contact Us</p>
               </button>
 
               {/* 11. Sign Out (Logged in only) */}
@@ -455,12 +375,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   onClick={() => setShowSignOutConfirm(true)}
                   className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-blue-50/50 text-gray-800 text-left transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center">
-                      <LogOut className="w-4 h-4 text-[#2D8EDE]" />
-                    </div>
-                    <span className="text-xs sm:text-sm font-bold text-gray-900">Sign Out</span>
-                  </div>
+                  <span className="text-xs sm:text-sm font-bold text-gray-900">Sign Out</span>
                 </button>
               )}
             </div>
@@ -563,155 +478,99 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* FULL PAGE 2: ORDERS (Pages 10, 20, 30 Flow)                               */}
-      {/* ========================================================================= */}
-      <OrdersFlowModal
-        isOpen={activeModal === 'my-orders'}
-        onClose={() => setActiveModal(null)}
-        orders={orders}
-        onOpenReturns={(_selectedReturnOrder) => {
-          setActiveModal('returns');
-        }}
-        onOpenListing={(listingId) => {
-          setActiveModal(null);
-          if (onSelectItem) {
-            onSelectItem({ id: listingId });
-          } else {
-            window.location.hash = `#/listing/${listingId}`;
-          }
-        }}
-      />
+      {/* Animated Sliding Sub-Pages (Opens like page comes from right) */}
+      <AnimatePresence>
+        {activeModal && (
+          <motion.div
+            key={activeModal}
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+            className="fixed inset-0 z-50 overflow-hidden bg-white"
+          >
+            {activeModal === 'my-orders' && (
+              <OrdersFlowModal
+                isOpen={true}
+                onClose={() => setActiveModal(null)}
+                orders={orders}
+                onOpenReturns={(_selectedReturnOrder) => {
+                  setActiveModal('returns');
+                }}
+                onOpenListing={(listingId) => {
+                  setActiveModal(null);
+                  if (onSelectItem) {
+                    onSelectItem({ id: listingId });
+                  } else {
+                    window.location.hash = `#/listing/${listingId}`;
+                  }
+                }}
+                onOpenPolicies={() => {
+                  setActiveModal(null);
+                  if (onOpenPolicies) {
+                    onOpenPolicies();
+                  } else if (onOpenPrivacyPolicy) {
+                    onOpenPrivacyPolicy();
+                  }
+                }}
+              />
+            )}
 
-      {/* ========================================================================= */}
-      {/* FULL PAGE 3: RETURNS (3-Step Return Flow)                                 */}
-      {/* ========================================================================= */}
-      <ReturnsFlowModal
-        isOpen={activeModal === 'returns'}
-        onClose={() => setActiveModal(null)}
-        user={user}
-        orders={orders}
-        onOpenPolicies={() => {
-          setActiveModal(null);
-          if (onOpenPolicies) onOpenPolicies();
-          else if (onOpenPrivacyPolicy) onOpenPrivacyPolicy();
-        }}
-      />
+            {activeModal === 'returns' && (
+              <ReturnsFlowModal
+                isOpen={true}
+                onClose={() => setActiveModal(null)}
+                user={user}
+                orders={orders}
+                onOpenPolicies={() => {
+                  setActiveModal(null);
+                  if (onOpenPolicies) onOpenPolicies();
+                  else if (onOpenPrivacyPolicy) onOpenPrivacyPolicy();
+                }}
+              />
+            )}
 
-      {/* ========================================================================= */}
-      {/* FULL PAGE 4: INVOICES (Overview & Details Flow)                           */}
-      {/* ========================================================================= */}
-      <InvoicesFlowModal
-        isOpen={activeModal === 'invoices'}
-        onClose={() => setActiveModal(null)}
-        orders={orders}
-        onOpenReturns={(_selectedReturnOrder) => {
-          setActiveModal('returns');
-        }}
-      />
+            {activeModal === 'invoices' && (
+              <InvoicesFlowModal
+                isOpen={true}
+                onClose={() => setActiveModal(null)}
+                orders={orders}
+                onOpenReturns={(_selectedReturnOrder) => {
+                  setActiveModal('returns');
+                }}
+              />
+            )}
 
-      {/* ========================================================================= */}
-      {/* FULL PAGE 5: ADDRESS BOOK                                                 */}
-      {/* ========================================================================= */}
-      <DeliveryAddressPage
-        isOpen={activeModal === 'address-book'}
-        onClose={() => setActiveModal(null)}
-        onSaveAddress={() => {
-          // Address is persistently saved in local storage by DeliveryAddressPage
-        }}
-        title="Address Book"
-      />
+            {activeModal === 'address-book' && (
+              <DeliveryAddressPage
+                isOpen={true}
+                onClose={() => setActiveModal(null)}
+                onSaveAddress={() => {}}
+                title="Address Book"
+              />
+            )}
 
-      {/* ========================================================================= */}
-      {/* FULL PAGE 6: HELP & SUPPORT                                               */}
-      {/* ========================================================================= */}
-      {activeModal === 'help' && (
-        <div className="fixed inset-0 z-60 bg-gray-50 flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
-          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
-            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
-              <div className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  aria-label="Go back"
-                  className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
-                >
-                  <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
-                </button>
-              </div>
-
-              <div className="absolute left-1/2 -translate-x-1/2">
-                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
-                  Pin<span className="text-[#2D8EDE]">In</span>
-                </span>
-              </div>
-
-              <div className="w-8" aria-hidden="true" />
-            </div>
-          </header>
-
-          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 space-y-4">
-            <div className="border-b border-gray-200 pb-3">
-              <h1 className="text-xl font-bold text-gray-900">Help &amp; Support</h1>
-              <p className="text-xs text-gray-500 mt-0.5">Answers to common furniture shopping questions</p>
-            </div>
-
-            {/* FAQs Accordion */}
-            <div className="space-y-3 text-xs">
-              <div className="p-4 bg-white rounded-3xl border border-gray-200 space-y-1 shadow-xs">
-                <p className="font-extrabold text-gray-900 text-sm">How long does delivery take?</p>
-                <p className="text-gray-600 text-xs leading-relaxed">
-                  Delivery takes 2 to 5 business days across Gauteng and surrounding areas.
-                </p>
-              </div>
-
-              <div className="p-4 bg-white rounded-3xl border border-gray-200 space-y-1 shadow-xs">
-                <p className="font-extrabold text-gray-900 text-sm">What is the return policy?</p>
-                <p className="text-gray-600 text-xs leading-relaxed">
-                  Items can be returned within 7 days of delivery if they arrive damaged or do not match the photos/description.
-                </p>
-              </div>
-
-              <div className="p-4 bg-white rounded-3xl border border-gray-200 space-y-1 shadow-xs">
-                <p className="font-extrabold text-gray-900 text-sm">Can I pay in person?</p>
-                <p className="text-gray-600 text-xs leading-relaxed">
-                  Yes, for items marked with the "Pay in Person" badge, you can inspect the item and settle upon handover.
-                </p>
-              </div>
-
-              <div className="p-4 bg-white rounded-3xl border border-gray-200 space-y-1 shadow-xs">
-                <p className="font-extrabold text-gray-900 text-sm">How do I report an inaccurate listing?</p>
-                <p className="text-gray-600 text-xs leading-relaxed">
-                  Open any listing, click the 3 dots in the top right corner, and select "Report Listing".
-                </p>
-              </div>
-            </div>
-
-            {/* Contact Action */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => {
+            {activeModal === 'help' && (
+              <HelpSupportPage
+                isOpen={true}
+                onClose={() => setActiveModal(null)}
+                onOpenContactUs={() => {
                   setActiveModal(null);
                   if (onOpenContactUs) onOpenContactUs();
                 }}
-                className="w-full py-3.5 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Headphones className="w-4 h-4 text-white" />
-                <span>Contact Customer Support</span>
-              </button>
-            </div>
-          </main>
-        </div>
-      )}
+              />
+            )}
 
-      {/* ========================================================================= */}
-      {/* FULL PAGE 7: CREDITS (Refunds & Wallet Balance Flow)                      */}
-      {/* ========================================================================= */}
-      <CreditsPage
-        isOpen={activeModal === 'credits' || activeModal === 'credits-refunds'}
-        onClose={() => setActiveModal(null)}
-        user={user}
-      />
+            {(activeModal === 'credits' || activeModal === 'credits-refunds') && (
+              <CreditsPage
+                isOpen={true}
+                onClose={() => setActiveModal(null)}
+                user={user}
+              />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Sign Out Confirmation Modal */}
       {showSignOutConfirm && (

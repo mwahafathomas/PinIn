@@ -82,6 +82,18 @@ export async function saveListingForUser(userId: string, listingId: string): Pro
       },
     ]);
 
+    // 3. Also sync to `user_saved_items` table
+    try {
+      await supabase.from('user_saved_items').upsert([
+        {
+          id: `${userId}_${listingId}`,
+          user_id: userId,
+          listing_id: listingId,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+    } catch {}
+
     return !error;
   } catch {
     return false;
@@ -103,6 +115,14 @@ export async function removeSavedListingForUser(userId: string, listingId: strin
       .delete()
       .eq('user_id', userId)
       .eq('listing_id', listingId);
+
+    try {
+      await supabase
+        .from('user_saved_items')
+        .delete()
+        .eq('user_id', userId)
+        .eq('listing_id', listingId);
+    } catch {}
 
     return !error;
   } catch {

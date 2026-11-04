@@ -25,6 +25,7 @@ import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
 import { ContactUsPage } from './components/ContactUsPage';
 import { DeleteAccountPage } from './components/DeleteAccountPage';
 import { EditProfilePage } from './components/EditProfilePage';
+import { HelpSupportPage } from './components/HelpSupportPage';
 import { AuthPage } from './components/AuthPage';
 import { CategoriesPage } from './components/CategoriesPage';
 import { FilterResultsPage } from './components/FilterResultsPage';
@@ -2233,71 +2234,85 @@ export default function App() {
 
     const filtered = enrichedList.filter((item) => {
       // Clothing Gender filter (Men & Women)
-      if (selectedCategory !== 'All') {
-        const itemCat = (item.category || '').toLowerCase().trim();
-        const itemTitle = (item.title || '').toLowerCase().trim();
-        const itemDesc = (item.description || '').toLowerCase().trim();
-        const sel = selectedCategory.toLowerCase().trim();
+      const activeGender = (
+        filters.gender || (selectedCategory !== 'All' ? selectedCategory.toLowerCase().trim() : '')
+      ).toLowerCase().trim();
 
-        if (sel === 'men') {
-          const isMenMatch =
-            itemCat === 'men' ||
-            itemCat.includes('men') ||
-            itemTitle.includes('men') ||
-            itemDesc.includes('men') ||
-            itemCat.includes('male') ||
-            itemTitle.includes('male') ||
-            itemCat.includes('shirt') ||
-            itemTitle.includes('shirt') ||
-            itemCat.includes('jean') ||
-            itemTitle.includes('jean') ||
-            itemCat.includes('trouser') ||
-            itemTitle.includes('trouser') ||
-            itemCat.includes('hoodie') ||
-            itemTitle.includes('hoodie');
-
-          const isWomenOnly =
-            (itemCat.includes('women') ||
-              itemTitle.includes('women') ||
-              itemTitle.includes('dress') ||
-              itemTitle.includes('skirt') ||
-              itemCat.includes('dress') ||
-              itemCat.includes('skirt')) &&
-            !itemTitle.includes('men') &&
-            !itemCat.includes('men');
-
-          if (!isMenMatch || isWomenOnly) {
-            return false;
-          }
-        } else if (sel === 'women') {
-          const isWomenMatch =
-            itemCat === 'women' ||
-            itemCat.includes('women') ||
-            itemCat.includes('ladies') ||
-            itemTitle.includes('women') ||
-            itemDesc.includes('women') ||
-            itemCat.includes('female') ||
-            itemTitle.includes('female') ||
-            itemCat.includes('dress') ||
-            itemTitle.includes('dress') ||
-            itemCat.includes('skirt') ||
-            itemTitle.includes('skirt') ||
-            itemCat.includes('shirt') ||
-            itemTitle.includes('shirt') ||
-            itemCat.includes('trouser') ||
-            itemTitle.includes('trouser') ||
-            itemCat.includes('jean') ||
-            itemTitle.includes('jean') ||
-            itemCat.includes('hoodie') ||
-            itemTitle.includes('hoodie');
-
-          if (!isWomenMatch) {
+      if (activeGender === 'men' || activeGender === 'women') {
+        const itemGender = (item.gender || '').toLowerCase().trim();
+        if (itemGender) {
+          // Explicit gender assigned from Supabase
+          if (itemGender !== activeGender && itemGender !== 'unisex') {
             return false;
           }
         } else {
-          if (itemCat !== sel && !itemCat.includes(sel) && !sel.includes(itemCat)) {
-            return false;
+          // Inferred fallback for legacy listings
+          const itemCat = (item.category || '').toLowerCase().trim();
+          const itemTitle = (item.title || '').toLowerCase().trim();
+          const itemDesc = (item.description || '').toLowerCase().trim();
+
+          if (activeGender === 'men') {
+            const isMenMatch =
+              itemCat === 'men' ||
+              itemCat.includes('men') ||
+              itemTitle.includes('men') ||
+              itemDesc.includes('men') ||
+              itemCat.includes('male') ||
+              itemTitle.includes('male') ||
+              itemCat.includes('shirt') ||
+              itemTitle.includes('shirt') ||
+              itemCat.includes('jean') ||
+              itemTitle.includes('jean') ||
+              itemCat.includes('trouser') ||
+              itemTitle.includes('trouser') ||
+              itemCat.includes('hoodie') ||
+              itemTitle.includes('hoodie');
+
+            const isWomenOnly =
+              (itemCat.includes('women') ||
+                itemTitle.includes('women') ||
+                itemTitle.includes('dress') ||
+                itemTitle.includes('skirt') ||
+                itemCat.includes('dress') ||
+                itemCat.includes('skirt')) &&
+              !itemTitle.includes('men') &&
+              !itemCat.includes('men');
+
+            if (!isMenMatch || isWomenOnly) {
+              return false;
+            }
+          } else if (activeGender === 'women') {
+            const isWomenMatch =
+              itemCat === 'women' ||
+              itemCat.includes('women') ||
+              itemCat.includes('ladies') ||
+              itemTitle.includes('women') ||
+              itemDesc.includes('women') ||
+              itemCat.includes('female') ||
+              itemTitle.includes('female') ||
+              itemCat.includes('dress') ||
+              itemTitle.includes('dress') ||
+              itemCat.includes('skirt') ||
+              itemTitle.includes('skirt') ||
+              itemCat.includes('shirt') ||
+              itemTitle.includes('shirt') ||
+              itemCat.includes('trouser') ||
+              itemTitle.includes('trouser') ||
+              itemCat.includes('jean') ||
+              itemTitle.includes('jean') ||
+              itemCat.includes('hoodie') ||
+              itemTitle.includes('hoodie');
+
+            if (!isWomenMatch) {
+              return false;
+            }
           }
+        }
+      } else if (selectedCategory !== 'All') {
+        const itemCat = (item.category || '').toLowerCase().trim();
+        const sel = selectedCategory.toLowerCase().trim();
+        if (itemCat !== sel && !itemCat.includes(sel) && !sel.includes(itemCat)) {
+          return false;
         }
       }
 
@@ -2624,6 +2639,17 @@ export default function App() {
                       categories={categories}
                       selectedCategory={selectedCategory}
                       onSelectCategory={(cat) => {
+                        const trimmed = cat.trim();
+                        if (trimmed.toLowerCase() === 'men' || trimmed.toLowerCase() === 'women') {
+                          setSelectedCategory(trimmed);
+                          setFilters((prev) => ({
+                            ...prev,
+                            category: trimmed,
+                            categories: [trimmed],
+                          }));
+                          goTo('/categories');
+                          return;
+                        }
                         setSelectedCategory(cat);
                         setFilters((prev) => ({
                           ...prev,
@@ -2878,8 +2904,15 @@ export default function App() {
                       goTo('/results');
                     } else {
                       const chosenList = allSelected && allSelected.length > 0 ? allSelected : subItem ? [subItem] : [];
+                      const targetGender = (groupId || '').toLowerCase().trim();
+                      if (targetGender === 'women') {
+                        setSelectedCategory('Women');
+                      } else if (targetGender === 'men') {
+                        setSelectedCategory('Men');
+                      }
+
                       if (chosenList.length === 0) {
-                        setFilters((prev) => ({ ...prev, category: 'all', categories: [] }));
+                        setFilters((prev) => ({ ...prev, category: 'all', categories: [], gender: targetGender || undefined }));
                         showToast('Showing all categories');
                       } else if (chosenList.length === 1) {
                         const cleanKeyword = chosenList[0].split('/')[0].trim();
@@ -2887,6 +2920,7 @@ export default function App() {
                           ...prev,
                           categories: chosenList,
                           category: chosenList[0],
+                          gender: targetGender || undefined,
                         }));
                         showToast(`Filtering by "${cleanKeyword}"`);
                       } else {
@@ -2894,6 +2928,7 @@ export default function App() {
                           ...prev,
                           categories: chosenList,
                           category: chosenList.join(', '),
+                          gender: targetGender || undefined,
                         }));
                         showToast(`Filtering by ${chosenList.length} categories`);
                       }
@@ -3091,6 +3126,18 @@ export default function App() {
                   onClose={() => goBack('/')}
                   user={user}
                   showToast={showToast}
+                />
+              }
+            />
+
+            {/* 14b. Help & Support Page */}
+            <Route
+              path="/help"
+              element={
+                <HelpSupportPage
+                  isOpen={true}
+                  onClose={() => goBack('/account')}
+                  onOpenContactUs={() => goTo('/contact')}
                 />
               }
             />

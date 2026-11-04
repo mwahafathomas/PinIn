@@ -247,6 +247,11 @@ export function mapProductRowToFurnitureItem(product: SupabaseProductRow): Furni
     stockQuantity: stockQty,
     costPrice: costPriceNum,
     isSupplierProduct: true,
+    stockType: (product as any).stock_type
+      ? String((product as any).stock_type).trim().toLowerCase()
+      : (product as any).stockType
+      ? String((product as any).stockType).trim().toLowerCase()
+      : 'in stock',
   };
 }
 

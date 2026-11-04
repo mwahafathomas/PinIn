@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   AlertCircle,
   FileText,
+  RotateCcw,
   X,
 } from 'lucide-react';
 import { OrderRecord } from '../services/ordersService';
@@ -25,13 +26,11 @@ interface ReturnsFlowModalProps {
 }
 
 const RETURN_REASONS = [
-  "Description doesn't match product",
-  "Wrong product image",
-  "Item arrived damaged / scratched",
-  "Changed mind",
-  "Wrong size / doesn't fit",
-  "Defective / not working",
-  "Other reason",
+  'Wrong size',
+  'Item looks different from pictures',
+  'Wrong item received',
+  'Damaged',
+  'Other',
 ];
 
 export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
@@ -45,21 +44,25 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
   const [step, setStep] = useState<10 | 20 | 30>(10);
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
   const [selectedReason, setSelectedReason] = useState<string>('');
+  const [otherReasonText, setOtherReasonText] = useState<string>('');
   const [additionalDetails, setAdditionalDetails] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string>('');
   const [submittedSuccess, setSubmittedSuccess] = useState<boolean>(false);
   const [showPolicyOverlay, setShowPolicyOverlay] = useState<boolean>(false);
+  const [showExchangeNoticePopup, setShowExchangeNoticePopup] = useState<boolean>(false);
 
   // Reset states when closing
   const handleClose = () => {
     setStep(10);
     setSelectedOrder(null);
     setSelectedReason('');
+    setOtherReasonText('');
     setAdditionalDetails('');
     setSubmitError('');
     setSubmittedSuccess(false);
     setShowPolicyOverlay(false);
+    setShowExchangeNoticePopup(false);
     onClose();
   };
 
@@ -122,6 +125,10 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
       setSubmitError('Please select a reason for return.');
       return;
     }
+    if (selectedReason === 'Other' && !otherReasonText.trim()) {
+      setSubmitError('Please write your reason for returning this item.');
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitError('');
@@ -131,6 +138,11 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
         user?.name ? (user.surname ? `${user.name} ${user.surname}` : user.name) : selectedOrder.username || 'Customer';
       const buyerEmail = user?.email || selectedOrder.userEmail || 'customer@pinin.co.za';
 
+      const finalDescription =
+        selectedReason === 'Other'
+          ? otherReasonText.trim()
+          : additionalDetails.trim() || undefined;
+
       const res = await submitReturnRequest({
         orderNumber: selectedOrder.orderNumber,
         orderId: selectedOrder.id,
@@ -139,7 +151,7 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
         listingId: selectedOrder.listingId,
         itemBought: selectedOrder.itemBought,
         reason: selectedReason,
-        description: additionalDetails.trim() || undefined,
+        description: finalDescription,
       });
 
       if (res.success) {
@@ -265,7 +277,7 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
             {/* 4: place "Log return" */}
             <button
               type="button"
-              onClick={() => setStep(20)}
+              onClick={() => setShowExchangeNoticePopup(true)}
               className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 text-white font-black text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center capitalize"
             >
               Log return
@@ -464,19 +476,41 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
                 </div>
               </div>
 
-              {/* Additional details */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-black text-gray-700">
-                  Additional Details (Optional)
-                </label>
-                <textarea
-                  rows={3}
-                  value={additionalDetails}
-                  onChange={(e) => setAdditionalDetails(e.target.value)}
-                  placeholder="Provide any details to help our team process your return..."
-                  className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white resize-none"
-                />
-              </div>
+              {/* Space for user to write reason when Other is selected */}
+              {selectedReason === 'Other' && (
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-xs font-black text-gray-900 uppercase tracking-wider">
+                    Write reason *
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={otherReasonText}
+                    onChange={(e) => {
+                      setOtherReasonText(e.target.value);
+                      if (submitError) setSubmitError('');
+                    }}
+                    placeholder="Please specify why you want to return this item..."
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white resize-none"
+                  />
+                </div>
+              )}
+
+              {/* Additional details (shown when not Other) */}
+              {selectedReason !== 'Other' && (
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-black text-gray-700">
+                    Additional Details (Optional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={additionalDetails}
+                    onChange={(e) => setAdditionalDetails(e.target.value)}
+                    placeholder="Provide any details to help our team process your return..."
+                    className="w-full text-xs p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#2D8EDE] bg-white resize-none"
+                  />
+                </div>
+              )}
 
               {submitError && (
                 <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-bold flex items-center gap-2">
@@ -491,7 +525,7 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
           <footer className="shrink-0 bg-white border-t border-gray-300 px-5 py-4">
             <button
               type="button"
-              disabled={isSubmitting || !selectedReason}
+              disabled={isSubmitting || !selectedReason || (selectedReason === 'Other' && !otherReasonText.trim())}
               onClick={handleSubmitReturn}
               className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center capitalize"
             >
@@ -568,6 +602,50 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Exchange Only Notice Popup Modal */}
+      {showExchangeNoticePopup && (
+        <div
+          className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => setShowExchangeNoticePopup(false)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center border border-gray-100 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
+              <RotateCcw className="w-6 h-6 stroke-[2.5]" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-base font-black text-gray-900">Returns & Exchanges</h3>
+              <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                Returns are only for exchanges. After you return the item, a new one will be sent to you.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowExchangeNoticePopup(false)}
+                className="py-2.5 px-3 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowExchangeNoticePopup(false);
+                  setStep(20);
+                }}
+                className="py-2.5 px-3 rounded-xl bg-[#2D8EDE] hover:bg-[#2579BE] text-white text-xs font-extrabold shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       )}

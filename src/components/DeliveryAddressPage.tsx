@@ -318,10 +318,15 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
                 </label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   required
                   value={recipientPhone}
-                  onChange={(e) => setRecipientPhone(e.target.value)}
-                  placeholder="e.g. 082 123 4567"
+                  onChange={(e) => {
+                    const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setRecipientPhone(cleaned);
+                  }}
+                  placeholder="0821234567"
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:border-black text-xs"
                 />
               </div>

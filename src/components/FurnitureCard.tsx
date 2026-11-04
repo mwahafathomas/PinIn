@@ -26,6 +26,7 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const extraCols: string[] = [];
@@ -67,6 +68,11 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
         className="relative aspect-4/5 w-full bg-gray-100 rounded-none overflow-hidden cursor-pointer"
         onClick={() => onSelect(item)}
       >
+        {/* Shimmer skeleton while image loads */}
+        {!isImageLoaded && (
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse z-0" />
+        )}
+
         {allImages.length > 1 ? (
           <div
             ref={carouselRef}
@@ -81,7 +87,18 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
                 <img
                   src={img}
                   alt={`${item.title} photo ${idx + 1}`}
-                  className="w-full h-full object-contain p-1 select-none"
+                  onLoad={() => setIsImageLoaded(true)}
+                  onError={(e) => {
+                    setIsImageLoaded(true);
+                    const target = e.currentTarget;
+                    if (!target.dataset.fallback) {
+                      target.dataset.fallback = 'true';
+                      target.src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
+                    }
+                  }}
+                  className={`w-full h-full object-contain p-1 select-none transition-opacity duration-300 ${
+                    isImageLoaded ? 'opacity-100' : 'opacity-0'
+                  }`}
                   loading="lazy"
                   decoding="async"
                   draggable={false}
@@ -93,7 +110,18 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
           <img
             src={getOptimizedImageUrl(item.imageUrl, { width: 600, quality: 75, format: 'webp' })}
             alt={item.title}
-            className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300 select-none"
+            onLoad={() => setIsImageLoaded(true)}
+            onError={(e) => {
+              setIsImageLoaded(true);
+              const target = e.currentTarget;
+              if (!target.dataset.fallback) {
+                target.dataset.fallback = 'true';
+                target.src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
+              }
+            }}
+            className={`w-full h-full object-contain p-1 group-hover:scale-105 transition-all duration-300 select-none ${
+              isImageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
             loading="lazy"
             decoding="async"
             draggable={false}

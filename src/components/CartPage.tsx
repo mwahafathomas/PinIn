@@ -6,13 +6,7 @@ import {
   ShoppingCart,
   CheckCircle,
   Check,
-  Truck,
-  MapPin,
-  Home,
-  User,
-  ShieldCheck,
-  Package,
-  LayoutGrid,
+  AlertCircle,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import {
@@ -20,11 +14,16 @@ import {
   removeFromCart,
   updateCartQuantity,
   clearCart,
-  getCartSubtotal,
   subscribeToCart,
   CartItem,
 } from '../services/cartService';
 import { createOrder, OrderRecord } from '../services/ordersService';
+import { isListingInStock } from '../services/listingStockService';
+import {
+  fetchDeliveryMethods,
+  DEFAULT_DELIVERY_METHODS,
+  DeliveryMethodOption,
+} from '../services/deliveryMethodsService';
 import { UserAccount, DeliveryAddress } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import {
@@ -63,6 +62,7 @@ const SwipeableCartCard: React.FC<{
   };
 
   const itemId = item.listingId || item.id;
+  const inStock = isListingInStock({ id: item.listingId, title: item.title });
 
   return (
     <div className="relative overflow-hidden rounded-2xl group select-none">
@@ -126,8 +126,8 @@ const SwipeableCartCard: React.FC<{
                 price: item.price,
                 imageUrl: item.imageUrl,
                 location: item.location,
-                category: item.category || 'Furniture',
-                condition: item.condition || 'Used',
+                category: item.category || 'Clothing',
+                condition: item.condition || 'New',
                 sellerName: item.sellerName,
                 sellerId: item.sellerId,
               });
@@ -155,8 +155,8 @@ const SwipeableCartCard: React.FC<{
                   price: item.price,
                   imageUrl: item.imageUrl,
                   location: item.location,
-                  category: item.category || 'Furniture',
-                  condition: item.condition || 'Used',
+                  category: item.category || 'Clothing',
+                  condition: item.condition || 'New',
                   sellerName: item.sellerName,
                   sellerId: item.sellerId,
                 });
@@ -166,7 +166,21 @@ const SwipeableCartCard: React.FC<{
           >
             {item.title}
           </h3>
-          <div className="flex items-center justify-between mt-2">
+
+          {item.size && (
+            <p className="text-[11px] font-bold text-gray-500 mt-0.5">
+              Size: {item.size}
+            </p>
+          )}
+
+          {/* Out of stock warning below item */}
+          {!inStock && (
+            <p className="text-[11px] font-black text-red-600 mt-0.5">
+              Out of stock
+            </p>
+          )}
+
+          <div className="flex items-center justify-between mt-1.5">
             <span className="text-sm font-black text-[#2D8EDE]">
               R{item.price * item.quantity}
             </span>
@@ -208,13 +222,13 @@ export const CartPage: React.FC<CartPageProps> = ({
   onClose,
   user,
   onGoHome,
-  onOpenCategories,
   onOpenAccount,
   onOpenAuth,
   onSelectItem,
 }) => {
   const [items, setItems] = useState<CartItem[]>(getCartItems());
-  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'collection'>('delivery');
+  const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethodOption[]>(DEFAULT_DELIVERY_METHODS);
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<string>('Door to door');
   const [deliveryAddress, setDeliveryAddress] = useState(user?.location || '');
   const [isAddressPageOpen, setIsAddressPageOpen] = useState(false);
   const [currentAddress, setCurrentAddress] = useState<DeliveryAddress | null>(() => getSavedDeliveryAddress());
@@ -222,7 +236,6 @@ export const CartPage: React.FC<CartPageProps> = ({
     user?.isLoggedIn ? (user.surname ? `${user.name} ${user.surname}` : user.name) : ''
   );
   const [buyerEmail, setBuyerEmail] = useState(user?.email || '');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<OrderRecord | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -231,11 +244,16 @@ export const CartPage: React.FC<CartPageProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true);
+      fetchDeliveryMethods().then((res) => {
+        if (res && res.length > 0) {
+          setDeliveryMethods(res);
+        }
+      });
+
       const timer = setTimeout(() => {
         setIsLoading(false);
-      }, 2400); // 2.4s artificial delay showing shimmer skeleton
+      }, 500);
 
-      // Retrieve saved delivery address to show it at the top
       const saved = getSavedDeliveryAddress();
       if (saved) {
         setCurrentAddress(saved);
@@ -296,100 +314,11 @@ export const CartPage: React.FC<CartPageProps> = ({
   if (!isOpen) return null;
 
   const subtotal = selectedItems.reduce((acc, i) => acc + (Number(i.price) || 0) * (i.quantity || 1), 0);
-  const deliveryFee = 0;
-  const grandTotal = subtotal;
-
-  const handlePlaceOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage('');
-
-    if (!user?.isLoggedIn) {
-      if (onOpenAuth) {
-        onOpenAuth('signin');
-      }
-      return;
-    }
-
-    if (items.length === 0) {
-      setErrorMessage('Your cart is empty.');
-      return;
-    }
-
-    if (!currentAddress && !deliveryAddress.trim()) {
-      setErrorMessage('Please add a delivery address to proceed.');
-      setIsAddressPageOpen(true);
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Create order in Supabase with all requested fields
-      const itemsTitle = items.map((i) => `${i.title} (x${i.quantity})`).join(', ');
-      const mainSellerName = items[0]?.sellerName || 'PinIn Verified Seller';
-      const mainSellerId = items[0]?.sellerId;
-      const mainListingId = items[0]?.listingId;
-      const finalBuyerName =
-        currentAddress?.recipientName ||
-        buyerName.trim() ||
-        (user?.isLoggedIn ? (user.surname ? `${user.name} ${user.surname}` : user.name) : 'Customer');
-      const finalBuyerEmail = buyerEmail.trim() || user?.email || 'customer@pinin.co.za';
-      const finalBuyerPhone = currentAddress?.recipientPhone || '';
-
-      const deliveryText = currentAddress
-        ? `Delivery to: ${currentAddress.streetAddressLine1}${
-            currentAddress.streetAddressLine2 ? `, ${currentAddress.streetAddressLine2}` : ''
-          }, ${currentAddress.cityTown}, ${currentAddress.province} (${currentAddress.postalCode})`
-        : `Delivery to: ${deliveryAddress.trim()}`;
-
-      const totalQuantity = items.reduce((acc, i) => acc + (i.quantity || 1), 0);
-      const res = await createOrder({
-        username: finalBuyerName,
-        userEmail: finalBuyerEmail,
-        buyerName: finalBuyerName,
-        buyerEmail: finalBuyerEmail,
-        buyerId: user?.isLoggedIn ? user.id : undefined,
-        sellerName: mainSellerName,
-        sellerId: mainSellerId,
-        listingId: mainListingId,
-        itemBought: itemsTitle,
-        itemPrice: items[0]?.price || 0,
-        price: grandTotal,
-        quantity: totalQuantity,
-        delivery: deliveryText,
-        recipientName: currentAddress?.recipientName || finalBuyerName,
-        recipientPhone: finalBuyerPhone,
-        streetAddressLine1: currentAddress?.streetAddressLine1 || deliveryAddress,
-        streetAddressLine2: currentAddress?.streetAddressLine2 || undefined,
-        cityTown: currentAddress?.cityTown || 'Johannesburg',
-        province: currentAddress?.province || 'Gauteng',
-        postalCode: currentAddress?.postalCode || '',
-        deliveryInstructions: currentAddress?.deliveryInstructions || '',
-        imageUrl: items[0]?.imageUrl,
-        items: items.map((i) => ({
-          listingId: i.listingId,
-          itemBought: i.title,
-          itemPrice: i.price,
-          sellerName: i.sellerName || mainSellerName,
-          sellerId: i.sellerId || mainSellerId,
-          quantity: i.quantity,
-          imageUrl: i.imageUrl,
-          size: i.size,
-        })),
-      });
-
-      if (res.success && res.order) {
-        clearCart();
-        setPlacedOrder(res.order);
-      } else {
-        setErrorMessage(res.error || 'Failed to complete order. Please try again.');
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'An error occurred while placing your order.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const isDeliveryFree = subtotal > 500;
+  const currentMethodObj = deliveryMethods.find((dm) => dm.name.toLowerCase() === selectedDeliveryMethod.toLowerCase()) || deliveryMethods[0];
+  const activeMethodPrice = currentMethodObj ? currentMethodObj.price : 60;
+  const deliveryFee = isDeliveryFree ? 0 : activeMethodPrice;
+  const grandTotal = subtotal + deliveryFee;
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
@@ -400,7 +329,7 @@ export const CartPage: React.FC<CartPageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -419,96 +348,36 @@ export const CartPage: React.FC<CartPageProps> = ({
       </header>
 
       {/* Main Body */}
-      <main className="flex-1 w-full max-w-md md:max-w-3xl mx-auto overflow-y-auto px-4 md:px-6 py-4 pb-12">
+      <main className="flex-1 w-full max-w-md md:max-w-3xl mx-auto overflow-y-auto px-4 md:px-6 py-4 pb-12 flex flex-col">
         {placedOrder ? (
-          /* Order Success View */
-          <div className="bg-white rounded-3xl border border-gray-200 p-6 md:p-8 text-center space-y-5 shadow-sm animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
-              <CheckCircle className="w-9 h-9 stroke-[2.5]" />
+          /* Order Success View - EXACTLY as requested */
+          <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center space-y-6 shadow-sm animate-in zoom-in-95 duration-200 my-auto">
+            {/* 1. Successful Icon (make it blue) */}
+            <div className="w-20 h-20 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto shadow-xs">
+              <CheckCircle className="w-12 h-12 stroke-[2.5]" />
             </div>
 
-            <div className="space-y-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                Order Placed Successfully
-              </span>
-              <h1 className="text-xl md:text-2xl font-black text-gray-900 pt-1">
-                Thank You for Your Order!
+            {/* 2 & 3: Order placed successfully (black) & Thank you for your order */}
+            <div className="space-y-1.5">
+              <h1 className="text-xl md:text-2xl font-black text-black">
+                Order placed successfully
               </h1>
-              <p className="text-xs md:text-sm text-gray-500">
-                A confirmation has been recorded and the seller has been notified.
+              <p className="text-sm font-semibold text-gray-600">
+                Thank you for your order
               </p>
             </div>
 
-            {/* Order Details Card */}
-            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-left space-y-2 text-xs">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                <span className="text-gray-500 font-semibold">Order Number</span>
-                <span className="font-extrabold text-gray-900 text-sm tracking-tight text-[#2D8EDE]">
-                  {placedOrder.orderNumber}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-gray-500 font-medium">Username</span>
-                <span className="font-bold text-gray-800">{placedOrder.username || placedOrder.buyerName}</span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-gray-500 font-medium">User Email</span>
-                <span className="font-bold text-gray-800 truncate max-w-[180px]">
-                  {placedOrder.userEmail || placedOrder.buyerEmail}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-gray-500 font-medium">Date Bought</span>
-                <span className="font-bold text-gray-800">{placedOrder.dateBought}</span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-gray-500 font-medium">Item Bought</span>
-                <span className="font-bold text-gray-900 truncate max-w-[200px]">
-                  {placedOrder.itemBought}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-gray-500 font-medium">Quantity</span>
-                <span className="font-bold text-gray-800">{placedOrder.quantity || 1}</span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-gray-500 font-medium">Item Price</span>
-                <span className="font-bold text-gray-800">
-                  R{placedOrder.itemPrice || placedOrder.price}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-gray-500 font-medium">Seller Name</span>
-                <span className="font-bold text-gray-800">{placedOrder.sellerName}</span>
-              </div>
-              <div className="flex items-center justify-between py-1 bg-blue-50/60 p-2 rounded-xl border border-blue-100">
-                <span className="text-blue-700 font-bold">Delivery Estimation</span>
-                <span className="font-black text-blue-900 truncate max-w-[200px]">
-                  {placedOrder.deliveryEstimation || '2 to 5 days'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-gray-500 font-medium">Delivery Mode</span>
-                <span className="font-bold text-gray-800 truncate max-w-[200px]">
-                  {placedOrder.delivery}
-                </span>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                <span className="text-gray-800 font-extrabold text-sm">Total Paid</span>
-                <span className="font-black text-[#2D8EDE] text-base">R{placedOrder.price}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+            {/* 4 & 5: Continue shopping & Track order buttons */}
+            <div className="flex flex-col gap-2.5 pt-4 max-w-xs mx-auto w-full">
               <button
                 type="button"
                 onClick={() => {
                   setPlacedOrder(null);
                   onGoHome();
                 }}
-                className="flex-1 py-3 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+                className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
               >
-                Continue Shopping
+                Continue shopping
               </button>
               <button
                 type="button"
@@ -516,19 +385,16 @@ export const CartPage: React.FC<CartPageProps> = ({
                   setPlacedOrder(null);
                   onOpenAccount();
                 }}
-                className="flex-1 py-3 px-4 bg-white border border-gray-300 text-gray-800 font-bold text-xs sm:text-sm rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                className="w-full py-3.5 px-4 bg-white border border-gray-300 text-gray-900 font-extrabold text-sm rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                View in Account
+                Track order
               </button>
             </div>
           </div>
         ) : isLoading ? (
           /* Shimmer Skeleton Loader for Cart Page */
           <div className="space-y-4 animate-pulse mt-2">
-            {/* Delivery banner shimmer */}
             <div className="h-12 w-full bg-gray-200 rounded-2xl" />
-
-            {/* Cart item shimmers */}
             <div className="space-y-3">
               {[1, 2].map((i) => (
                 <div key={i} className="bg-white rounded-2xl border border-gray-200 p-3 flex gap-3 items-center">
@@ -544,38 +410,18 @@ export const CartPage: React.FC<CartPageProps> = ({
                 </div>
               ))}
             </div>
-
-            {/* Order summary card shimmer */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
-              <div className="h-4 w-1/3 bg-gray-200 rounded" />
-              <div className="flex justify-between">
-                <div className="h-3 w-1/4 bg-gray-200 rounded" />
-                <div className="h-3 w-1/6 bg-gray-200 rounded" />
-              </div>
-              <div className="flex justify-between">
-                <div className="h-3 w-1/4 bg-gray-200 rounded" />
-                <div className="h-3 w-1/6 bg-gray-200 rounded" />
-              </div>
-              <div className="h-px bg-gray-100 my-2" />
-              <div className="flex justify-between">
-                <div className="h-5 w-1/3 bg-gray-200 rounded" />
-                <div className="h-5 w-1/4 bg-gray-200 rounded" />
-              </div>
-            </div>
-
-            {/* Place Order button shimmer */}
-            <div className="h-12 w-full bg-gray-200 rounded-2xl" />
+            <div className="h-28 w-full bg-gray-200 rounded-2xl" />
           </div>
         ) : items.length === 0 ? (
           /* Empty Cart State */
-          <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center space-y-4 shadow-xs mt-6">
+          <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center space-y-4 shadow-xs mt-6 my-auto">
             <div className="w-16 h-16 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
               <ShoppingCart className="w-8 h-8 stroke-[1.8]" />
             </div>
             <div>
               <h2 className="text-base font-extrabold text-gray-900">Your Cart is Empty</h2>
               <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1 leading-relaxed">
-                Discover couches, dining sets, bedroom furniture, and decor.
+                Discover clothes, shoes, accessories, and new arrivals on PinIn.
               </p>
             </div>
             <button
@@ -583,14 +429,14 @@ export const CartPage: React.FC<CartPageProps> = ({
               onClick={onGoHome}
               className="py-2.5 px-6 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-black text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
             >
-              Browse Furniture
+              Browse Clothing
             </button>
           </div>
         ) : (
           /* Active Cart Form */
           <div className="flex-1 flex flex-col min-h-0">
-            {/* Scrollable Cart Content: Items, Delivery, Price Summary */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5">
+            {/* Scrollable Cart Content: Items, Delivery Address, Delivery Methods, Price Summary */}
+            <div className="flex-1 overflow-y-auto px-1 py-2 space-y-5">
               {/* Items List */}
               <div className="space-y-3 pb-3">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-200">
@@ -642,63 +488,105 @@ export const CartPage: React.FC<CartPageProps> = ({
                 </div>
               </div>
 
-              {/* Delivery Section with Grey Divider */}
-              <div className="pt-4 border-t border-gray-200 space-y-3">
+              {/* Delivery Section */}
+              <div className="pt-4 border-t border-gray-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <span>Delivery</span>
+                    <span>Delivery Address</span>
                   </h2>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-bold text-gray-800">
-                      Delivery Address *
-                    </label>
-                    {currentAddress && (
-                      <button
-                        type="button"
-                        onClick={() => setIsAddressPageOpen(true)}
-                        className="text-[11px] font-bold text-[#2D8EDE] hover:underline cursor-pointer"
-                      >
-                        Change address
-                      </button>
-                    )}
-                  </div>
-
-                  {currentAddress ? (
-                    <div
-                      onClick={() => setIsAddressPageOpen(true)}
-                      className="p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 transition-colors space-y-1 text-left"
-                    >
-                      <div className="flex items-center justify-between">
-                        <p className="font-extrabold text-xs text-gray-900">
-                          {currentAddress.recipientName}
-                        </p>
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">
-                          {currentAddress.province}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-gray-700 font-medium">
-                        {currentAddress.recipientPhone}
-                      </p>
-                      <p className="text-[11px] text-gray-700">
-                        {currentAddress.streetAddressLine1}
-                        {currentAddress.streetAddressLine2 ? `, ${currentAddress.streetAddressLine2}` : ''}
-                      </p>
-                      <p className="text-[11px] text-gray-600">
-                        {currentAddress.cityTown}, {currentAddress.province}, {currentAddress.postalCode}
-                      </p>
-                    </div>
-                  ) : (
+                  {currentAddress && (
                     <button
                       type="button"
                       onClick={() => setIsAddressPageOpen(true)}
-                      className="w-full py-2.5 px-4 border border-gray-300 hover:border-[#2D8EDE] rounded-xl text-center font-bold text-xs text-gray-900 transition-colors cursor-pointer"
+                      className="text-[11px] font-bold text-[#2D8EDE] hover:underline cursor-pointer"
                     >
-                      Add delivery address
+                      Change address
                     </button>
                   )}
+                </div>
+
+                {currentAddress ? (
+                  <div
+                    onClick={() => setIsAddressPageOpen(true)}
+                    className="p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 transition-colors space-y-1 text-left bg-gray-50/50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-extrabold text-xs text-gray-900">
+                        {currentAddress.recipientName}
+                      </p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">
+                        {currentAddress.province}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-700 font-medium">
+                      {currentAddress.recipientPhone}
+                    </p>
+                    <p className="text-[11px] text-gray-700">
+                      {currentAddress.streetAddressLine1}
+                      {currentAddress.streetAddressLine2 ? `, ${currentAddress.streetAddressLine2}` : ''}
+                    </p>
+                    <p className="text-[11px] text-gray-600">
+                      {currentAddress.cityTown}, {currentAddress.province}, {currentAddress.postalCode}
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddressPageOpen(true)}
+                    className="w-full py-2.5 px-4 border border-gray-300 hover:border-[#2D8EDE] rounded-xl text-center font-bold text-xs text-gray-900 transition-colors cursor-pointer"
+                  >
+                    Add delivery address
+                  </button>
+                )}
+
+                {/* Delivery Methods: Door to door & PAXI below delivery address */}
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-black text-gray-900 uppercase tracking-wider">
+                      Delivery Methods
+                    </label>
+                    {isDeliveryFree && (
+                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Orders over R500 qualify for Free Delivery
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {deliveryMethods.map((dm) => {
+                      const isSelected = selectedDeliveryMethod.toLowerCase() === dm.name.toLowerCase();
+                      return (
+                        <button
+                          key={dm.id || dm.name}
+                          type="button"
+                          onClick={() => setSelectedDeliveryMethod(dm.name)}
+                          className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-[#2D8EDE] bg-blue-50/50 shadow-2xs'
+                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-extrabold text-xs text-gray-900">{dm.name}</p>
+                            <p className="text-[11px] font-bold text-[#2D8EDE] mt-0.5">
+                              {isDeliveryFree ? (
+                                <span className="font-black text-emerald-600">Free</span>
+                              ) : (
+                                `R${dm.price}`
+                              )}
+                            </p>
+                          </div>
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                              isSelected ? 'border-[#2D8EDE] bg-[#2D8EDE]' : 'border-gray-300 bg-white'
+                            }`}
+                          >
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -709,8 +597,21 @@ export const CartPage: React.FC<CartPageProps> = ({
                   <span className="font-bold text-gray-900">R{subtotal}</span>
                 </div>
                 <div className="flex items-center justify-between text-gray-600">
-                  <span>Delivery</span>
-                  <span className="font-bold text-gray-900">R0</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>Delivery</span>
+                    {isDeliveryFree && (
+                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">
+                        Free
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-bold text-gray-900">
+                    {isDeliveryFree ? (
+                      <span className="text-emerald-600 font-black">Free</span>
+                    ) : (
+                      `R${deliveryFee}`
+                    )}
+                  </span>
                 </div>
                 <div className="h-px bg-gray-200 my-1" />
                 <div className="flex items-center justify-between text-sm">
@@ -720,8 +621,9 @@ export const CartPage: React.FC<CartPageProps> = ({
               </div>
 
               {errorMessage && (
-                <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-bold">
-                  {errorMessage}
+                <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-bold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{errorMessage}</span>
                 </div>
               )}
             </div>
@@ -729,7 +631,7 @@ export const CartPage: React.FC<CartPageProps> = ({
         )}
       </main>
 
-      {/* Pinned & Always Visible "Proceed to check out" Bottom Box (Directly on top of bottom icons) */}
+      {/* Pinned & Always Visible "Proceed to check out" Bottom Box */}
       {items.length > 0 && !placedOrder && (
         <div className="shrink-0 z-30 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-3px_10px_rgba(0,0,0,0.04)]">
           <button
@@ -753,6 +655,17 @@ export const CartPage: React.FC<CartPageProps> = ({
                 return;
               }
 
+              // check for out-of-stock items in selected
+              const outOfStockSelected = selectedItems.filter(
+                (item) => !isListingInStock({ id: item.listingId, title: item.title })
+              );
+              if (outOfStockSelected.length > 0) {
+                setErrorMessage(
+                  `Some selected items are out of stock: ${outOfStockSelected.map((i) => i.title).join(', ')}. Please unselect or remove them to proceed.`
+                );
+                return;
+              }
+
               setErrorMessage('');
               setIsCheckoutOpen(true);
             }}
@@ -764,67 +677,6 @@ export const CartPage: React.FC<CartPageProps> = ({
           </button>
         </div>
       )}
-
-      {/* Bottom Navigation Dock */}
-      <footer className="shrink-0 z-40 bg-white border-t border-gray-200 shadow-lg">
-        <div className="w-full max-w-md md:max-w-7xl mx-auto px-2 md:px-8 h-16 grid grid-cols-4 items-center">
-          {/* 1. Home */}
-          <button
-            type="button"
-            onClick={onGoHome}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Home"
-          >
-            <Home className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
-              Home
-            </span>
-          </button>
-
-          {/* 2. Category (Middle between Home and Cart) */}
-          <button
-            type="button"
-            onClick={onOpenCategories}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Categories"
-          >
-            <LayoutGrid className="w-5 h-5 stroke-[2.2] text-gray-600 group-hover:text-[#2D8EDE]" />
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
-              Category
-            </span>
-          </button>
-
-          {/* 3. Cart (Active) */}
-          <button
-            type="button"
-            className="flex flex-col items-center justify-center h-full active:scale-95 transition-all relative cursor-pointer text-[#2D8EDE]"
-            aria-label="Cart"
-          >
-            <div className="relative">
-              <ShoppingCart className="w-5 h-5 stroke-[2] text-[#2D8EDE]" />
-              {items.length > 0 && (
-                <span className="absolute -top-1.5 -right-2.5 bg-[#2D8EDE] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
-                  {items.length}
-                </span>
-              )}
-            </div>
-            <span className="text-[11px] font-bold mt-1 leading-none text-[#2D8EDE]">Cart</span>
-          </button>
-
-          {/* 4. Account */}
-          <button
-            type="button"
-            onClick={onOpenAccount}
-            className="flex flex-col items-center justify-center h-full text-gray-600 hover:text-[#2D8EDE] active:scale-95 transition-all group relative cursor-pointer"
-            aria-label="Account"
-          >
-            <User className="w-5 h-5 stroke-[2] text-gray-600 group-hover:text-[#2D8EDE]" />
-            <span className="text-[11px] font-bold mt-1 leading-none text-gray-600 group-hover:text-[#2D8EDE]">
-              Account
-            </span>
-          </button>
-        </div>
-      </footer>
 
       {/* Full Page: Delivery Address */}
       <DeliveryAddressPage
@@ -848,6 +700,8 @@ export const CartPage: React.FC<CartPageProps> = ({
         onClose={() => setIsCheckoutOpen(false)}
         items={selectedItems}
         deliveryAddress={currentAddress}
+        deliveryMethodName={selectedDeliveryMethod}
+        deliveryFee={deliveryFee}
         onUpdateDeliveryAddress={(addr) => {
           setCurrentAddress(addr);
           setDeliveryAddress(
@@ -859,6 +713,9 @@ export const CartPage: React.FC<CartPageProps> = ({
         }}
         user={user}
         onOrderSuccess={(order) => {
+          try {
+            localStorage.setItem('pinin_has_ever_ordered', 'true');
+          } catch {}
           setIsCheckoutOpen(false);
           setPlacedOrder(order);
         }}

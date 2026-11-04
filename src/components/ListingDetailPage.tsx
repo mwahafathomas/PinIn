@@ -16,12 +16,17 @@ import {
   Truck,
   Star,
   Info,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { FurnitureItem, UserAccount } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 import { addToCart } from '../services/cartService';
 import { isListingInStock, getListingAvailableDate } from '../services/listingStockService';
 import { Share as NativeShare } from '@capacitor/share';
+import { supabase } from '../supabaseClient';
+
+const AVAILABLE_SIZES = ['S', 'M', 'L', 'X', 'XL'] as const;
 
 interface ListingDetailPageProps {
   item: FurnitureItem | null;
@@ -86,6 +91,8 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("description doesn't match product");
   const [otherDetails, setOtherDetails] = useState('');
+  const [selectedSize, setSelectedSize] = useState<string>('M');
+  const [zoomScale, setZoomScale] = useState<number>(1);
   const [quantity, setQuantity] = useState(1);
   const [addedToCartFeedback, setAddedToCartFeedback] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -95,6 +102,29 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
     if (isOpen) {
       setActiveImageIndex(0);
       setIsLoading(false);
+    }
+  }, [isOpen, item?.id]);
+
+  // Record view into Supabase `listing_views` table
+  useEffect(() => {
+    if (isOpen && item?.id) {
+      supabase.auth
+        .getUser()
+        .then(({ data }) => {
+          const currentUser = data?.user;
+          supabase
+            .from('listing_views')
+            .insert([
+              {
+                listing_id: item.id,
+                listing_title: item.title,
+                user_id: currentUser?.id || null,
+                user_email: currentUser?.email || null,
+              },
+            ])
+            .then();
+        })
+        .catch(() => {});
     }
   }, [isOpen, item?.id]);
 
@@ -220,7 +250,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   }, [activeImageIndex, allImages.length]);
 
   const handleAddToCart = () => {
-    addToCart(item, quantity);
+    addToCart(item, quantity, selectedSize);
     setAddedToCartFeedback(true);
     setTimeout(() => {
       setAddedToCartFeedback(false);
@@ -228,7 +258,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   };
 
   const handleBuyNow = () => {
-    addToCart(item, quantity);
+    addToCart(item, quantity, selectedSize);
     if (onOpenCart) {
       onOpenCart();
     }
@@ -327,9 +357,9 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     setIsMenuOpen(false);
                     setIsReportModalOpen(true);
                   }}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-gray-900 hover:bg-gray-100 flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Flag className="w-4 h-4 text-red-500" />
+                  <Flag className="w-4 h-4 text-gray-900" />
                   <span>Report Listing</span>
                 </button>
               </div>
@@ -433,6 +463,19 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </>
               )}
 
+              {/* Zoom Button on top right */}
+              <button
+                type="button"
+                onClick={() => {
+                  setZoomScale(1.5);
+                  setIsPhotoModalOpen(true);
+                }}
+                aria-label="Zoom image"
+                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-xs shadow-md transition-all active:scale-90 z-20 cursor-pointer"
+              >
+                <ZoomIn className="w-5 h-5 stroke-[2]" />
+              </button>
+
               {/* Photo counter */}
               {allImages.length > 1 && (
                 <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-xs z-10 pointer-events-none shadow-md">
@@ -476,27 +519,14 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </div>
             )}
 
-            {/* Category & Condition Badges (Clean, no box background or border) */}
-            <div className="py-2.5 border-b border-gray-200 flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-[#2D8EDE] rounded-lg text-xs font-black">
-                <Tag className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>{item.category}</span>
-              </div>
-
-              <div className="px-3 py-1 bg-gray-100 text-gray-800 rounded-lg text-xs font-extrabold">
-                {item.condition}
-              </div>
-            </div>
-
             {/* Description (Clean, with grey divider) */}
             <div className="py-4 border-b border-gray-200 space-y-2">
-              <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#2D8EDE]" />
+              <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider">
                 <span>Description</span>
               </h2>
               <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium whitespace-pre-line">
                 {item.description ||
-                  'High quality furniture piece available on PinIn. Well maintained and ready for immediate purchase.'}
+                  'High quality apparel piece available on PinIn. Well maintained and ready for immediate purchase.'}
               </p>
 
               {item.dimensions && (
@@ -519,57 +549,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </div>
               </div>
             )}
-
-            {/* Customer Reviews Section (Clean, with grey divider) */}
-            <div className="py-4 border-b border-gray-200 space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
-                <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
-                  <span>Customer Reviews</span>
-                </h2>
-                {item.reviewsList && item.reviewsList.length > 0 && (
-                  <span className="text-[11px] font-bold text-gray-500">
-                    {item.reviewsList.length} review(s)
-                  </span>
-                )}
-              </div>
-
-              {/* Reviews List with Grey Dividers */}
-              <div className="divide-y divide-gray-200">
-                {item.reviewsList && item.reviewsList.length > 0 ? (
-                  item.reviewsList.map((rev) => (
-                    <div
-                      key={rev.id}
-                      className="py-3 space-y-1 text-xs"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-gray-900">{rev.author}</span>
-                        <div className="flex items-center gap-0.5 text-amber-400">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-3 h-3 ${
-                                i < rev.rating
-                                  ? 'fill-amber-400 text-amber-400'
-                                  : 'text-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-[11px] text-gray-700 font-medium leading-relaxed">
-                        {rev.comment}
-                      </p>
-                      {rev.date && <span className="text-[10px] text-gray-400 block pt-0.5">{rev.date}</span>}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-gray-500 font-medium italic py-2">
-                    No reviews made yet
-                  </p>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Right Column: Title, Price, Details, and Seller Info */}
@@ -643,13 +622,46 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   }`}
                 >
                   {isItemInStock
-                    ? typeof item.stockQuantity === 'number' && item.stockQuantity > 0
-                      ? `In stock (${item.stockQuantity})`
-                      : 'In stock'
+                    ? item.stockType?.toLowerCase().includes('in stock')
+                      ? 'In stock'
+                      : item.stockType
+                      ? item.stockType.charAt(0).toUpperCase() + item.stockType.slice(1)
+                      : 'Made to order'
                     : 'Out of stock'}
                 </div>
                 <div className="bg-[#2D8EDE] text-white text-xs font-extrabold py-2 px-2.5 rounded-lg shadow-xs flex items-center justify-center text-center">
                   Returns
+                </div>
+              </div>
+
+              {/* Sizes: S, M, L, X, XL */}
+              <div className="pt-3 border-t border-gray-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-gray-900 uppercase tracking-wider">
+                    Select Size
+                  </span>
+                  <span className="text-xs font-black text-[#2D8EDE]">
+                    Size: {selectedSize}
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {AVAILABLE_SIZES.map((sz) => {
+                    const isSelected = selectedSize === sz;
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => setSelectedSize(sz)}
+                        className={`py-2 px-1 text-center font-black text-xs rounded-xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#2D8EDE] text-white border-[#2D8EDE] shadow-xs'
+                            : 'bg-white text-gray-800 border-gray-300 hover:border-[#2D8EDE]'
+                        }`}
+                      >
+                        {sz}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -803,39 +815,50 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
         </div>
       )}
 
-      {/* Comprehensive Report Modal */}
+      {/* Full Page Report Listing Flow */}
       {isReportModalOpen && (
-        <div
-          className="fixed inset-0 z-60 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setIsReportModalOpen(false)}
-        >
-          <div
-            className="bg-white rounded-3xl p-5 max-w-sm w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3 shrink-0">
-              <h3 className="text-sm font-black text-gray-900">Report Listing</h3>
+        <div className="fixed inset-0 z-60 bg-white flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans select-none animate-in slide-in-from-right duration-200">
+          {/* Header: Go back option (<) on top left and App Name in middle */}
+          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-300">
+            <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 h-14 flex items-center justify-between relative">
               <button
                 type="button"
                 onClick={() => setIsReportModalOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg cursor-pointer"
+                aria-label="Go back"
+                className="p-2 -ml-2 rounded-lg text-gray-900 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
               </button>
+
+              <div className="absolute left-1/2 -translate-x-1/2">
+                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
+                  Pin<span className="text-[#2D8EDE]">In</span>
+                </span>
+              </div>
+
+              <div className="w-6" />
+            </div>
+          </header>
+
+          {/* Full Page Body */}
+          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-5 py-6 space-y-6">
+            <div className="space-y-1">
+              <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                Report Listing
+              </h1>
+              <p className="text-xs text-gray-500 font-medium">
+                Please select why you are reporting "{item.title}":
+              </p>
             </div>
 
-            <div className="overflow-y-auto py-3 space-y-2 flex-1 pr-1">
-              <p className="text-xs text-gray-600 font-medium pb-1">
-                Please specify why you are reporting "{item.title}":
-              </p>
-
+            <div className="space-y-2.5">
               {REPORT_REASONS.map((reason) => (
                 <label
                   key={reason}
-                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                  className={`flex items-center gap-3 p-3.5 rounded-2xl border text-xs font-bold cursor-pointer transition-all ${
                     reportReason === reason
                       ? 'border-[#2D8EDE] bg-blue-50/60 text-gray-900 shadow-2xs'
-                      : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                      : 'border-gray-200 text-gray-800 hover:bg-gray-50 bg-white'
                   }`}
                 >
                   <input
@@ -852,76 +875,124 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
               {reportReason.toLowerCase() === 'other' && (
                 <div className="pt-2 animate-in fade-in duration-150">
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                  <label className="block text-xs font-bold text-gray-800 mb-1.5">
                     Write your reason:
                   </label>
                   <textarea
                     value={otherDetails}
                     onChange={(e) => setOtherDetails(e.target.value)}
-                    placeholder="Write your reason here..."
-                    rows={3}
+                    placeholder="Please provide details about this issue..."
+                    rows={4}
                     autoFocus
-                    className="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:border-[#2D8EDE] focus:ring-1 focus:ring-[#2D8EDE] outline-none font-medium text-gray-900 placeholder:text-gray-400 resize-none bg-gray-50/50"
+                    className="w-full text-xs p-3.5 rounded-2xl border border-gray-300 focus:border-[#2D8EDE] focus:ring-1 focus:ring-[#2D8EDE] outline-none font-medium text-gray-900 placeholder:text-gray-400 resize-none bg-gray-50/50"
                   />
                 </div>
               )}
             </div>
+          </main>
 
-            <div className="flex items-center gap-2 pt-3 border-t border-gray-100 shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsReportModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-700 hover:bg-gray-50 cursor-pointer"
-              >
-                Cancel
-              </button>
+          {/* Bottom Pinned Action */}
+          <footer className="shrink-0 bg-white border-t border-gray-200 px-5 py-4">
+            <div className="w-full max-w-md md:max-w-2xl mx-auto">
               <button
                 type="button"
                 onClick={handleConfirmReport}
                 disabled={reportReason.toLowerCase() === 'other' && !otherDetails.trim()}
-                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm cursor-pointer"
+                className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center capitalize"
               >
-                Submit Report
+                Submit report
               </button>
             </div>
-          </div>
+          </footer>
         </div>
       )}
 
-      {/* Fullscreen Photo Modal */}
+      {/* Fullscreen Photo Modal with Zoomable Controls & Double-Click/Tap Zoom */}
       {isPhotoModalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black flex flex-col justify-center items-center select-none"
-          onClick={() => setIsPhotoModalOpen(false)}
+          className="fixed inset-0 z-60 bg-black flex flex-col justify-between items-center select-none"
+          onClick={() => {
+            if (zoomScale === 1) setIsPhotoModalOpen(false);
+            else setZoomScale(1);
+          }}
         >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsPhotoModalOpen(false);
-            }}
-            aria-label="Close photo view"
-            className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-md border border-white/20 active:scale-90 shadow-lg"
-          >
-            <X className="w-6 h-6 stroke-[2.5]" />
-          </button>
+          {/* Top Bar with Go Back & Zoom controls */}
+          <div className="w-full p-4 flex items-center justify-between z-20">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setZoomScale(1);
+                setIsPhotoModalOpen(false);
+              }}
+              aria-label="Close photo view"
+              className="w-11 h-11 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-md border border-white/20 active:scale-90 shadow-lg"
+            >
+              <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+            </button>
 
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setZoomScale((prev) => Math.max(1, prev - 0.5));
+                }}
+                disabled={zoomScale <= 1}
+                className="text-white disabled:opacity-40 p-1 hover:text-[#2D8EDE] cursor-pointer"
+                aria-label="Zoom out"
+              >
+                <ZoomOut className="w-5 h-5" />
+              </button>
+              <span className="text-white font-bold text-xs px-1">
+                {Math.round(zoomScale * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setZoomScale((prev) => Math.min(3, prev + 0.5));
+                }}
+                disabled={zoomScale >= 3}
+                className="text-white disabled:opacity-40 p-1 hover:text-[#2D8EDE] cursor-pointer"
+                aria-label="Zoom in"
+              >
+                <ZoomIn className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Center Zoomable Image */}
           <div
-            className="relative w-full h-full max-w-4xl p-4 flex items-center justify-center"
+            className="relative w-full flex-1 flex items-center justify-center overflow-auto p-2"
             onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setZoomScale((prev) => (prev === 1 ? 2.5 : 1));
+            }}
           >
             <img
               src={allImages[activeImageIndex] || item.imageUrl}
               alt={item.title}
-              className="max-w-full max-h-[85vh] w-auto h-auto object-contain mx-auto shadow-2xl rounded-none"
+              style={{
+                transform: `scale(${zoomScale})`,
+                transition: 'transform 0.2s ease-out',
+              }}
+              className={`max-w-full max-h-[80vh] w-auto h-auto object-contain mx-auto shadow-2xl select-none ${
+                zoomScale > 1 ? 'cursor-zoom-out' : 'cursor-zoom-in'
+              }`}
             />
           </div>
 
-          {allImages.length > 1 && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/75 px-3.5 py-1 rounded-full text-white text-xs font-bold border border-white/10 backdrop-blur-sm pointer-events-none">
-              {activeImageIndex + 1} / {allImages.length}
-            </div>
-          )}
+          {/* Bottom Photo Count */}
+          <div className="w-full pb-6 flex items-center justify-center z-20">
+            {allImages.length > 1 && (
+              <div className="bg-black/75 px-3.5 py-1 rounded-full text-white text-xs font-bold border border-white/10 backdrop-blur-sm pointer-events-none">
+                {activeImageIndex + 1} / {allImages.length}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

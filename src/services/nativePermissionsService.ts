@@ -174,38 +174,11 @@ export async function initFirstLaunchPermissions(): Promise<void> {
       return;
     }
 
-    // Mark as requested immediately to avoid race conditions or repeated calls
+    // Mark as requested immediately to prevent any automatic prompting
     localStorage.setItem(HAS_REQUESTED_PERMISSIONS_KEY, 'true');
 
-    // Small delay to allow the app shell and window to mount smoothly
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    // 1. Request Location
-    try {
-      await requestLocationPermission();
-    } catch (e) {
-      console.warn('[Permissions Flow] Location error:', e);
-    }
-
-    // 800ms delay between prompts
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // 2. Request Camera
-    try {
-      await requestCameraPermission();
-    } catch (e) {
-      console.warn('[Permissions Flow] Camera error:', e);
-    }
-
-    // 800ms delay between prompts
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // 3. Request Push Notifications
-    try {
-      await requestNotificationPermission();
-    } catch (e) {
-      console.warn('[Permissions Flow] Push Notifications error:', e);
-    }
+    // Do NOT request camera or location permissions on app open
+    // Camera and Location should only be requested on explicit user interactions
   } catch (e) {
     console.warn('[Permissions Flow] initFirstLaunchPermissions error:', e);
   }

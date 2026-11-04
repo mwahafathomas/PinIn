@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Landmark, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { ChevronLeft, ChevronDown, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { UserAccount } from '../types/furniture';
 import { fetchUserRefunds, withdrawUserRefunds } from '../services/profilesService';
-import { recordRefundWithdrawal } from '../services/returnsAndRefundsService';
+import {
+  recordRefundWithdrawal,
+  fetchRefundsHistory,
+  RefundRecord,
+} from '../services/returnsAndRefundsService';
 
 interface CreditsPageProps {
   isOpen: boolean;
@@ -22,11 +26,16 @@ export const CreditsPage: React.FC<CreditsPageProps> = ({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isWithdrawPageOpen, setIsWithdrawPageOpen] = useState(false);
   const [withdrawStatus, setWithdrawStatus] = useState<{
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+
+  // Refunds History Dropdown state
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyList, setHistoryList] = useState<RefundRecord[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const statusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -38,22 +47,33 @@ export const CreditsPage: React.FC<CreditsPageProps> = ({
     };
   }, []);
 
-  // Fetch latest balance from Supabase when opened
+  const loadHistory = () => {
+    setIsLoadingHistory(true);
+    fetchRefundsHistory(user?.email)
+      .then((data) => setHistoryList(data))
+      .catch((err) => console.warn('Failed to load refunds history:', err))
+      .finally(() => setIsLoadingHistory(false));
+  };
+
+  // Fetch latest balance and history from Supabase when opened
   useEffect(() => {
-    if (isOpen && user?.id) {
-      setIsLoading(true);
-      fetchUserRefunds(user.id)
-        .then((val) => {
-          setWalletBalance(val);
-          if (onUserUpdate) {
-            onUserUpdate({ refunds: val });
-          }
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+    if (isOpen) {
+      if (user?.id) {
+        setIsLoading(true);
+        fetchUserRefunds(user.id)
+          .then((val) => {
+            setWalletBalance(val);
+            if (onUserUpdate) {
+              onUserUpdate({ refunds: val });
+            }
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      }
+      loadHistory();
     }
-  }, [isOpen, user?.id]);
+  }, [isOpen, user?.id, user?.email]);
 
   if (!isOpen) return null;
 
@@ -62,13 +82,13 @@ export const CreditsPage: React.FC<CreditsPageProps> = ({
       clearTimeout(statusTimeoutRef.current);
     }
     setWithdrawStatus(null);
-    setIsModalOpen(true);
+    setIsWithdrawPageOpen(true);
   };
 
   const handleConfirmWithdrawal = async () => {
     if (!user?.id) return;
     if (walletBalance <= 0) {
-      setIsModalOpen(false);
+      setIsWithdrawPageOpen(false);
       return;
     }
 
@@ -82,15 +102,17 @@ export const CreditsPage: React.FC<CreditsPageProps> = ({
           onUserUpdate({ refunds: 0 });
         }
 
-        // Insert into Supabase `refunds` table
+        // Insert into Supabase `refunds` table and refresh history
         recordRefundWithdrawal({
           userId: user.id,
           userEmail: user.email,
           userName: user.name,
           amount: withdrawnAmount,
-        }).catch((err) => {
-          console.warn('Notice recording to refunds table:', err);
-        });
+        })
+          .then(() => loadHistory())
+          .catch((err) => {
+            console.warn('Notice recording to refunds table:', err);
+          });
 
         setWithdrawStatus({
           type: 'success',
@@ -139,7 +161,7 @@ export const CreditsPage: React.FC<CreditsPageProps> = ({
               aria-label="Go back"
               className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
-              <ChevronLeft className="w-6 h-6 stroke-[2.5] text-gray-900" />
+              <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
             </button>
           </div>
 
@@ -216,56 +238,131 @@ export const CreditsPage: React.FC<CreditsPageProps> = ({
             Refunds take 2 - 5 business days to reflect in your bank account
           </p>
         </div>
-      </main>
 
-      {/* Center of Screen Modal Dialog (Triggered on "Withdraw to bank") */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div
-            className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl space-y-4 text-center relative border border-gray-100 animate-in zoom-in-95 duration-150"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="withdraw-modal-title"
+        {/* Refunds history dropdown: words "Refunds history" with ^ facing down */}
+        <div className="pt-4 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={() => setIsHistoryOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between py-2 text-left cursor-pointer group select-none"
           >
-            {/* Close button on top right */}
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-3.5 right-3.5 p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 cursor-pointer"
-              aria-label="Close dialog"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <span className="text-sm font-black text-gray-900 tracking-tight">
+              Refunds history
+            </span>
+            <ChevronDown
+              className={`w-5 h-5 text-gray-700 transition-transform duration-200 ${
+                isHistoryOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
 
-            {/* Icon */}
-            <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
-              <Landmark className="w-6 h-6 stroke-[2]" />
-            </div>
-
-            {/* Title & Exact Required Message in the middle of the screen */}
-            <div className="space-y-2">
-              <h3 id="withdraw-modal-title" className="text-base font-black text-gray-900">
-                Withdraw to bank
-              </h3>
-              <p className="text-xs sm:text-sm font-semibold text-gray-700 leading-relaxed px-2">
-                Refunds are paid to the same account used for payment
-              </p>
-              {walletBalance > 0 ? (
-                <div className="pt-2 text-xs font-bold text-gray-500">
-                  Withdrawal amount:{' '}
-                  <span className="text-sm font-black text-[#2D8EDE]">
-                    R{walletBalance.toFixed(2)}
-                  </span>
+          {isHistoryOpen && (
+            <div className="mt-2 space-y-2 pt-1">
+              {isLoadingHistory ? (
+                <div className="py-4 text-center text-xs text-gray-400 animate-pulse">
+                  Loading history...
+                </div>
+              ) : historyList.length === 0 ? (
+                <div className="py-3 text-xs text-gray-400 italic">
+                  No refunds history found.
                 </div>
               ) : (
-                <p className="text-[11px] text-gray-400 font-medium pt-1">
-                  Your current wallet balance is R0.00
-                </p>
+                <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden bg-white">
+                  {historyList.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3 flex items-center justify-between text-xs hover:bg-gray-50/60 transition-colors"
+                    >
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-gray-900">
+                          {item.refundNumber || `REF-${item.id.slice(0, 6)}`}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          {item.created_at
+                            ? new Date(item.created_at).toLocaleDateString('en-ZA', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })
+                            : 'Recent'}
+                          {item.reason ? ` • ${item.reason}` : ''}
+                        </p>
+                      </div>
+                      <div className="text-right space-y-0.5">
+                        <p className="font-black text-gray-900">
+                          R{Number(item.amount).toFixed(2)}
+                        </p>
+                        <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          {item.status || 'Processing'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
+          )}
+        </div>
+      </main>
 
-            {/* Action Buttons */}
-            <div className="space-y-2 pt-2">
+      {/* Full New Page for Withdraw to bank */}
+      {isWithdrawPageOpen && (
+        <div className="fixed inset-0 z-70 bg-white flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans select-none animate-in slide-in-from-right duration-200">
+          {/* Header with go back (<) in blue at top left and app name in middle */}
+          <header className="shrink-0 z-30 w-full bg-white border-b border-gray-200">
+            <div className="w-full max-w-md md:max-w-2xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between relative">
+              <button
+                type="button"
+                onClick={() => setIsWithdrawPageOpen(false)}
+                aria-label="Go back"
+                className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+              >
+                <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+              </button>
+
+              <div className="absolute left-1/2 -translate-x-1/2">
+                <span className="font-extrabold text-2xl tracking-tight text-gray-900 font-sans">
+                  Pin<span className="text-[#2D8EDE]">In</span>
+                </span>
+              </div>
+
+              <div className="w-8" aria-hidden="true" />
+            </div>
+          </header>
+
+          <main className="flex-1 w-full max-w-md md:max-w-2xl mx-auto overflow-y-auto px-4 md:px-6 py-6 flex flex-col justify-between text-left">
+            <div className="space-y-6">
+              <div className="space-y-1">
+                <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">
+                  Withdraw to bank
+                </h1>
+                <p className="text-xs text-gray-500 font-medium">
+                  Transfer your refunds wallet balance to your linked bank account
+                </p>
+              </div>
+
+              {/* Message in the middle of the screen */}
+              <div className="p-5 bg-blue-50/70 border border-blue-100 rounded-2xl space-y-2.5">
+                <p className="text-sm font-black text-gray-900 leading-snug">
+                  Refunds are paid to the same account used for payment
+                </p>
+                <p className="text-xs text-gray-600 font-medium leading-relaxed">
+                  Refunds take 2 - 5 business days to reflect in your bank account
+                </p>
+              </div>
+
+              {/* Current balance card */}
+              <div className="p-5 bg-gray-50 border border-gray-200 rounded-2xl space-y-1">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Wallet Balance
+                </p>
+                <p className="text-3xl sm:text-4xl font-black text-gray-900">
+                  R{walletBalance.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-6 space-y-3 pb-6">
               {walletBalance > 0 ? (
                 <>
                   <button
@@ -273,31 +370,36 @@ export const CreditsPage: React.FC<CreditsPageProps> = ({
                     disabled={isWithdrawing}
                     onClick={async () => {
                       await handleConfirmWithdrawal();
-                      setIsModalOpen(false);
+                      setIsWithdrawPageOpen(false);
                     }}
-                    className="w-full py-3 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+                    className="w-full py-4 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-[0.99] text-white font-extrabold text-sm rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center"
                   >
-                    {isWithdrawing ? 'Processing...' : 'Confirm Withdrawal'}
+                    {isWithdrawing ? 'Processing Withdrawal...' : `Confirm Withdrawal of R${walletBalance.toFixed(2)}`}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                    onClick={() => setIsWithdrawPageOpen(false)}
+                    className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                 </>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="w-full py-3 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
-                >
-                  Got it
-                </button>
+                <div className="space-y-3">
+                  <p className="text-center text-xs text-gray-500 font-medium">
+                    Your current wallet balance is R0.00
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsWithdrawPageOpen(false)}
+                    className="w-full py-3.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  >
+                    Go Back
+                  </button>
+                </div>
               )}
             </div>
-          </div>
+          </main>
         </div>
       )}
     </div>

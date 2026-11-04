@@ -18,7 +18,14 @@ CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
 
 # Determine if wrapper jar exists or download if needed, or invoke gradle
 if [ ! -e "$CLASSPATH" ]; then
-    gradle "$@"
-else
+    mkdir -p "$APP_HOME/gradle/wrapper"
+    if command -v curl >/dev/null 2>&1; then
+        curl -sLo "$CLASSPATH" https://raw.githubusercontent.com/gradle/gradle/v8.9.0/gradle/wrapper/gradle-wrapper.jar 2>/dev/null
+    fi
+fi
+
+if [ -e "$CLASSPATH" ]; then
     exec "$JAVACMD" $DEFAULT_JVM_OPTS -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"
+else
+    gradle "$@"
 fi

@@ -1,17 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base application theme with white window background to prevent flicker/jump on resume -->
+    <!-- Base application theme with white window background and white status/navigation bars -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">@color/white</item>
         <item name="android:colorBackground">@color/white</item>
         <item name="android:colorBackgroundCacheHint">@null</item>
         <item name="android:windowDisablePreview">false</item>
         <item name="android:windowContentOverlay">@null</item>
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 
     <!-- Launch / Splash theme (Keeps white splash screen strictly white) -->
     <style name="AppTheme.NoActionBarLaunch" parent="AppTheme">
         <item name="android:background">@color/white</item>
         <item name="android:windowBackground">@color/white</item>
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

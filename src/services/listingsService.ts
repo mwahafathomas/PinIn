@@ -164,14 +164,66 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
 
   const titleStr = row.title || (row as any).name || (row as any).item_name || 'Furniture Item';
   const priceNum = Number(row.price ?? (row as any).amount ?? (row as any).cost ?? 0);
-  const imageStr =
-    row.image_url ||
-    (row as any).imageUrl ||
-    (row as any).image ||
-    (row as any).photo ||
-    (row as any).photo_url ||
-    (Array.isArray((row as any).images) && (row as any).images.length > 0 ? (row as any).images[0] : null) ||
-    'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
+  // Robust image extraction for Supabase listings (supporting all column naming conventions & formats)
+  const extractPrimaryImage = (): string => {
+    const directCandidate =
+      row.image_url ||
+      (row as any).imageUrl ||
+      (row as any).image ||
+      (row as any).photo ||
+      (row as any).photo_url ||
+      (row as any).picture ||
+      (row as any).picture_url ||
+      (row as any).thumbnail ||
+      (row as any).thumbnail_url ||
+      (row as any).img ||
+      (row as any).img_url ||
+      (row as any).image_1 ||
+      (row as any).image1 ||
+      (row as any).product_image;
+
+    if (typeof directCandidate === 'string' && directCandidate.trim()) {
+      return directCandidate.trim();
+    }
+
+    const checkArrayOrJson = (val: unknown): string | null => {
+      if (!val) return null;
+      if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'string' && val[0].trim()) {
+        return val[0].trim();
+      }
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+          try {
+            const arr = JSON.parse(trimmed);
+            if (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'string') return arr[0].trim();
+          } catch {}
+        }
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          const parts = trimmed.slice(1, -1).split(',');
+          if (parts.length > 0 && parts[0].trim()) {
+            return parts[0].replace(/^["']+|["']+$/g, '').trim();
+          }
+        }
+        if (trimmed.includes(',')) {
+          const parts = trimmed.split(',');
+          if (parts[0].trim()) return parts[0].replace(/^["']+|["']+$/g, '').trim();
+        }
+        if (trimmed.length > 0) return trimmed;
+      }
+      return null;
+    };
+
+    return (
+      checkArrayOrJson(row.images) ||
+      checkArrayOrJson(row.additional_images) ||
+      checkArrayOrJson((row as any).photos) ||
+      checkArrayOrJson((row as any).pictures) ||
+      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80'
+    );
+  };
+
+  const imageStr = extractPrimaryImage();
 
   return {
     id: String(row.id || `list_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`),
@@ -326,6 +378,15 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
       String(row.sale_tag || (row as any).sale || '').toLowerCase().trim() === 'sale' ||
       (row.sale_price !== undefined && row.sale_price !== null && Number(row.sale_price) > 0),
     itemSize: row.item_size ? String(row.item_size).trim() : (row as any).itemSize || (row as any).size || undefined,
+    stockType: (row as any).stock_type
+      ? String((row as any).stock_type).trim().toLowerCase()
+      : (row as any).stockType
+      ? String((row as any).stockType).trim().toLowerCase()
+      : (row as any).stock_status
+      ? String((row as any).stock_status).trim().toLowerCase()
+      : (row as any).made_to_order === true || String((row as any).made_to_order).toLowerCase() === 'true'
+      ? 'made to order'
+      : undefined,
     availabilityStatus: row.availability_status
       ? String(row.availability_status).trim()
       : (row as any).availabilityStatus
@@ -337,6 +398,13 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
       ? String(row.available_date).trim()
       : (row as any).availableDate
       ? String((row as any).availableDate).trim()
+      : undefined,
+    gender: row.gender
+      ? String(row.gender).trim().toLowerCase()
+      : (row as any).department
+      ? String((row as any).department).trim().toLowerCase()
+      : (row as any).target_gender
+      ? String((row as any).target_gender).trim().toLowerCase()
       : undefined,
   };
 }

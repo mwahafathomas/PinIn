@@ -110,6 +110,22 @@ export async function recordRefundWithdrawal(data: {
       record.id = String(inserted[0].id);
       saveLocalRefund(record);
     }
+
+    // Also record into `refunds_history` table
+    try {
+      await supabase.from('refunds_history').insert([
+        {
+          refund_number: record.refundNumber,
+          order_number: record.orderNumber,
+          user_email: record.userEmail,
+          user_id: data.userId || null,
+          user_name: record.userName,
+          amount: record.amount,
+          status: record.status,
+          reason: record.reason,
+        },
+      ]);
+    } catch {}
   } catch (err) {
     console.warn('Refund withdrawal recording error:', err);
   }
@@ -171,11 +187,63 @@ export async function submitReturnRequest(data: {
       record.id = inserted[0].id;
       saveLocalReturn(record);
     }
+
+    // Insert into Supabase `return_reasons` table
+    try {
+      await supabase.from('return_reasons').insert([
+        {
+          order_number: record.orderNumber,
+          user_email: record.userEmail,
+          user_name: record.userName,
+          item_bought: record.itemBought,
+          reason: record.reason,
+          other_reason_text: record.description || null,
+        },
+      ]);
+    } catch (reasonErr) {
+      console.warn('Supabase return_reasons notice:', reasonErr);
+    }
   } catch (err) {
     console.warn('Returns request error:', err);
   }
 
   return { success: true, data: record };
+}
+
+/**
+ * Fetch refunds for a user from Supabase `refunds_history` and `refunds` table
+ */
+export async function fetchRefundsHistory(userEmail?: string): Promise<RefundRecord[]> {
+  const local = getLocalRefunds();
+
+  try {
+    // 1. First check `refunds_history` table
+    let historyQuery = supabase.from('refunds_history').select('*').order('created_at', { ascending: false });
+    if (userEmail && userEmail.trim()) {
+      historyQuery = historyQuery.ilike('user_email', userEmail.trim().toLowerCase());
+    }
+
+    const { data: historyData, error: historyErr } = await historyQuery;
+    if (!historyErr && Array.isArray(historyData) && historyData.length > 0) {
+      return historyData.map((row: any) => ({
+        id: String(row.id),
+        refundNumber: row.refund_number || `REF-${String(row.id).slice(0, 6)}`,
+        orderNumber: row.order_number || '',
+        userEmail: row.user_email || '',
+        userName: row.user_name || '',
+        amount: Number(row.amount) || 0,
+        status: row.status || 'Processing',
+        reason: row.reason || '',
+        itemBought: row.item_bought || 'Wallet Balance Withdrawal',
+        created_at: row.created_at || new Date().toISOString(),
+      }));
+    }
+  } catch (err) {
+    console.warn('refunds_history query notice:', err);
+  }
+
+  // 2. Fallback to `refunds` table
+  return fetchUserRefunds(userEmail);
 }
 
 /**
@@ -210,4 +278,133 @@ export async function fetchUserRefunds(userEmail?: string): Promise<RefundRecord
   }
 
   return local;
+}
+
+/**
+ * Fetch explanation message from Supabase `order_cancellation_info` table
+ */
+export async function fetchOrderCancellationMessage(): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('order_cancellation_info')
+      .select('message')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!error && Array.isArray(data) && data.length > 0 && data[0]?.message) {
+      return String(data[0].message);
+    }
+  } catch (err) {
+    console.warn('[Cancellation Info] Supabase notice:', err);
+  }
+
+  return `When you cancel an order, your items will immediately stop processing and will not be prepared or shipped.
+
+A full refund will be processed and credited to your PinIn wallet balance in less than 24 hours.
+
+When you withdraw your wallet balance, the money will be sent directly to the bank account that made the purchase (takes 2 - 5 business days to reflect).
+
+Once confirmed, this cancellation cannot be reversed.`;
+}
+
+/**
+ * Submit an order cancellation & refund request
+ * Records in Supabase `refund_requests` table, updates `refunds` and order status
+ */
+export async function submitOrderRefundRequest(order: {
+  id: string;
+  orderNumber: string;
+  userEmail?: string;
+  buyerEmail?: string;
+  userName?: string;
+  buyerName?: string;
+  username?: string;
+  itemBought?: string;
+  price?: number;
+}): Promise<{ success: boolean; error?: string }> {
+  const email = order.userEmail || order.buyerEmail || 'user@pinin.co.za';
+  const name = order.userName || order.buyerName || order.username || 'PinIn Buyer';
+  const amount = Number(order.price) || 0;
+  const refundNumber = `REF-${order.orderNumber.replace('PIN-', '') || Date.now().toString().slice(-6)}`;
+
+  const localRefund: RefundRecord = {
+    id: `ref_${Date.now()}`,
+    refundNumber,
+    orderNumber: order.orderNumber,
+    userEmail: email,
+    userName: name,
+    amount,
+    status: 'Processing',
+    reason: 'Order cancelled by user',
+    itemBought: order.itemBought || 'Cancelled Order Item',
+    created_at: new Date().toISOString(),
+  };
+
+  saveLocalRefund(localRefund);
+
+  // 1. Insert into Supabase `refund_requests` table
+  try {
+    const payload = {
+      order_number: order.orderNumber,
+      order_id: order.id,
+      user_email: email,
+      user_name: name,
+      item_bought: order.itemBought || 'Cancelled Order Item',
+      amount,
+      status: 'Processing',
+      reason: 'Order cancelled by user',
+    };
+
+    const { error } = await supabase.from('refund_requests').insert([payload]);
+    if (error) {
+      console.warn('Supabase refund_requests notice:', error.message);
+    }
+  } catch (err) {
+    console.warn('Supabase refund_requests error:', err);
+  }
+
+  // 2. Also insert into Supabase `refunds` table
+  try {
+    const refundsPayload = {
+      refund_number: refundNumber,
+      order_number: order.orderNumber,
+      user_email: email,
+      user_name: name,
+      amount,
+      status: 'Processing',
+      reason: 'Order cancelled by user',
+      item_bought: order.itemBought || 'Cancelled Order Item',
+    };
+    await supabase.from('refunds').insert([refundsPayload]);
+  } catch {}
+
+  // 3. Update order in Supabase to 'Cancelled'
+  try {
+    await supabase
+      .from('orders')
+      .update({
+        status: 'Cancelled',
+        delivery_status: 'Cancelled',
+        latest_update: 'Order cancelled and refund requested',
+      })
+      .eq('id', order.id);
+  } catch {}
+
+  // 4. Update order in localStorage
+  try {
+    const raw = localStorage.getItem('pinin_orders_history_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const updated = parsed.map((o: any) =>
+          o.id === order.id || o.orderNumber === order.orderNumber
+            ? { ...o, status: 'Cancelled', deliveryStatus: 'Cancelled', latestUpdate: 'Order cancelled and refund requested' }
+            : o
+        );
+        localStorage.setItem('pinin_orders_history_v1', JSON.stringify(updated));
+      }
+    }
+  } catch {}
+
+  return { success: true };
 }
