@@ -383,6 +383,7 @@ export async function createOrder(data: {
         seller_id: record.sellerId || null,
         price: Number(record.price) || 0,
         listing_id: record.listingId || null,
+        image_url: record.imageUrl || null,
         status: record.status,
       };
 
@@ -658,6 +659,73 @@ export async function getUserOrders(userEmail?: string, buyerId?: string): Promi
           created_at: first.created_at,
         });
       });
+
+      // Enrich orders with real listing images from `listings` table if missing or fallback
+      const listingIdsToFetch = Array.from(
+        new Set(
+          parsedSupabaseOrders
+            .flatMap((o) => [o.listingId, ...(o.items || []).map((i) => i.listingId)])
+            .filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+        )
+      );
+
+      if (listingIdsToFetch.length > 0) {
+        try {
+          const { data: listingsData } = await supabase
+            .from('listings')
+            .select('*')
+            .in('id', listingIdsToFetch);
+
+          if (listingsData && listingsData.length > 0) {
+            const listingImageMap = new Map<string, string>();
+            listingsData.forEach((row: any) => {
+              const directCandidate =
+                row.image_url ||
+                row.imageUrl ||
+                row.image ||
+                row.photo ||
+                row.picture ||
+                row.thumbnail ||
+                row.img ||
+                row.product_image;
+              let img = typeof directCandidate === 'string' && directCandidate.trim() ? directCandidate.trim() : '';
+              if (!img && Array.isArray(row.images) && row.images.length > 0) {
+                img = row.images[0];
+              }
+              if (!img && Array.isArray(row.additional_images) && row.additional_images.length > 0) {
+                img = row.additional_images[0];
+              }
+              if (img) {
+                listingImageMap.set(row.id, img);
+              }
+            });
+
+            parsedSupabaseOrders.forEach((o) => {
+              const matchedImg = (o.listingId && listingImageMap.get(o.listingId)) ||
+                (o.items && o.items.find((i) => i.listingId && listingImageMap.has(i.listingId))
+                  ? listingImageMap.get(o.items.find((i) => i.listingId && listingImageMap.has(i.listingId))!.listingId!)
+                  : null);
+
+              if (matchedImg) {
+                if (!o.imageUrl) o.imageUrl = matchedImg;
+                if (!o.images || o.images.length === 0) o.images = [matchedImg];
+              }
+
+              if (o.items && o.items.length > 0) {
+                o.items.forEach((item) => {
+                  if (item.listingId && listingImageMap.has(item.listingId)) {
+                    const lImg = listingImageMap.get(item.listingId)!;
+                    if (!item.imageUrl) item.imageUrl = lImg;
+                    if (!o.imageUrl) o.imageUrl = lImg;
+                  }
+                });
+              }
+            });
+          }
+        } catch (enrichErr) {
+          console.warn('Orders image enrichment notice:', enrichErr);
+        }
+      }
 
       // Merge with local orders, avoiding duplicate orderNumbers
       const seenNumbers = new Set(parsedSupabaseOrders.map((o) => o.orderNumber));

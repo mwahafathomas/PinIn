@@ -224,8 +224,7 @@ export const FilterResultsPage: React.FC<FilterResultsPageProps> = ({
       <div className="shrink-0 bg-white/95 backdrop-blur-xs border-b border-gray-200">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-sm font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#2D8EDE]" />
+            <h1 className="text-sm font-black text-gray-900 uppercase tracking-wider flex items-center">
               <span>Results</span>
             </h1>
           </div>

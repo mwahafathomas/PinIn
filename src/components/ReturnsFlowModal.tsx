@@ -51,6 +51,23 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
   const [submittedSuccess, setSubmittedSuccess] = useState<boolean>(false);
   const [showPolicyOverlay, setShowPolicyOverlay] = useState<boolean>(false);
   const [showExchangeNoticePopup, setShowExchangeNoticePopup] = useState<boolean>(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+
+  const getOrderDisplayImage = (order?: OrderRecord | null): string => {
+    if (!order) return '';
+    if (order.imageUrl && !failedImages[order.imageUrl]) {
+      return order.imageUrl;
+    }
+    if (order.images && order.images.length > 0) {
+      const found = order.images.find((img) => img && !failedImages[img]);
+      if (found) return found;
+    }
+    if (order.items && order.items.length > 0) {
+      const found = order.items.find((i) => i.imageUrl && !failedImages[i.imageUrl])?.imageUrl;
+      if (found) return found;
+    }
+    return order.imageUrl || '';
+  };
 
   // Reset states when closing
   const handleClose = () => {
@@ -341,10 +358,14 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
                   >
                     {/* 4: place item picture (left box) */}
                     <div className="p-4 flex items-center justify-center bg-white">
-                      {order.imageUrl ? (
+                      {getOrderDisplayImage(order) ? (
                         <img
-                          src={getOptimizedImageUrl(order.imageUrl, { width: 300, quality: 75, format: 'webp' })}
+                          src={getOptimizedImageUrl(getOrderDisplayImage(order), { width: 300, quality: 75, format: 'webp' })}
                           alt={order.itemBought}
+                          onError={() => {
+                            const img = getOrderDisplayImage(order);
+                            if (img) setFailedImages((prev) => ({ ...prev, [img]: true }));
+                          }}
                           className="max-h-28 w-auto object-contain pointer-events-none select-none"
                           loading="lazy"
                         />
@@ -420,10 +441,14 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
             <div className="grid grid-cols-2 divide-x divide-gray-300 w-full min-h-[140px] bg-white">
               {/* 4: Place picture of item */}
               <div className="p-4 flex items-center justify-center bg-white">
-                {selectedOrder.imageUrl ? (
+                {getOrderDisplayImage(selectedOrder) ? (
                   <img
-                    src={getOptimizedImageUrl(selectedOrder.imageUrl, { width: 300, quality: 75, format: 'webp' })}
+                    src={getOptimizedImageUrl(getOrderDisplayImage(selectedOrder), { width: 300, quality: 75, format: 'webp' })}
                     alt={selectedOrder.itemBought}
+                    onError={() => {
+                      const img = getOrderDisplayImage(selectedOrder);
+                      if (img) setFailedImages((prev) => ({ ...prev, [img]: true }));
+                    }}
                     className="max-h-28 w-auto object-contain pointer-events-none select-none"
                     loading="lazy"
                   />

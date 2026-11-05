@@ -208,9 +208,6 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               <div className="bg-white rounded-3xl border border-gray-200 p-5 shadow-xs text-center space-y-3">
                 <div>
                   <h2 className="text-sm font-extrabold text-gray-900">Welcome to PinIn</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Sign in to view your orders, save furniture, and manage your account.
-                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-1 max-w-xs mx-auto">
                   <button
@@ -574,7 +571,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
 
       {/* Sign Out Confirmation Modal */}
       {showSignOutConfirm && (
-        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-60 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-5 max-w-xs w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 text-center">
             <h3 className="text-base font-black text-gray-900">Are you sure you want to sign out?</h3>
             <p className="text-xs text-gray-500">
@@ -594,7 +591,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   setShowSignOutConfirm(false);
                   onSignOut?.();
                 }}
-                className="py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold shadow-md cursor-pointer"
+                className="py-2.5 px-3 rounded-xl bg-[#2D8EDE] hover:bg-[#2579BE] text-white text-xs font-extrabold shadow-md cursor-pointer"
               >
                 Sign Out
               </button>

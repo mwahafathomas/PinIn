@@ -16,8 +16,6 @@ import {
   Truck,
   Star,
   Info,
-  ZoomIn,
-  ZoomOut,
 } from 'lucide-react';
 import { FurnitureItem, UserAccount } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
@@ -93,6 +91,40 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   const [otherDetails, setOtherDetails] = useState('');
   const [selectedSize, setSelectedSize] = useState<string>('M');
   const [zoomScale, setZoomScale] = useState<number>(1);
+  const touchStartDistRef = useRef<number | null>(null);
+  const initialScaleRef = useRef<number>(1);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchStartDistRef.current = dist;
+      initialScaleRef.current = zoomScale;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && touchStartDistRef.current !== null) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const factor = dist / touchStartDistRef.current;
+      const nextScale = Math.min(Math.max(1, initialScaleRef.current * factor), 4);
+      setZoomScale(nextScale);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartDistRef.current !== null) {
+      touchStartDistRef.current = null;
+      if (zoomScale < 1.05) {
+        setZoomScale(1);
+      }
+    }
+  };
   const [quantity, setQuantity] = useState(1);
   const [addedToCartFeedback, setAddedToCartFeedback] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -462,19 +494,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   </button>
                 </>
               )}
-
-              {/* Zoom Button on top right */}
-              <button
-                type="button"
-                onClick={() => {
-                  setZoomScale(1.5);
-                  setIsPhotoModalOpen(true);
-                }}
-                aria-label="Zoom image"
-                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-xs shadow-md transition-all active:scale-90 z-20 cursor-pointer"
-              >
-                <ZoomIn className="w-5 h-5 stroke-[2]" />
-              </button>
 
               {/* Photo counter */}
               {allImages.length > 1 && (
@@ -898,7 +917,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 type="button"
                 onClick={handleConfirmReport}
                 disabled={reportReason.toLowerCase() === 'other' && !otherDetails.trim()}
-                className="w-full py-3.5 px-4 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center capitalize"
+                className="w-full py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] disabled:opacity-50 text-white font-black text-sm rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center capitalize"
               >
                 Submit report
               </button>
@@ -907,7 +926,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
         </div>
       )}
 
-      {/* Fullscreen Photo Modal with Zoomable Controls & Double-Click/Tap Zoom */}
+      {/* Fullscreen Photo Modal with Two-Finger Pinch Zoom */}
       {isPhotoModalOpen && (
         <div
           className="fixed inset-0 z-60 bg-black flex flex-col justify-between items-center select-none"
@@ -916,7 +935,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             else setZoomScale(1);
           }}
         >
-          {/* Top Bar with Go Back & Zoom controls */}
+          {/* Top Bar with Go Back */}
           <div className="w-full p-4 flex items-center justify-between z-20">
             <button
               type="button"
@@ -930,43 +949,16 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             >
               <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
             </button>
-
-            {/* Zoom Controls */}
-            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setZoomScale((prev) => Math.max(1, prev - 0.5));
-                }}
-                disabled={zoomScale <= 1}
-                className="text-white disabled:opacity-40 p-1 hover:text-[#2D8EDE] cursor-pointer"
-                aria-label="Zoom out"
-              >
-                <ZoomOut className="w-5 h-5" />
-              </button>
-              <span className="text-white font-bold text-xs px-1">
-                {Math.round(zoomScale * 100)}%
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setZoomScale((prev) => Math.min(3, prev + 0.5));
-                }}
-                disabled={zoomScale >= 3}
-                className="text-white disabled:opacity-40 p-1 hover:text-[#2D8EDE] cursor-pointer"
-                aria-label="Zoom in"
-              >
-                <ZoomIn className="w-5 h-5" />
-              </button>
-            </div>
+            <div className="w-11" />
           </div>
 
-          {/* Center Zoomable Image */}
+          {/* Center Zoomable Image with Two-Finger Pinch Zoom */}
           <div
-            className="relative w-full flex-1 flex items-center justify-center overflow-auto p-2"
+            className="relative w-full flex-1 flex items-center justify-center overflow-hidden p-2 touch-none"
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             onDoubleClick={(e) => {
               e.stopPropagation();
               setZoomScale((prev) => (prev === 1 ? 2.5 : 1));

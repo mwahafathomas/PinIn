@@ -2913,16 +2913,13 @@ export default function App() {
 
                       if (chosenList.length === 0) {
                         setFilters((prev) => ({ ...prev, category: 'all', categories: [], gender: targetGender || undefined }));
-                        showToast('Showing all categories');
                       } else if (chosenList.length === 1) {
-                        const cleanKeyword = chosenList[0].split('/')[0].trim();
                         setFilters((prev) => ({
                           ...prev,
                           categories: chosenList,
                           category: chosenList[0],
                           gender: targetGender || undefined,
                         }));
-                        showToast(`Filtering by "${cleanKeyword}"`);
                       } else {
                         setFilters((prev) => ({
                           ...prev,
@@ -2930,7 +2927,6 @@ export default function App() {
                           category: chosenList.join(', '),
                           gender: targetGender || undefined,
                         }));
-                        showToast(`Filtering by ${chosenList.length} categories`);
                       }
                       goTo('/results');
                     }

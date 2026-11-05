@@ -121,8 +121,8 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
                   </span>
                 </div>
 
-                {/* Clean text list only with arrow >, no border, no background, no card */}
-                <div className="divide-y divide-gray-200">
+                {/* Clean text list with divider lines between, on top, and under */}
+                <div className="border-t border-b border-gray-200 divide-y divide-gray-200">
                   {group.items.map((item) => (
                     <button
                       key={item}

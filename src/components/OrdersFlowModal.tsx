@@ -108,17 +108,18 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
   // Helper to get up to 4 images for an order, with graceful fallback for deleted items
   const getOrderImages = (order: OrderRecord): string[] => {
     if (order.images && order.images.length > 0) {
-      return order.images.slice(0, 4);
+      const valid = order.images.filter((img) => img && !failedImages[img]);
+      if (valid.length > 0) return valid.slice(0, 4);
     }
     if (order.items && order.items.length > 0) {
       const extracted = order.items
         .map((i) => i.imageUrl)
-        .filter((img): img is string => typeof img === 'string' && img.length > 0);
+        .filter((img): img is string => typeof img === 'string' && img.length > 0 && !failedImages[img]);
       if (extracted.length > 0) {
         return extracted.slice(0, 4);
       }
     }
-    if (order.imageUrl) {
+    if (order.imageUrl && !failedImages[order.imageUrl]) {
       return [order.imageUrl];
     }
     return [DEFAULT_PRODUCT_FALLBACK_IMAGE];
@@ -435,9 +436,10 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
           <main className="flex-1 overflow-y-auto divide-y divide-gray-300 bg-white">
             {selectedOrder.items && selectedOrder.items.length > 0 ? (
               selectedOrder.items.map((item, idx) => {
-                const itemImg = failedImages[item.imageUrl || ''] || !item.imageUrl
+                const resolvedUrl = item.imageUrl || selectedOrder.imageUrl || (selectedOrder.images && selectedOrder.images[0]);
+                const itemImg = failedImages[resolvedUrl || ''] || !resolvedUrl
                   ? DEFAULT_PRODUCT_FALLBACK_IMAGE
-                  : getOptimizedImageUrl(item.imageUrl, { width: 300, quality: 75, format: 'webp' });
+                  : getOptimizedImageUrl(resolvedUrl, { width: 300, quality: 75, format: 'webp' });
 
                 return (
                   <div

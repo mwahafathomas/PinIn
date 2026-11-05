@@ -162,7 +162,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 handleSelectTerm(localQuery.trim());
               }
             }}
-            className="relative flex items-center bg-gray-100/90 rounded-2xl px-3.5 py-2.5 border border-gray-200/80 focus-within:border-[#2D8EDE] focus-within:bg-white transition-all"
+            className="relative flex items-center bg-gray-100/90 rounded-2xl px-3.5 py-2.5 border border-gray-200/80 focus-within:border-gray-200/80 focus-within:bg-white transition-all outline-none ring-0 focus-within:ring-0"
           >
             <Search className="w-4 h-4 text-[#2D8EDE] shrink-0" />
             <input
@@ -172,7 +172,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               onChange={(e) => handleQueryChange(e.target.value)}
               placeholder="Search shirts, jeans, dresses, hoodies..."
               aria-label="Search clothes"
-              className="w-full bg-transparent px-2.5 text-xs sm:text-sm font-semibold text-gray-900 placeholder:text-gray-400 outline-none"
+              className="w-full bg-transparent px-2.5 text-xs sm:text-sm font-semibold text-gray-900 placeholder:text-gray-400 outline-none ring-0 focus:ring-0 focus:outline-none"
             />
             {localQuery.length > 0 && (
               <button
@@ -207,7 +207,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             </div>
           </div>
         ) : localQuery.trim().length > 0 ? (
-          /* When user types search query (e.g. "sofa"), show category words like "Sofas & Couches" */
+          /* When user types search query (e.g. "tees"), show category words without tag icon or right arrow */
           <div className="space-y-3">
             {matchingCategories.length > 0 ? (
               <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs divide-y divide-gray-100">
@@ -216,37 +216,25 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                     key={category}
                     type="button"
                     onClick={() => handleSelectTerm(category)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-left transition-colors cursor-pointer group"
+                    className="w-full flex items-center p-4 hover:bg-gray-50 text-left transition-colors cursor-pointer group"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
-                        <Tag className="w-4 h-4 text-[#2D8EDE]" />
-                      </div>
-                      <span className="text-xs sm:text-sm font-bold text-gray-900">
-                        {category}
-                      </span>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-[#2D8EDE] group-hover:translate-x-0.5 transition-transform" />
+                    <span className="text-xs sm:text-sm font-bold text-gray-900">
+                      {category}
+                    </span>
                   </button>
                 ))}
               </div>
             ) : (
-              /* If no exact category matched, offer to search this keyword directly */
+              /* If no exact category matched, offer to search this keyword directly without icons */
               <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs">
                 <button
                   type="button"
                   onClick={() => handleSelectTerm(localQuery.trim())}
-                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-left transition-colors cursor-pointer group"
+                  className="w-full flex items-center p-4 hover:bg-gray-50 text-left transition-colors cursor-pointer group"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2D8EDE] flex items-center justify-center shrink-0">
-                      <Search className="w-4 h-4 text-[#2D8EDE]" />
-                    </div>
-                    <span className="text-xs sm:text-sm font-bold text-gray-900">
-                      Search &ldquo;{localQuery.trim()}&rdquo;
-                    </span>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-[#2D8EDE] group-hover:translate-x-0.5 transition-transform" />
+                  <span className="text-xs sm:text-sm font-bold text-gray-900">
+                    Search &ldquo;{localQuery.trim()}&rdquo;
+                  </span>
                 </button>
               </div>
             )}

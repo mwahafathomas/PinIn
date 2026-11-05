@@ -39,7 +39,7 @@ export const DEFAULT_CATEGORY_GROUPS: CategoryGroup[] = [
       'tees, shirts',
       'Jeans',
       'Trousers',
-      'Jackets, hoodies',
+      'Jackets, hoodies, sweaters',
     ],
   },
 ];

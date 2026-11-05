@@ -84,7 +84,7 @@ export const HelpSupportPage: React.FC<HelpSupportPageProps> = ({
               aria-label="Go back to help categories"
               className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
-              <ChevronLeft className="w-6 h-6 stroke-[2.5] text-gray-900" />
+              <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
             </button>
 
             {/* App Name (PinIn) right in the center */}
@@ -178,7 +178,7 @@ export const HelpSupportPage: React.FC<HelpSupportPageProps> = ({
             aria-label="Go back"
             className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
-            <ChevronLeft className="w-6 h-6 stroke-[2.5] text-gray-900" />
+            <ChevronLeft className="w-6 h-6 stroke-[2.5] text-[#2D8EDE]" />
           </button>
 
           {/* 2: App Name (PinIn) right in the center */}
@@ -194,16 +194,11 @@ export const HelpSupportPage: React.FC<HelpSupportPageProps> = ({
 
       {/* 3: Words "Help & Support" (Subheader bar as drawn in layout) */}
       <div className="shrink-0 w-full bg-white border-b border-gray-200">
-        <button
-          type="button"
-          onClick={() => setSelectedCategory('Help & Support')}
-          className="w-full max-w-md md:max-w-2xl mx-auto px-4 md:px-6 py-3.5 flex items-center justify-between hover:bg-gray-50/50 transition-colors cursor-pointer group text-left"
-        >
-          <h1 className="text-base sm:text-lg font-black text-gray-900 tracking-tight group-hover:text-[#2D8EDE] transition-colors">
+        <div className="w-full max-w-md md:max-w-2xl mx-auto px-4 md:px-6 py-3.5 text-left">
+          <h1 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
             Help &amp; Support
           </h1>
-          <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#2D8EDE] group-hover:translate-x-0.5 transition-all" />
-        </button>
+        </div>
       </div>
 
       {/* Main Content Area: Items 4 to 10 as clean text list with grey dividers */}

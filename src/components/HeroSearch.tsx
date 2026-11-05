@@ -41,7 +41,7 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
           {/* White input box that opens full search page when clicked */}
           <div
             onClick={onOpenSearchPage}
-            className="w-full bg-white text-gray-900 text-sm md:text-base font-medium pl-10 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300/80 shadow-md cursor-pointer flex items-center transition-all select-none hover:border-[#2D8EDE]"
+            className="w-full bg-white text-gray-900 text-sm md:text-base font-medium pl-10 pr-10 py-2.5 sm:py-3 rounded-xl border border-gray-300/80 shadow-md cursor-pointer flex items-center transition-all select-none hover:border-gray-300/80"
           >
             <span className={searchQuery ? 'text-gray-900 font-semibold truncate' : 'text-gray-500'}>
               {searchQuery || 'search clothes'}

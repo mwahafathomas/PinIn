@@ -40,6 +40,7 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(DEFAULT_BUSINESS_INFO);
   const [isDownloaded, setIsDownloaded] = useState<boolean>(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (isOpen) {
@@ -63,17 +64,18 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
   // Helper to get up to 4 images for an order
   const getOrderImages = (order: OrderRecord): string[] => {
     if (order.images && order.images.length > 0) {
-      return order.images.slice(0, 4);
+      const valid = order.images.filter((img) => img && !failedImages[img]);
+      if (valid.length > 0) return valid.slice(0, 4);
     }
     if (order.items && order.items.length > 0) {
       const extracted = order.items
         .map((i) => i.imageUrl)
-        .filter((img): img is string => typeof img === 'string' && img.length > 0);
+        .filter((img): img is string => typeof img === 'string' && img.length > 0 && !failedImages[img]);
       if (extracted.length > 0) {
         return extracted.slice(0, 4);
       }
     }
-    if (order.imageUrl) {
+    if (order.imageUrl && !failedImages[order.imageUrl]) {
       return [order.imageUrl];
     }
     return [];
@@ -148,6 +150,9 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                             <img
                               src={getOptimizedImageUrl(images[0], { width: 300, quality: 75, format: 'webp' })}
                               alt={order.itemBought}
+                              onError={() => {
+                                if (images[0]) setFailedImages((prev) => ({ ...prev, [images[0]]: true }));
+                              }}
                               className="max-h-32 w-auto object-contain pointer-events-none select-none"
                               loading="lazy"
                             />
@@ -165,6 +170,9 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                               <img
                                 src={getOptimizedImageUrl(imgUrl, { width: 160, quality: 70, format: 'webp' })}
                                 alt={`Item ${idx + 1}`}
+                                onError={() => {
+                                  if (imgUrl) setFailedImages((prev) => ({ ...prev, [imgUrl]: true }));
+                                }}
                                 className="w-full h-full object-contain pointer-events-none select-none"
                                 loading="lazy"
                               />
