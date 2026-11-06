@@ -146,13 +146,6 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
           )}
         </div>
 
-        {/* Condition tag on bottom-left of photo */}
-        <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
-          <span className="bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-            {item.condition}
-          </span>
-        </div>
-
         {/* Multiple images indicator dots (Subtle, no side arrows) */}
         {allImages.length > 1 && (
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded-full backdrop-blur-xs pointer-events-none">
@@ -234,13 +227,6 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
         <h3 className="font-bold text-gray-900 text-xs leading-tight truncate">
           {item.title}
         </h3>
-
-        {/* Sale word below listing name if on sale */}
-        {(item.isSale || (item.saleTag && item.saleTag.toLowerCase() === 'sale') || (item.salePrice !== undefined && item.salePrice > 0)) && (
-          <span className="text-[11px] font-black text-[#2D8EDE] uppercase tracking-wide leading-tight mt-0.5">
-            {item.saleTag || 'Sale'}
-          </span>
-        )}
 
         {/* Category */}
         <div className="mt-0.5 flex items-center justify-between gap-1 text-gray-500 text-[11px]">

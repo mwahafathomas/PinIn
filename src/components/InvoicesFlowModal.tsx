@@ -490,26 +490,34 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                 </div>
 
                 {/* Summary Box: 23 (Delivery fee), 24 (Subtotal), 25 (Total), 26 (Payment method) */}
-                <div className="border-t border-gray-300 pt-3 space-y-2 bg-gray-50/60 -mx-3.5 -mb-3.5 p-3.5">
-                  {/* 23: place delivery fee */}
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500 font-bold">Delivery fee:</span>
-                    <span className="font-extrabold text-gray-900">Free</span>
-                  </div>
+                {(() => {
+                  const orderSubtotal = (selectedOrder.items && selectedOrder.items.length > 0)
+                    ? selectedOrder.items.reduce(
+                        (acc, it) => acc + Number(it.itemPrice || 0) * Number(it.quantity || 1),
+                        0
+                      )
+                    : (selectedOrder.itemPrice ? Number(selectedOrder.itemPrice) * Number(selectedOrder.quantity || 1) : Number(selectedOrder.price || 0));
+                  const effectiveDeliveryFee = selectedOrder.deliveryFee !== undefined
+                    ? selectedOrder.deliveryFee
+                    : Math.max(0, Number(selectedOrder.price || 0) - orderSubtotal);
 
-                  {/* 24: place subtotal (price of items only) */}
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500 font-bold">Subtotal:</span>
-                    <span className="font-extrabold text-gray-900">
-                      R
-                      {(selectedOrder.items && selectedOrder.items.length > 0)
-                        ? selectedOrder.items.reduce(
-                            (acc, it) => acc + Number(it.itemPrice || 0) * Number(it.quantity || 1),
-                            0
-                          )
-                        : selectedOrder.price}
-                    </span>
-                  </div>
+                  return (
+                    <div className="border-t border-gray-300 pt-3 space-y-2 bg-gray-50/60 -mx-3.5 -mb-3.5 p-3.5">
+                      {/* 23: place delivery fee */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 font-bold">Delivery fee:</span>
+                        <span className="font-extrabold text-gray-900">
+                          {effectiveDeliveryFee > 0 ? `R${effectiveDeliveryFee.toFixed(2)}` : 'Free'}
+                        </span>
+                      </div>
+
+                      {/* 24: place subtotal (price of items only) */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 font-bold">Subtotal:</span>
+                        <span className="font-extrabold text-gray-900">
+                          R{orderSubtotal.toFixed(2)}
+                        </span>
+                      </div>
 
                   {/* 25: place total (total of everything) */}
                   <div className="flex items-center justify-between text-sm pt-1 border-t border-gray-200">
@@ -519,14 +527,16 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                     </span>
                   </div>
 
-                  {/* 26: place payment method used */}
-                  <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-200">
-                    <span className="text-gray-500 font-bold">Payment method used:</span>
-                    <span className="font-black text-gray-800 bg-white border border-gray-200 px-2 py-0.5 rounded-md">
-                      {extractPaymentMethod(selectedOrder.delivery)}
-                    </span>
-                  </div>
-                </div>
+                      {/* 26: place payment method used */}
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-200">
+                        <span className="text-gray-500 font-bold">Payment method used:</span>
+                        <span className="font-black text-gray-800 bg-white border border-gray-200 px-2 py-0.5 rounded-md">
+                          {extractPaymentMethod(selectedOrder.delivery)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

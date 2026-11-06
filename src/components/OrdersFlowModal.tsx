@@ -902,11 +902,7 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
             className="w-full max-w-xs bg-white rounded-3xl p-6 shadow-2xl space-y-4 text-center border border-gray-100 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
-              <AlertCircle className="w-6 h-6 stroke-[2.5]" />
-            </div>
-
-            <div className="space-y-1">
+            <div className="space-y-1 pt-1">
               <h3 className="text-base font-black text-gray-900">Notice</h3>
               <p className="text-xs sm:text-sm font-semibold text-gray-700">
                 {unavailableMessage}
@@ -916,7 +912,7 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
             <button
               type="button"
               onClick={() => setUnavailableMessage('')}
-              className="w-full py-2.5 px-4 bg-gray-900 hover:bg-black text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+              className="w-full py-2.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
             >
               OK
             </button>

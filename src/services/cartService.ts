@@ -75,7 +75,7 @@ function saveCartItems(items: CartItem[]): void {
   }
 }
 
-// Add item to cart (if already in cart with same size, increment quantity)
+// Add item to cart (if already in cart with same size, increment quantity - max 5)
 export function addToCart(item: FurnitureItem, quantity: number = 1, size?: string): CartItem[] {
   const current = getCartItems();
   const selectedSize = size || item.itemSize || (item as any).size || undefined;
@@ -85,7 +85,7 @@ export function addToCart(item: FurnitureItem, quantity: number = 1, size?: stri
 
   let targetItem: CartItem;
   if (existingIndex > -1) {
-    current[existingIndex].quantity += quantity;
+    current[existingIndex].quantity = Math.min(5, current[existingIndex].quantity + quantity);
     if (selectedSize) {
       current[existingIndex].size = selectedSize;
     }
@@ -102,7 +102,7 @@ export function addToCart(item: FurnitureItem, quantity: number = 1, size?: stri
       sellerName: item.seller?.name || 'PinIn Verified Seller',
       sellerId: item.seller?.id || (item as any).userId,
       sellerEmail: (item.seller as any)?.email,
-      quantity: Math.max(1, quantity),
+      quantity: Math.min(5, Math.max(1, quantity)),
       addedAt: new Date().toISOString(),
       size: selectedSize,
     };
@@ -126,7 +126,7 @@ export function removeFromCart(listingId: string): CartItem[] {
   return updated;
 }
 
-// Update item quantity
+// Update item quantity (capped at max 5)
 export function updateCartQuantity(listingId: string, quantity: number): CartItem[] {
   const current = getCartItems();
   if (quantity <= 0) {
@@ -134,8 +134,9 @@ export function updateCartQuantity(listingId: string, quantity: number): CartIte
   }
   const item = current.find((c) => c.listingId === listingId);
   if (item) {
-    item.quantity = quantity;
+    item.quantity = Math.min(5, Math.max(1, quantity));
     saveCartItems(current);
+    syncCartItemToSupabase(item);
   }
   return current;
 }

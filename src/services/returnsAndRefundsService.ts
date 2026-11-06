@@ -335,7 +335,7 @@ export async function submitOrderRefundRequest(order: {
     userName: name,
     amount,
     status: 'Processing',
-    reason: 'Order cancelled by user',
+    reason: '',
     itemBought: order.itemBought || 'Cancelled Order Item',
     created_at: new Date().toISOString(),
   };
@@ -352,7 +352,7 @@ export async function submitOrderRefundRequest(order: {
       item_bought: order.itemBought || 'Cancelled Order Item',
       amount,
       status: 'Processing',
-      reason: 'Order cancelled by user',
+      reason: '',
     };
 
     const { error } = await supabase.from('refund_requests').insert([payload]);
@@ -372,7 +372,7 @@ export async function submitOrderRefundRequest(order: {
       user_name: name,
       amount,
       status: 'Processing',
-      reason: 'Order cancelled by user',
+      reason: '',
       item_bought: order.itemBought || 'Cancelled Order Item',
     };
     await supabase.from('refunds').insert([refundsPayload]);

@@ -275,7 +275,7 @@ export const CreditsPage: React.FC<CreditsPageProps> = ({
                     >
                       <div className="space-y-0.5">
                         <p className="font-bold text-gray-900">
-                          {item.refundNumber || `REF-${item.id.slice(0, 6)}`}
+                          {item.orderNumber || (item as any).order_number || 'Order'}
                         </p>
                         <p className="text-[11px] text-gray-500">
                           {item.created_at
@@ -285,16 +285,17 @@ export const CreditsPage: React.FC<CreditsPageProps> = ({
                                 year: 'numeric',
                               })
                             : 'Recent'}
-                          {item.reason ? ` • ${item.reason}` : ''}
+                          {(() => {
+                            const raw = (item.reason || '').trim();
+                            const clean = raw.replace(/order cancelled by user/gi, '').replace(/^[\s•\-–—]+|[\s•\-–—]+$/g, '').trim();
+                            return clean ? ` • ${clean}` : '';
+                          })()}
                         </p>
                       </div>
                       <div className="text-right space-y-0.5">
                         <p className="font-black text-gray-900">
                           R{Number(item.amount).toFixed(2)}
                         </p>
-                        <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                          {item.status || 'Processing'}
-                        </span>
                       </div>
                     </div>
                   ))}

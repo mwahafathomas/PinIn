@@ -2647,7 +2647,7 @@ export default function App() {
                             category: trimmed,
                             categories: [trimmed],
                           }));
-                          goTo('/categories');
+                          goTo(`/categories?gender=${trimmed.toLowerCase()}`);
                           return;
                         }
                         setSelectedCategory(cat);
@@ -2686,12 +2686,6 @@ export default function App() {
                           isLoading={isFeedLoading || isFeedRefreshing}
                         />
                       </div>
-
-                      {/* Footer containing quick links */}
-                      <DesktopFooter
-                        onOpenPrivacyPolicy={() => goTo('/privacy')}
-                        onOpenContactUs={() => goTo('/contact')}
-                      />
                     </div>
                   </main>
 
@@ -2853,6 +2847,7 @@ export default function App() {
                 <CategoriesPage
                   isOpen={true}
                   fromSell={location.search.includes('from=sell')}
+                  genderFilter={new URLSearchParams(location.search).get('gender')}
                   onClose={() => {
                     if (location.search.includes('from=sell')) {
                       const origin = location.search.includes('origin=account') ? '?from=account' : '';

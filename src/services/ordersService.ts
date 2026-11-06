@@ -51,6 +51,7 @@ export interface OrderRecord {
   latestUpdate?: string;
   latestUpdateTime?: string;
   invoiceNumber?: string;
+  deliveryFee?: number;
 }
 
 const ORDERS_STORAGE_KEY = 'pinin_orders_history_v1';
@@ -181,6 +182,7 @@ export async function createOrder(data: {
   price?: number;
   quantity?: number;
   imageUrl?: string;
+  deliveryFee?: number;
   items?: PlaceOrderItemInput[];
 }): Promise<{ success: boolean; orders: OrderRecord[]; order: OrderRecord; error?: string }> {
   // Claim order & tracking number from Supabase `order_tracking_pool` if available
@@ -312,6 +314,7 @@ export async function createOrder(data: {
     imageUrl: imagesList[0] || data.imageUrl,
     images: imagesList,
     items: orderItemsList,
+    deliveryFee: data.deliveryFee,
     created_at: dateBoughtIso,
   };
 

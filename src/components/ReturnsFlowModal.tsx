@@ -333,10 +333,31 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
             </h1>
           </div>
 
-          {/* List of items that were bought in the app */}
+          {/* List of items that were bought in the app (only delivered items eligible for return) */}
           <main className="flex-1 overflow-y-auto divide-y divide-gray-300 bg-white">
-            {orders && orders.length > 0 ? (
-              orders.map((order) => {
+            {(() => {
+              const deliveredOrders = (orders || []).filter((order) => {
+                const statusStr = (order.status || order.deliveryStatus || '').trim().toLowerCase();
+                return statusStr === 'delivered';
+              });
+
+              if (deliveredOrders.length === 0) {
+                return (
+                  <div className="p-8 text-center space-y-3 my-auto">
+                    <div className="w-14 h-14 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
+                      <Package className="w-7 h-7 stroke-[2]" />
+                    </div>
+                    <h2 className="text-sm font-extrabold text-gray-900">
+                      No delivered orders found to return
+                    </h2>
+                    <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                      Items can only be returned once they have been delivered.
+                    </p>
+                  </div>
+                );
+              }
+
+              return deliveredOrders.map((order) => {
                 const isReturnable = checkIsReturnable(order);
                 const orderDateStr = formatOrderDate(order);
 
@@ -405,20 +426,8 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
                     </div>
                   </div>
                 );
-              })
-            ) : (
-              <div className="p-8 text-center space-y-3 my-auto">
-                <div className="w-14 h-14 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
-                  <Package className="w-7 h-7 stroke-[2]" />
-                </div>
-                <h2 className="text-sm font-extrabold text-gray-900">
-                  No orders found to return
-                </h2>
-                <p className="text-xs text-gray-500 max-w-xs mx-auto">
-                  Once you purchase clothing or items through PinIn, they will appear here and be eligible for return within 7 days.
-                </p>
-              </div>
-            )}
+              });
+            })()}
           </main>
         </div>
       )}

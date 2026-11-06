@@ -20,6 +20,7 @@ interface CategoriesPageProps {
   selectedCategory?: string;
   selectedCategories?: string[];
   fromSell?: boolean;
+  genderFilter?: string | null;
   onOpenMessages?: () => void;
   onOpenNotifications?: () => void;
   unreadMessagesCount?: number;
@@ -35,6 +36,7 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
   onClose,
   onSelectCategory,
   fromSell = false,
+  genderFilter,
   onGoHome,
   onOpenCart,
   onOpenAccount,
@@ -63,6 +65,22 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  // Determine active gender filter from prop or URL
+  const activeGender = (
+    genderFilter ||
+    (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('gender') : null)
+  )?.toLowerCase().trim();
+
+  const filteredCategories = categories.filter((group) => {
+    if (activeGender === 'men') {
+      return group.id.toLowerCase() === 'men' || group.title.toLowerCase() === 'men';
+    }
+    if (activeGender === 'women') {
+      return group.id.toLowerCase() === 'women' || group.title.toLowerCase() === 'women';
+    }
+    return true;
+  });
 
   const handleItemClick = (group: CategoryGroup, item: string) => {
     // Single category selection: clicking an item directly opens the results page
@@ -99,21 +117,17 @@ export const CategoriesPage: React.FC<CategoriesPageProps> = ({
 
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto px-4 md:px-6 lg:px-8 pt-3 md:pt-5 pb-4 flex flex-col min-h-0 overflow-hidden">
-        {/* Categories Section Title */}
+        {/* Categories Section Title - No blue dot */}
         <div className="mb-3 shrink-0">
-          <h1 className="text-sm md:text-base font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#2D8EDE]" />
+          <h1 className="text-sm md:text-base font-extrabold text-gray-900 uppercase tracking-wider flex items-center">
             <span>{fromSell ? 'Select Category' : 'Categories'}</span>
           </h1>
-          <p className="text-[11px] md:text-xs font-medium text-gray-500 mt-1">
-            Tap a category to browse listings
-          </p>
         </div>
 
         {/* Clean text list for categories like settings menu list */}
         <div className="flex-1 min-h-0 overflow-y-auto pb-4">
           <div className="space-y-6">
-            {categories.map((group) => (
+            {filteredCategories.map((group) => (
               <div key={group.id} className="space-y-1">
                 <div className="py-2 px-1">
                   <span className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-wider">

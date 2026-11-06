@@ -37,10 +37,10 @@ const ResultItemCard: React.FC<{
   return (
     <div
       onClick={() => onSelectItem(item)}
-      className="group bg-white rounded-none border border-gray-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col cursor-pointer"
+      className="group bg-white rounded-none border border-gray-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col cursor-pointer h-72 sm:h-80"
     >
-      {/* Photo Container with sharp 90-degree corners */}
-      <div className="relative aspect-4/3 bg-gray-100 rounded-none overflow-hidden">
+      {/* Photo Container takes at least 80% with sharp 90-degree corners */}
+      <div className="relative h-[80%] bg-gray-100 rounded-none overflow-hidden shrink-0">
         {/* Shimmer Skeleton while image loads */}
         {!isLoaded && (
           <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse z-0" />
@@ -105,24 +105,14 @@ const ResultItemCard: React.FC<{
         )}
       </div>
 
-      {/* Info Area */}
-      <div className="p-2.5 flex-1 flex flex-col justify-between">
-        <div>
-          <h3 className="font-extrabold text-xs text-gray-900 line-clamp-1 group-hover:text-[#2D8EDE] transition-colors">
-            {item.title}
-          </h3>
-          {(item.isSale || (item.saleTag && item.saleTag.toLowerCase() === 'sale') || (item.salePrice !== undefined && item.salePrice > 0)) && (
-            <span className="text-[11px] font-black text-[#2D8EDE] uppercase tracking-wide leading-tight mt-0.5 block">
-              {item.saleTag || 'Sale'}
-            </span>
-          )}
-        </div>
-
-        <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px]">
-          <span className="font-semibold text-gray-400 capitalize truncate">
-            {item.category}
-          </span>
-        </div>
+      {/* Info Area - 20% below */}
+      <div className="p-2 h-[20%] flex flex-col justify-center overflow-hidden">
+        <h3 className="font-extrabold text-xs text-gray-900 line-clamp-1 group-hover:text-[#2D8EDE] transition-colors leading-tight">
+          {item.title}
+        </h3>
+        <span className="text-[10px] font-semibold text-gray-400 capitalize truncate mt-0.5">
+          {item.category}
+        </span>
       </div>
     </div>
   );

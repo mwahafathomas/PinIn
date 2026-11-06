@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   Trash2,
@@ -8,6 +8,14 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { UserAccount } from '../types/furniture';
+import { supabase } from '../supabaseClient';
+
+export interface DeleteAccountInfoItem {
+  id?: string | number;
+  title: string;
+  description?: string;
+  display_order?: number;
+}
 
 interface DeleteAccountPageProps {
   isOpen: boolean;
@@ -26,6 +34,32 @@ export const DeleteAccountPage: React.FC<DeleteAccountPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [infoItems, setInfoItems] = useState<DeleteAccountInfoItem[]>([]);
+  const [isLoadingInfo, setIsLoadingInfo] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoadingInfo(true);
+      (async () => {
+        try {
+          const { data, error } = await supabase
+            .from('delete_account_info')
+            .select('*')
+            .order('display_order', { ascending: true });
+
+          if (!error && data && data.length > 0) {
+            setInfoItems(data);
+          } else {
+            setInfoItems([]);
+          }
+        } catch {
+          setInfoItems([]);
+        } finally {
+          setIsLoadingInfo(false);
+        }
+      })();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -92,42 +126,25 @@ export const DeleteAccountPage: React.FC<DeleteAccountPageProps> = ({
             What happens when you delete your account:
           </h2>
 
-          <div className="divide-y divide-gray-200 border-t border-b border-gray-200">
-            <div className="py-3.5 space-y-0.5">
-              <p className="text-xs font-bold text-gray-900">
-                1. All active listings will be permanently removed
-              </p>
-              <p className="text-[11px] text-gray-500">
-                Your posted items will immediately vanish from search results and feeds.
-              </p>
-            </div>
-
-            <div className="py-3.5 space-y-0.5">
-              <p className="text-xs font-bold text-gray-900">
-                2. Chat history &amp; conversations will be deleted
-              </p>
-              <p className="text-[11px] text-gray-500">
-                All buyer messages, offers, and negotiations will be erased.
-              </p>
-            </div>
-
-            <div className="py-3.5 space-y-0.5">
-              <p className="text-xs font-bold text-gray-900">
-                3. Saved items &amp; bookmarks will be cleared
-              </p>
-              <p className="text-[11px] text-gray-500">
-                All favorited items and followed sellers will be deleted.
-              </p>
-            </div>
-
-            <div className="py-3.5 space-y-0.5">
-              <p className="text-xs font-bold text-gray-900">
-                4. Profile &amp; verified credentials permanently wiped
-              </p>
-              <p className="text-[11px] text-gray-500">
-                Your details, profile information, and account identity cannot be restored.
-              </p>
-            </div>
+          <div className="divide-y divide-gray-200 border-t border-b border-gray-200 min-h-[60px]">
+            {isLoadingInfo ? (
+              <div className="py-4 text-center text-xs text-gray-400 animate-pulse">
+                Loading information...
+              </div>
+            ) : infoItems.length > 0 ? (
+              infoItems.map((item, index) => (
+                <div key={item.id || index} className="py-3.5 space-y-0.5">
+                  <p className="text-xs font-bold text-gray-900">
+                    {item.title}
+                  </p>
+                  {item.description && (
+                    <p className="text-[11px] text-gray-500">
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+              ))
+            ) : null}
           </div>
 
           <p className="text-xs text-gray-500 font-medium pt-3">
@@ -184,7 +201,11 @@ export const DeleteAccountPage: React.FC<DeleteAccountPageProps> = ({
               <button
                 type="submit"
                 disabled={!password.trim()}
-                className="w-full py-3.5 px-4 bg-gray-900 hover:bg-black disabled:opacity-40 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className={`w-full py-3.5 px-4 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  password.trim()
+                    ? 'bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-98'
+                    : 'bg-gray-900 opacity-40 cursor-not-allowed'
+                }`}
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Delete Account</span>

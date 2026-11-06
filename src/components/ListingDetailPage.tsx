@@ -16,10 +16,11 @@ import {
   Truck,
   Star,
   Info,
+  AlertCircle,
 } from 'lucide-react';
 import { FurnitureItem, UserAccount } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
-import { addToCart } from '../services/cartService';
+import { addToCart, getCartItems } from '../services/cartService';
 import { isListingInStock, getListingAvailableDate } from '../services/listingStockService';
 import { Share as NativeShare } from '@capacitor/share';
 import { supabase } from '../supabaseClient';
@@ -89,7 +90,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("description doesn't match product");
   const [otherDetails, setOtherDetails] = useState('');
-  const [selectedSize, setSelectedSize] = useState<string>('M');
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const [zoomScale, setZoomScale] = useState<number>(1);
   const touchStartDistRef = useRef<number | null>(null);
   const initialScaleRef = useRef<number>(1);
@@ -126,7 +127,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
     }
   };
   const [quantity, setQuantity] = useState(1);
-  const [addedToCartFeedback, setAddedToCartFeedback] = useState(false);
+  const [feedbackToast, setFeedbackToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -282,15 +283,43 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   }, [activeImageIndex, allImages.length]);
 
   const handleAddToCart = () => {
-    addToCart(item, quantity, selectedSize);
-    setAddedToCartFeedback(true);
+    if (!selectedSize) {
+      setFeedbackToast({ message: 'select option', type: 'warning' });
+      setTimeout(() => {
+        setFeedbackToast(null);
+      }, 2500);
+      return;
+    }
+
+    const currentCart = getCartItems();
+    const alreadyInCart = currentCart.some((c) => c.listingId === item.id);
+    if (alreadyInCart) {
+      setFeedbackToast({ message: 'item is already in users cart', type: 'warning' });
+      setTimeout(() => {
+        setFeedbackToast(null);
+      }, 2500);
+      return;
+    }
+
+    const finalQty = Math.min(5, Math.max(1, quantity));
+    addToCart(item, finalQty, selectedSize);
+    setFeedbackToast({ message: 'Added to your cart!', type: 'success' });
     setTimeout(() => {
-      setAddedToCartFeedback(false);
+      setFeedbackToast(null);
     }, 2500);
   };
 
   const handleBuyNow = () => {
-    addToCart(item, quantity, selectedSize);
+    if (!selectedSize) {
+      setFeedbackToast({ message: 'select option', type: 'warning' });
+      setTimeout(() => {
+        setFeedbackToast(null);
+      }, 2500);
+      return;
+    }
+
+    const finalQty = Math.min(5, Math.max(1, quantity));
+    addToCart(item, finalQty, selectedSize);
     if (onOpenCart) {
       onOpenCart();
     }
@@ -579,11 +608,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight leading-tight">
                     {item.title}
                   </h1>
-                  {(item.isSale || (item.saleTag && item.saleTag.toLowerCase() === 'sale') || (item.salePrice !== undefined && item.salePrice > 0)) && (
-                    <span className="text-xs font-black text-[#2D8EDE] uppercase tracking-wide leading-tight mt-1 inline-block">
-                      {item.saleTag || 'Sale'}
-                    </span>
-                  )}
                 </div>
 
                 {/* Save / Bookmark Icon */}
@@ -660,7 +684,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     Select Size
                   </span>
                   <span className="text-xs font-black text-[#2D8EDE]">
-                    Size: {selectedSize}
+                    Size: {selectedSize || 'Not selected'}
                   </span>
                 </div>
                 <div className="grid grid-cols-5 gap-1.5">
@@ -726,14 +750,24 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 )}
               </div>
 
-              {/* Feedback toast when added to cart */}
-              {addedToCartFeedback && (
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between animate-in fade-in duration-200">
+              {/* Feedback toast when added to cart or validation alert */}
+              {feedbackToast && (
+                <div
+                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-between animate-in fade-in duration-200 ${
+                    feedbackToast.type === 'success'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                      : 'bg-amber-50 border-amber-200 text-amber-900'
+                  }`}
+                >
                   <div className="flex items-center gap-1.5">
-                    <Check className="w-4 h-4 stroke-[3] text-emerald-600" />
-                    <span>Added to your cart!</span>
+                    {feedbackToast.type === 'success' ? (
+                      <Check className="w-4 h-4 stroke-[3] text-emerald-600" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 stroke-[2.5] text-amber-600" />
+                    )}
+                    <span>{feedbackToast.message}</span>
                   </div>
-                  {onOpenCart && (
+                  {feedbackToast.type === 'success' && onOpenCart && (
                     <button
                       type="button"
                       onClick={onOpenCart}
@@ -781,13 +815,19 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   <button
                     type="button"
                     onClick={() =>
-                      setQuantity((q) =>
-                        typeof item.stockQuantity === 'number' && item.stockQuantity > 0
-                          ? Math.min(item.stockQuantity, q + 1)
-                          : q + 1
-                      )
+                      setQuantity((q) => {
+                        const stockLimit =
+                          typeof item.stockQuantity === 'number' && item.stockQuantity > 0
+                            ? Math.min(item.stockQuantity, 5)
+                            : 5;
+                        return Math.min(stockLimit, q + 1);
+                      })
                     }
-                    className="w-7 h-7 rounded hover:bg-gray-200 text-gray-700 flex items-center justify-center cursor-pointer transition-colors"
+                    disabled={
+                      quantity >= 5 ||
+                      (typeof item.stockQuantity === 'number' && item.stockQuantity > 0 && quantity >= item.stockQuantity)
+                    }
+                    className="w-7 h-7 rounded hover:bg-gray-200 disabled:opacity-40 disabled:hover:bg-transparent text-gray-700 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed transition-colors"
                     aria-label="Increase quantity"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -813,15 +853,21 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
         </div>
       )}
 
-      {/* Centered "Added to Cart" Message in Middle of Screen */}
-      {addedToCartFeedback && (
+      {/* Centered Feedback Message in Middle of Screen */}
+      {feedbackToast && (
         <div className="fixed inset-0 z-70 flex items-center justify-center pointer-events-none p-4 animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-gray-900/90 text-white backdrop-blur-md px-6 py-4 rounded-2xl shadow-2xl flex flex-col items-center gap-2 max-w-xs text-center border border-white/10 pointer-events-auto">
-            <div className="w-11 h-11 rounded-full bg-[#2D8EDE] flex items-center justify-center shadow-md">
-              <Check className="w-6 h-6 stroke-[3] text-white" />
-            </div>
-            <span className="text-sm font-black tracking-wide">Added to cart</span>
-            {onOpenCart && (
+          <div className="bg-gray-900/95 text-white backdrop-blur-md px-6 py-4 rounded-2xl shadow-2xl flex flex-col items-center gap-2 max-w-xs text-center border border-white/10 pointer-events-auto">
+            {feedbackToast.type === 'success' ? (
+              <div className="w-11 h-11 rounded-full bg-[#2D8EDE] flex items-center justify-center shadow-md">
+                <Check className="w-6 h-6 stroke-[3] text-white" />
+              </div>
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-amber-500 flex items-center justify-center shadow-md">
+                <AlertCircle className="w-6 h-6 stroke-[2.5] text-white" />
+              </div>
+            )}
+            <span className="text-sm font-black tracking-wide">{feedbackToast.message}</span>
+            {feedbackToast.type === 'success' && onOpenCart && (
               <button
                 type="button"
                 onClick={onOpenCart}

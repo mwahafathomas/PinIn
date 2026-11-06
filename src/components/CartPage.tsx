@@ -203,8 +203,11 @@ const SwipeableCartCard: React.FC<{
               </span>
               <button
                 type="button"
-                onClick={() => onUpdateQuantity(item.listingId, item.quantity + 1)}
-                className="p-1 hover:bg-gray-200 text-gray-700 rounded-r cursor-pointer"
+                onClick={() => onUpdateQuantity(item.listingId, Math.min(5, item.quantity + 1))}
+                disabled={item.quantity >= 5}
+                className={`p-1 text-gray-700 rounded-r ${
+                  item.quantity >= 5 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-gray-200 cursor-pointer'
+                }`}
                 aria-label="Increase quantity"
               >
                 <Plus className="w-3 h-3" />
@@ -315,9 +318,9 @@ export const CartPage: React.FC<CartPageProps> = ({
 
   const subtotal = selectedItems.reduce((acc, i) => acc + (Number(i.price) || 0) * (i.quantity || 1), 0);
   const isDeliveryFree = subtotal > 500;
-  const currentMethodObj = deliveryMethods.find((dm) => dm.name.toLowerCase() === selectedDeliveryMethod.toLowerCase()) || deliveryMethods[0];
-  const activeMethodPrice = currentMethodObj ? currentMethodObj.price : 60;
-  const deliveryFee = isDeliveryFree ? 0 : activeMethodPrice;
+  const doorToDoorMethod = deliveryMethods.find((dm) => dm.name.toLowerCase().includes('door')) || deliveryMethods[0] || { price: 60 };
+  const doorToDoorPrice = doorToDoorMethod ? doorToDoorMethod.price : 60;
+  const deliveryFee = isDeliveryFree ? 0 : doorToDoorPrice;
   const grandTotal = subtotal + deliveryFee;
 
   return (
@@ -350,8 +353,8 @@ export const CartPage: React.FC<CartPageProps> = ({
       {/* Main Body */}
       <main className="flex-1 w-full max-w-md md:max-w-3xl mx-auto overflow-y-auto px-4 md:px-6 py-4 pb-12 flex flex-col">
         {placedOrder ? (
-          /* Order Success View - EXACTLY as requested */
-          <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center space-y-6 shadow-sm animate-in zoom-in-95 duration-200 my-auto">
+          /* Order Success View - cleanly rendered without surrounding box */
+          <div className="p-4 md:p-6 text-center space-y-6 animate-in zoom-in-95 duration-200 my-auto w-full max-w-sm mx-auto">
             {/* 1. Successful Icon (make it blue) */}
             <div className="w-20 h-20 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto shadow-xs">
               <CheckCircle className="w-12 h-12 stroke-[2.5]" />
@@ -539,53 +542,23 @@ export const CartPage: React.FC<CartPageProps> = ({
                   </button>
                 )}
 
-                {/* Delivery Methods: Door to door & PAXI below delivery address */}
-                <div className="space-y-2 pt-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-black text-gray-900 uppercase tracking-wider">
-                      Delivery Methods
-                    </label>
-                    {isDeliveryFree && (
-                      <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        Orders over R500 qualify for Free Delivery
-                      </span>
-                    )}
-                  </div>
+                {/* Delivery Method: Door to door */}
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-[11px] font-black text-gray-900 uppercase tracking-wider block">
+                    Delivery Method
+                  </label>
 
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {deliveryMethods.map((dm) => {
-                      const isSelected = selectedDeliveryMethod.toLowerCase() === dm.name.toLowerCase();
-                      return (
-                        <button
-                          key={dm.id || dm.name}
-                          type="button"
-                          onClick={() => setSelectedDeliveryMethod(dm.name)}
-                          className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
-                            isSelected
-                              ? 'border-[#2D8EDE] bg-blue-50/50 shadow-2xs'
-                              : 'border-gray-200 hover:border-gray-300 bg-white'
-                          }`}
-                        >
-                          <div>
-                            <p className="font-extrabold text-xs text-gray-900">{dm.name}</p>
-                            <p className="text-[11px] font-bold text-[#2D8EDE] mt-0.5">
-                              {isDeliveryFree ? (
-                                <span className="font-black text-emerald-600">Free</span>
-                              ) : (
-                                `R${dm.price}`
-                              )}
-                            </p>
-                          </div>
-                          <div
-                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                              isSelected ? 'border-[#2D8EDE] bg-[#2D8EDE]' : 'border-gray-300 bg-white'
-                            }`}
-                          >
-                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                          </div>
-                        </button>
-                      );
-                    })}
+                  <div className="p-3 rounded-xl border border-gray-200 bg-white flex items-center justify-between">
+                    <div>
+                      <p className="font-extrabold text-xs text-gray-900">Door to door</p>
+                      <p className="text-[11px] font-bold text-[#2D8EDE] mt-0.5">
+                        {isDeliveryFree ? (
+                          <span className="font-black text-emerald-600">Free</span>
+                        ) : (
+                          `R${doorToDoorPrice}`
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -597,14 +570,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                   <span className="font-bold text-gray-900">R{subtotal}</span>
                 </div>
                 <div className="flex items-center justify-between text-gray-600">
-                  <div className="flex items-center gap-1.5">
-                    <span>Delivery</span>
-                    {isDeliveryFree && (
-                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">
-                        Free
-                      </span>
-                    )}
-                  </div>
+                  <span>Delivery</span>
                   <span className="font-bold text-gray-900">
                     {isDeliveryFree ? (
                       <span className="text-emerald-600 font-black">Free</span>

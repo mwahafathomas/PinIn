@@ -53,6 +53,11 @@ export function generateInvoiceHtml(order: OrderRecord, info: BusinessInfo): str
     0
   );
 
+  const computedDelivery = order.deliveryFee !== undefined
+    ? Number(order.deliveryFee)
+    : Math.max(0, Number(order.price || 0) - subtotal);
+  const deliveryFeeDisplay = computedDelivery > 0 ? `R${computedDelivery.toFixed(2)}` : 'Free';
+
   const itemsRows = items.map((item, idx) => `
     <tr>
       <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #111827;">
@@ -158,7 +163,7 @@ export function generateInvoiceHtml(order: OrderRecord, info: BusinessInfo): str
       </table>
 
       <div class="totals-box">
-        <div class="total-row"><span>Delivery fee:</span><span style="font-weight: 700;">Free</span></div>
+        <div class="total-row"><span>Delivery fee:</span><span style="font-weight: 700;">${deliveryFeeDisplay}</span></div>
         <div class="total-row"><span>Subtotal:</span><span style="font-weight: 700;">R${subtotal.toFixed(2)}</span></div>
         <div class="total-row grand-total"><span>Total:</span><span style="color: #2D8EDE;">R${Number(order.price || 0).toFixed(2)}</span></div>
         <div class="total-row" style="margin-top: 6px; font-size: 11px;"><span>Payment method:</span><span style="font-weight: 700;">${paymentMethod}</span></div>

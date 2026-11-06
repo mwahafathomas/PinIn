@@ -95,6 +95,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         itemPrice: items[0]?.price || 0,
         price: totalAmount,
         quantity: totalQuantity,
+        deliveryFee: deliveryFee,
         delivery: deliverySummary,
         recipientName: deliveryAddress.recipientName || buyerDisplayName,
         recipientPhone: deliveryAddress.recipientPhone || '',

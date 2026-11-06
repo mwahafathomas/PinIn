@@ -164,16 +164,11 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
           </button>
         </div>
 
-        {/* Info - Clean title and Sale indicator */}
+        {/* Info - Clean title */}
         <div className="p-2.5 flex-1 flex flex-col justify-center">
           <h3 className="text-xs font-bold text-gray-900 truncate leading-snug">
             {item.title}
           </h3>
-          {(item.isSale || (item.saleTag && item.saleTag.toLowerCase() === 'sale') || (item.salePrice !== undefined && item.salePrice > 0)) && (
-            <span className="text-[11px] font-black text-[#2D8EDE] uppercase tracking-wide leading-tight mt-0.5">
-              {item.saleTag || 'Sale'}
-            </span>
-          )}
         </div>
       </div>
     );
