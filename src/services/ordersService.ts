@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { archiveListingImage } from './listingArchiveService';
 
 export interface OrderItem {
   listingId?: string;
@@ -320,6 +321,16 @@ export async function createOrder(data: {
 
   // Cache locally immediately so user confirmation is guaranteed
   saveLocalOrder(record);
+
+  // Permanently archive all item images into listing_images_archive so deleted listings retain their image
+  orderItemsList.forEach((it) => {
+    if (it.listingId && it.imageUrl) {
+      archiveListingImage(it.listingId, it.imageUrl, it.itemBought);
+    }
+  });
+  if (record.listingId && record.imageUrl) {
+    archiveListingImage(record.listingId, record.imageUrl, record.itemBought, record.images);
+  }
 
   // 1. Insert into Supabase `orders` table with multi-tier fallback resilience
   try {

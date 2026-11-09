@@ -19,6 +19,9 @@ import { UserAccount } from '../types/furniture';
 import { supabase } from '../supabaseClient';
 import { upsertUserProfile } from '../services/profilesService';
 import { DEFAULT_AVATAR_IMAGE } from '../data/defaultAvatar';
+import { ForgotPasswordEmail } from './ForgotPasswordEmail';
+import { VerifyResetCode } from './VerifyResetCode';
+import { NewPassword } from './NewPassword';
 
 interface AuthPageProps {
   isOpen: boolean;
@@ -53,6 +56,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [otpCode, setOtpCode] = useState('');
   const [isResending, setIsResending] = useState(false);
 
+  // Password reset subviews
+  const [authSubView, setAuthSubView] = useState<'default' | 'forgot-email' | 'verify-code' | 'new-password'>('default');
+  const [resetEmail, setResetEmail] = useState('');
+
   // When switching modes, set appropriate default checkbox state
   useEffect(() => {
     if (mode === 'register') {
@@ -63,6 +70,69 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   }, [mode]);
 
   if (!isOpen) return null;
+
+  if (authSubView === 'forgot-email') {
+    return (
+      <ForgotPasswordEmail
+        onBack={() => setAuthSubView('default')}
+        onNavigateToVerify={(targetEmail) => {
+          setResetEmail(targetEmail);
+          setAuthSubView('verify-code');
+        }}
+        onNavigateToSignIn={() => {
+          setMode('signin');
+          setAuthSubView('default');
+        }}
+        onNavigateToRegister={() => {
+          setMode('register');
+          setAuthSubView('default');
+        }}
+      />
+    );
+  }
+
+  if (authSubView === 'verify-code') {
+    return (
+      <VerifyResetCode
+        email={resetEmail}
+        onBack={() => setAuthSubView('forgot-email')}
+        onNavigateToNewPassword={(targetEmail) => {
+          setResetEmail(targetEmail);
+          setAuthSubView('new-password');
+        }}
+        onNavigateToSignIn={() => {
+          setMode('signin');
+          setAuthSubView('default');
+        }}
+        onNavigateToRegister={() => {
+          setMode('register');
+          setAuthSubView('default');
+        }}
+      />
+    );
+  }
+
+  if (authSubView === 'new-password') {
+    return (
+      <NewPassword
+        email={resetEmail}
+        onBack={() => setAuthSubView('default')}
+        onSuccess={() => {
+          setAuthSubView('default');
+          setMode('signin');
+          setSuccessMsg('Password changed!');
+        }}
+        onNavigateToSignIn={() => {
+          setMode('signin');
+          setAuthSubView('default');
+        }}
+        onNavigateToRegister={() => {
+          setMode('register');
+          setAuthSubView('default');
+        }}
+      />
+    );
+  }
 
   // Helper after successful auth session (NO green "Account verified" banner as requested)
   const handleSuccessfulSession = async (
@@ -590,6 +660,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
                 </button>
               </div>
+
+              {/* Forgot password link under password field */}
+              {mode === 'signin' && (
+                <div className="flex justify-end -mt-1 px-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMsg('');
+                      setSuccessMsg('');
+                      setAuthSubView('forgot-email');
+                    }}
+                    className="text-xs font-semibold text-[#2D8EDE] hover:underline cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
 
               {/* Confirm Password */}
               {mode === 'register' && (

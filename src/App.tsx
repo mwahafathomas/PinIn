@@ -27,6 +27,9 @@ import { DeleteAccountPage } from './components/DeleteAccountPage';
 import { EditProfilePage } from './components/EditProfilePage';
 import { HelpSupportPage } from './components/HelpSupportPage';
 import { AuthPage } from './components/AuthPage';
+import { ForgotPasswordEmail } from './components/ForgotPasswordEmail';
+import { VerifyResetCode } from './components/VerifyResetCode';
+import { NewPassword } from './components/NewPassword';
 import { CategoriesPage } from './components/CategoriesPage';
 import { FilterResultsPage } from './components/FilterResultsPage';
 import { AccountPage } from './components/AccountPage';
@@ -3164,6 +3167,45 @@ export default function App() {
                   initialMode="register"
                   onBack={() => goBack('/')}
                   onSuccess={handleAuthSuccess}
+                />
+              }
+            />
+
+            {/* 16. Forgot Password Flow Pages */}
+            <Route
+              path="/forgot-password"
+              element={
+                <ForgotPasswordEmail
+                  onBack={() => goBack('/login')}
+                  onNavigateToSignIn={() => goTo('/login')}
+                  onNavigateToRegister={() => goTo('/register')}
+                  onNavigateToVerify={(targetEmail) =>
+                    goTo(`/verify-reset-code?email=${encodeURIComponent(targetEmail)}`)
+                  }
+                />
+              }
+            />
+            <Route
+              path="/verify-reset-code"
+              element={
+                <VerifyResetCode
+                  onBack={() => goBack('/forgot-password')}
+                  onNavigateToSignIn={() => goTo('/login')}
+                  onNavigateToRegister={() => goTo('/register')}
+                  onNavigateToNewPassword={(targetEmail) =>
+                    goTo(`/new-password?email=${encodeURIComponent(targetEmail)}`)
+                  }
+                />
+              }
+            />
+            <Route
+              path="/new-password"
+              element={
+                <NewPassword
+                  onBack={() => goBack('/login')}
+                  onNavigateToSignIn={() => goTo('/login')}
+                  onNavigateToRegister={() => goTo('/register')}
+                  onSuccess={() => goTo('/login')}
                 />
               }
             />

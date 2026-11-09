@@ -19,6 +19,7 @@ import {
   submitOrderRefundRequest,
 } from '../services/returnsAndRefundsService';
 import { supabase } from '../supabaseClient';
+import { getCachedArchivedImage, getArchivedListingImage } from '../services/listingArchiveService';
 
 interface OrdersFlowModalProps {
   isOpen: boolean;
@@ -77,6 +78,30 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
   const [isLoadingMessage, setIsLoadingMessage] = useState(false);
   const [unavailableMessage, setUnavailableMessage] = useState<string>('');
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const [archivedImages, setArchivedImages] = useState<Record<string, string>>({});
+
+  // Preload archived images from listing_images_archive so deleted listings retain their original image
+  useEffect(() => {
+    const listingIds = new Set<string>();
+    ordersList.forEach((ord) => {
+      if (ord.listingId) listingIds.add(ord.listingId);
+      ord.items?.forEach((it) => {
+        if (it.listingId) listingIds.add(it.listingId);
+      });
+    });
+
+    listingIds.forEach(async (id) => {
+      const cached = getCachedArchivedImage(id);
+      if (cached) {
+        setArchivedImages((prev) => ({ ...prev, [id]: cached }));
+      } else {
+        const fetched = await getArchivedListingImage(id);
+        if (fetched) {
+          setArchivedImages((prev) => ({ ...prev, [id]: fetched }));
+        }
+      }
+    });
+  }, [ordersList]);
 
   // 8-second auto-dismissing success popup
   const [refundSuccessPopupOpen, setRefundSuccessPopupOpen] = useState(false);
@@ -113,14 +138,16 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
     }
     if (order.items && order.items.length > 0) {
       const extracted = order.items
-        .map((i) => i.imageUrl)
+        .map((i) => i.imageUrl || (i.listingId ? archivedImages[i.listingId] || getCachedArchivedImage(i.listingId) : null))
         .filter((img): img is string => typeof img === 'string' && img.length > 0 && !failedImages[img]);
       if (extracted.length > 0) {
         return extracted.slice(0, 4);
       }
     }
-    if (order.imageUrl && !failedImages[order.imageUrl]) {
-      return [order.imageUrl];
+    const fallbackArchived = order.listingId ? archivedImages[order.listingId] || getCachedArchivedImage(order.listingId) : null;
+    const finalOrderImg = order.imageUrl || fallbackArchived;
+    if (finalOrderImg && !failedImages[finalOrderImg]) {
+      return [finalOrderImg];
     }
     return [DEFAULT_PRODUCT_FALLBACK_IMAGE];
   };
@@ -436,7 +463,14 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
           <main className="flex-1 overflow-y-auto divide-y divide-gray-300 bg-white">
             {selectedOrder.items && selectedOrder.items.length > 0 ? (
               selectedOrder.items.map((item, idx) => {
-                const resolvedUrl = item.imageUrl || selectedOrder.imageUrl || (selectedOrder.images && selectedOrder.images[0]);
+                const itemArchivedFallback = item.listingId ? (archivedImages[item.listingId] || getCachedArchivedImage(item.listingId)) : null;
+                const orderArchivedFallback = selectedOrder.listingId ? (archivedImages[selectedOrder.listingId] || getCachedArchivedImage(selectedOrder.listingId)) : null;
+                const resolvedUrl =
+                  item.imageUrl ||
+                  itemArchivedFallback ||
+                  selectedOrder.imageUrl ||
+                  orderArchivedFallback ||
+                  (selectedOrder.images && selectedOrder.images[0]);
                 const itemImg = failedImages[resolvedUrl || ''] || !resolvedUrl
                   ? DEFAULT_PRODUCT_FALLBACK_IMAGE
                   : getOptimizedImageUrl(resolvedUrl, { width: 300, quality: 75, format: 'webp' });
@@ -477,9 +511,11 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
               })
             ) : (
               (() => {
-                const orderImg = failedImages[selectedOrder.imageUrl || ''] || !selectedOrder.imageUrl
+                const orderArchivedFallback = selectedOrder.listingId ? (archivedImages[selectedOrder.listingId] || getCachedArchivedImage(selectedOrder.listingId)) : null;
+                const resolvedUrl = selectedOrder.imageUrl || orderArchivedFallback || (selectedOrder.images && selectedOrder.images[0]);
+                const orderImg = failedImages[resolvedUrl || ''] || !resolvedUrl
                   ? DEFAULT_PRODUCT_FALLBACK_IMAGE
-                  : getOptimizedImageUrl(selectedOrder.imageUrl, { width: 300, quality: 75, format: 'webp' });
+                  : getOptimizedImageUrl(resolvedUrl, { width: 300, quality: 75, format: 'webp' });
 
                 return (
                   <div

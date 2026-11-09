@@ -243,6 +243,48 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
+// 2.3 Send Password Reset Code via Resend
+app.post('/api/send-reset-code', async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ success: false, error: 'Email and code are required' });
+    }
+
+    const apiKey =
+      process.env.RESEND_API_KEY ||
+      process.env.VITE_RESEND_API_KEY ||
+      'YOUR_RESEND_API_KEY';
+
+    console.log(`[Resend Reset] Dispatching reset code ${code} to ${email}`);
+
+    try {
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          from: 'Pinin <noreply@pinin.co.za>',
+          to: [email],
+          subject: 'Your Pinin Reset Code',
+          html: `<h1>Your Pinin code is: ${code}</h1>`,
+        }),
+      });
+
+      const data = await resendRes.json().catch(() => ({}));
+      return res.json({ success: resendRes.ok, data });
+    } catch (e: any) {
+      console.warn('[Resend Reset] Delivery warning:', e.message);
+      return res.json({ success: true, simulated: true });
+    }
+  } catch (err: any) {
+    console.error('[Resend Reset] Error in /api/send-reset-code:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 2.5 Supabase Edge Function Handler: sync-dummyjson
 app.all(['/api/sync-dummyjson', '/functions/v1/sync-dummyjson'], async (req, res) => {
   try {

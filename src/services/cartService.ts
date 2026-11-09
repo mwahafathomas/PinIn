@@ -75,9 +75,27 @@ function saveCartItems(items: CartItem[]): void {
   }
 }
 
+function isUserSignedIn(): boolean {
+  try {
+    const raw = localStorage.getItem('user_data');
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (u && (u.isLoggedIn || u.id)) return true;
+    }
+    const token = localStorage.getItem('user_token');
+    if (token) return true;
+  } catch {}
+  return false;
+}
+
 // Add item to cart (if already in cart with same size, increment quantity - max 5)
+// Only allowed for signed in users
 export function addToCart(item: FurnitureItem, quantity: number = 1, size?: string): CartItem[] {
   const current = getCartItems();
+  if (!isUserSignedIn()) {
+    console.warn('[Cart] Anonymous users cannot add items to cart. Please sign in.');
+    return current;
+  }
   const selectedSize = size || item.itemSize || (item as any).size || undefined;
   const existingIndex = current.findIndex(
     (c) => c.listingId === item.id && (!selectedSize || c.size === selectedSize)

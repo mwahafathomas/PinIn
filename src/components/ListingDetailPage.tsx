@@ -82,6 +82,8 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   onShare,
   onReport,
   onOpenCart,
+  user,
+  onOpenAuth,
 }) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -283,6 +285,29 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   }, [activeImageIndex, allImages.length]);
 
   const handleAddToCart = () => {
+    // Check if user is signed in
+    const isUserLoggedIn = Boolean(
+      user?.isLoggedIn ||
+      user?.id ||
+      (() => {
+        try {
+          const raw = localStorage.getItem('user_data');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            return Boolean(parsed?.isLoggedIn || parsed?.id);
+          }
+        } catch {}
+        return false;
+      })()
+    );
+
+    if (!isUserLoggedIn) {
+      if (onOpenAuth) {
+        onOpenAuth('signin');
+      }
+      return;
+    }
+
     if (!selectedSize) {
       setFeedbackToast({ message: 'select option', type: 'warning' });
       setTimeout(() => {
@@ -310,6 +335,29 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   };
 
   const handleBuyNow = () => {
+    // Check if user is signed in
+    const isUserLoggedIn = Boolean(
+      user?.isLoggedIn ||
+      user?.id ||
+      (() => {
+        try {
+          const raw = localStorage.getItem('user_data');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            return Boolean(parsed?.isLoggedIn || parsed?.id);
+          }
+        } catch {}
+        return false;
+      })()
+    );
+
+    if (!isUserLoggedIn) {
+      if (onOpenAuth) {
+        onOpenAuth('signin');
+      }
+      return;
+    }
+
     if (!selectedSize) {
       setFeedbackToast({ message: 'select option', type: 'warning' });
       setTimeout(() => {
@@ -975,14 +1023,14 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
       {/* Fullscreen Photo Modal with Two-Finger Pinch Zoom */}
       {isPhotoModalOpen && (
         <div
-          className="fixed inset-0 z-60 bg-black flex flex-col justify-between items-center select-none"
+          className="fixed inset-0 z-60 bg-white flex flex-col justify-between items-center select-none"
           onClick={() => {
             if (zoomScale === 1) setIsPhotoModalOpen(false);
             else setZoomScale(1);
           }}
         >
-          {/* Top Bar with Go Back */}
-          <div className="w-full p-4 flex items-center justify-between z-20">
+          {/* Top Bar with Go Back (White background) */}
+          <div className="w-full p-4 flex items-center justify-between z-20 bg-white">
             <button
               type="button"
               onClick={(e) => {
@@ -991,7 +1039,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 setIsPhotoModalOpen(false);
               }}
               aria-label="Close photo view"
-              className="w-11 h-11 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-md border border-white/20 active:scale-90 shadow-lg"
+              className="w-11 h-11 rounded-full bg-white hover:bg-gray-100 text-gray-900 flex items-center justify-center transition-all cursor-pointer border border-gray-200 active:scale-90 shadow-md"
             >
               <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -1000,7 +1048,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
           {/* Center Zoomable Image with Two-Finger Pinch Zoom */}
           <div
-            className="relative w-full flex-1 flex items-center justify-center overflow-hidden p-2 touch-none"
+            className="relative w-full flex-1 flex items-center justify-center overflow-hidden p-2 touch-none bg-white"
             onClick={(e) => e.stopPropagation()}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
@@ -1017,16 +1065,16 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 transform: `scale(${zoomScale})`,
                 transition: 'transform 0.2s ease-out',
               }}
-              className={`max-w-full max-h-[80vh] w-auto h-auto object-contain mx-auto shadow-2xl select-none ${
+              className={`max-w-full max-h-[80vh] w-auto h-auto object-contain mx-auto shadow-sm select-none ${
                 zoomScale > 1 ? 'cursor-zoom-out' : 'cursor-zoom-in'
               }`}
             />
           </div>
 
-          {/* Bottom Photo Count */}
-          <div className="w-full pb-6 flex items-center justify-center z-20">
+          {/* Bottom Photo Count (White background) */}
+          <div className="w-full pb-6 pt-2 flex items-center justify-center z-20 bg-white">
             {allImages.length > 1 && (
-              <div className="bg-black/75 px-3.5 py-1 rounded-full text-white text-xs font-bold border border-white/10 backdrop-blur-sm pointer-events-none">
+              <div className="bg-gray-100 px-3.5 py-1 rounded-full text-gray-900 text-xs font-bold border border-gray-200 shadow-xs pointer-events-none">
                 {activeImageIndex + 1} / {allImages.length}
               </div>
             )}

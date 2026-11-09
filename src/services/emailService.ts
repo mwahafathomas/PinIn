@@ -5,7 +5,7 @@
  * All outgoing emails default to: Pinin Marketplace <noreply@pinin.co.za>
  */
 
-export const RESEND_FROM_ADDRESS = 'Pinin Marketplace <noreply@pinin.co.za>';
+export const RESEND_FROM_ADDRESS = 'Pinin <noreply@pinin.co.za>';
 export const RESEND_NOREPLY_EMAIL = 'noreply@pinin.co.za';
 export const RESEND_SUPPORT_EMAIL = 'support@pinin.co.za';
 
