@@ -734,6 +734,9 @@ export default function App() {
   }, []);
 
   // Real-time network connectivity checking (Capacitor Network + browser online/offline + ping)
+  const [isInitialLaunchOffline, setIsInitialLaunchOffline] = useState<boolean>(() => {
+    return typeof navigator !== 'undefined' ? !navigator.onLine : false;
+  });
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     return typeof navigator !== 'undefined' ? navigator.onLine : true;
   });
@@ -765,20 +768,24 @@ export default function App() {
         clearTimeout(timeoutId);
         if (res.ok) {
           setIsOnline(true);
+          setIsInitialLaunchOffline(false);
           return true;
         }
       } catch {
         // Fallback to navigator.onLine
         const fallback = typeof navigator !== 'undefined' ? navigator.onLine : false;
         setIsOnline(fallback);
+        if (fallback) setIsInitialLaunchOffline(false);
         return fallback;
       }
 
       setIsOnline(true);
+      setIsInitialLaunchOffline(false);
       return true;
     } catch {
       const fallback = typeof navigator !== 'undefined' ? navigator.onLine : false;
       setIsOnline(fallback);
+      if (fallback) setIsInitialLaunchOffline(false);
       return fallback;
     }
   };
@@ -2583,12 +2590,17 @@ export default function App() {
         </div>
       )}
 
-      {/* Dedicated Offline Screen: automatically displays whenever offline, blocking main content gracefully with Retry button */}
-      {!isOnline && (
+      {/* Dedicated Offline Screen: ONLY when user opens app without internet connection */}
+      {isInitialLaunchOffline && !isOnline && (
         <OfflineScreen
+          onSuccess={() => {
+            setIsOnline(true);
+            setIsInitialLaunchOffline(false);
+          }}
           onRetry={async () => {
             const success = await checkConnectivity();
             if (success) {
+              setIsInitialLaunchOffline(false);
               await fetchAllListings(true);
             }
             return success;
@@ -2596,8 +2608,8 @@ export default function App() {
         />
       )}
 
-      {/* Offline Internet Banner (Top small 30px grey banner) */}
-      <InternetBanner isOnline={isOnline} />
+      {/* Offline Internet Banner at top when internet goes away while user is inside the app */}
+      <InternetBanner isOnline={isOnline} isInitialLaunchOffline={isInitialLaunchOffline} />
 
       {/* Framer Motion Animated Routes */}
       <AnimatePresence initial={false} custom={direction} mode="popLayout">

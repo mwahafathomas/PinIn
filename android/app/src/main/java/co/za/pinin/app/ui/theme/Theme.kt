@@ -7,8 +7,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-val PinInPrimary = Color(0xFF0066CC)
-val PinInPrimaryVariant = Color(0xFF004C99)
+val PinInPrimary = Color(0xFF2D8EDE)
+val PinInPrimaryVariant = Color(0xFF1B75BE)
 val PinInSecondary = Color(0xFF10B981)
 
 private val LightColorScheme = lightColorScheme(

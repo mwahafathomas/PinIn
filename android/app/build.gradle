@@ -7,13 +7,13 @@ plugins {
 
 android {
     namespace 'co.za.pinin.app'
-    compileSdk 35
-    buildToolsVersion "35.0.0"
+    compileSdk 34
+    buildToolsVersion "34.0.0"
 
     defaultConfig {
         applicationId "co.za.pinin.app"
         minSdk 24
-        targetSdk 35
+        targetSdk 34
         versionCode 1
         versionName "1.0.0"
 

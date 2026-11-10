@@ -383,7 +383,7 @@ export const ContactUsPage: React.FC<ContactUsPageProps> = ({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Sarah Jenkins"
+                placeholder="Enter your name"
                 className="w-full text-xs font-semibold px-3.5 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-[#2D8EDE] bg-gray-50"
               />
             </div>

@@ -158,6 +158,36 @@ export async function upsertUserProfile(profile: {
       bio: profile.bio,
     });
 
+    // Also update Supabase Auth user metadata so session and auth store the updated name & surname
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          name: cleanName,
+          first_name: cleanName,
+          surname: cleanSurname,
+          last_name: cleanSurname,
+          full_name: fullName,
+        },
+      });
+    } catch (authErr) {
+      console.warn('supabase.auth.updateUser notice:', authErr);
+    }
+
+    // Also sync to localStorage user_data immediately
+    try {
+      const stored = localStorage.getItem('user_data');
+      const parsed = stored ? JSON.parse(stored) : {};
+      localStorage.setItem(
+        'user_data',
+        JSON.stringify({
+          ...parsed,
+          name: cleanName,
+          surname: cleanSurname,
+          full_name: fullName,
+        })
+      );
+    } catch {}
+
     // Supabase 'profiles' table columns
     const payload: Record<string, unknown> = {
       id: profile.id,
@@ -173,9 +203,16 @@ export async function upsertUserProfile(profile: {
     if (profile.phone !== undefined) payload.phone = profile.phone;
     if (profile.location !== undefined) payload.location = profile.location;
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from('profiles')
       .upsert(payload, { onConflict: 'id' });
+
+    // Fallback if 'surname' column is absent in custom profiles schema
+    if (error && error.message && error.message.toLowerCase().includes('surname')) {
+      delete payload.surname;
+      const retry = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
+      error = retry.error;
+    }
 
     if (error) {
       console.warn('upsertUserProfile error (handled):', error.message);

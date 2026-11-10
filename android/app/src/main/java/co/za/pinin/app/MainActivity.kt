@@ -1,5 +1,10 @@
 package co.za.pinin.app
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -14,17 +19,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import co.za.pinin.app.connectivity.ConnectivityObserver
 import co.za.pinin.app.connectivity.NetworkConnectivityObserver
-import co.za.pinin.app.onesignal.setupPushSubscriptionObserver
 import co.za.pinin.app.ui.OfflineScreen
 import co.za.pinin.app.ui.screens.CartScreen
 import co.za.pinin.app.ui.screens.HomeScreen
 import co.za.pinin.app.ui.screens.ListingDetailScreen
 import co.za.pinin.app.ui.theme.PinInTheme
-import androidx.lifecycle.lifecycleScope
 import com.onesignal.OneSignal
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -45,15 +50,12 @@ class MainActivity : ComponentActivity() {
             )
         )
 
-        connectivityObserver = NetworkConnectivityObserver(applicationContext)
-        viewModel = MainViewModel(connectivityObserver)
+        // 4. Create Notification Channel for Android 8+
+        createNotificationChannel()
 
-        // OneSignal push subscription observer and integration complete verification
-        setupPushSubscriptionObserver(this)
-
-        // Request notification permission with a 3-second delay after first launch
+        // 2. In MainActivity.kt initialize OneSignal on app start
+        OneSignal.initWithContext(this, "47242cd4-ecdc-4348-82aa-0274bee57d27")
         lifecycleScope.launch {
-            delay(3000)
             try {
                 OneSignal.Notifications.requestPermission(true)
             } catch (e: Exception) {
@@ -61,10 +63,73 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // 3 & 6. FIX THE CRASH BUG & Show Real System Permission Dialog on Android 13+
+        // Uses real system permission dialog (not custom dialog), no finish(), no intent to home screen
+        requestSystemNotificationPermission()
+
+        connectivityObserver = NetworkConnectivityObserver(applicationContext)
+        viewModel = MainViewModel(connectivityObserver)
+
         setContent {
             PinInTheme {
                 MainAppContainer(viewModel = viewModel)
             }
+        }
+    }
+
+    /**
+     * Create Notification Channel for Android 8+
+     * Channel ID = pinin_default
+     * Channel Name = PinIn Notifications
+     * Importance = IMPORTANCE_HIGH
+     */
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = "pinin_default"
+            val channelName = "PinIn Notifications"
+            val channelDescription = "PinIn push notifications"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel(channelId, channelName, importance).apply {
+                description = channelDescription
+                enableVibration(true)
+            }
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            notificationManager?.createNotificationChannel(channel)
+        }
+    }
+
+    /**
+     * Request notification permission on Android 13+ (API 33+) using the real system dialog
+     * ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
+     */
+    private fun requestSystemNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    1001
+                )
+            }
+        }
+    }
+
+    /**
+     * Handles permission request results without closing the activity,
+     * launching an intent to the home screen, or finishing the app.
+     */
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1001) {
+            // Wait for user to click Allow / Don't Allow without closing activity
         }
     }
 }

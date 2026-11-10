@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { FurnitureItem } from '../types/furniture';
 import { MapPin, Bookmark, MoreVertical, Flag } from 'lucide-react';
-import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+import { getOptimizedImageUrl, BLANK_IMAGE } from '../utils/imageOptimizer';
 
 interface FurnitureCardProps {
   item: FurnitureItem;
@@ -93,7 +93,9 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
                     const target = e.currentTarget;
                     if (!target.dataset.fallback) {
                       target.dataset.fallback = 'true';
-                      target.src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
+                      target.src = typeof navigator !== 'undefined' && !navigator.onLine
+                        ? BLANK_IMAGE
+                        : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
                     }
                   }}
                   className={`w-full h-full object-contain p-1 select-none transition-opacity duration-300 ${
@@ -116,7 +118,9 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
               const target = e.currentTarget;
               if (!target.dataset.fallback) {
                 target.dataset.fallback = 'true';
-                target.src = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
+                target.src = typeof navigator !== 'undefined' && !navigator.onLine
+                  ? BLANK_IMAGE
+                  : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
               }
             }}
             className={`w-full h-full object-contain p-1 group-hover:scale-105 transition-all duration-300 select-none ${

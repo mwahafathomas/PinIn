@@ -546,7 +546,7 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                 Thank you
               </p>
               <p className="text-[11px] text-gray-500 font-medium">
-                Thank you for shopping with PinIn. Your official tax invoice is confirmed and saved.
+                Thank you for shopping with PinIn.
               </p>
             </div>
           </main>

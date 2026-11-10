@@ -1,42 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <linearGradient id="pininBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3498EB"/>
-      <stop offset="100%" stop-color="#1E7CCE"/>
+      <stop offset="0%" stop-color="#2D8EDE"/>
+      <stop offset="100%" stop-color="#1B75BE"/>
     </linearGradient>
     <filter id="iconShadow" x="-10%" y="-10%" width="120%" height="120%">
       <feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.18"/>
     </filter>
   </defs>
 
-  <!-- Squircle App Icon Background -->
+  <!-- Squircle App Icon Background with app blue #2D8EDE -->
   <rect width="512" height="512" rx="116" fill="url(#pininBg)"/>
 
-  <!-- Centered PinIn Location Pin with Furniture Motif -->
+  <!-- Centered PinIn Location Pin with Colorful Shopping Bag Motif -->
   <g filter="url(#iconShadow)">
     <!-- White Map Pin -->
     <path d="M 256 425 C 236 395 144 285 144 216 C 144 154 194 104 256 104 C 318 104 368 154 368 216 C 368 285 276 395 256 425 Z" fill="#ffffff"/>
     
-    <!-- Inner Pin Circle (Blue) -->
-    <circle cx="256" cy="216" r="82" fill="#2484D8"/>
+    <!-- Inner Pin Circle (#2D8EDE) -->
+    <circle cx="256" cy="216" r="82" fill="#2D8EDE"/>
 
-    <!-- Cozy Modern Armchair Silhouette inside Pin -->
-    <!-- Armchair Backrest & Seat Cushion -->
-    <path d="M 230 168 C 230 162 235 158 242 158 L 270 158 C 277 158 282 162 282 168 L 285 195 C 285 200 281 204 276 204 L 236 204 C 231 204 227 200 227 195 Z" fill="#ffffff"/>
+    <!-- Bag Handles -->
+    <path d="M 238 185 C 238 165 274 165 274 185" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
     
-    <!-- Plump Seat Cushion Base -->
-    <path d="M 222 198 C 220 198 217 201 217 205 C 217 218 228 228 242 228 L 270 228 C 284 228 295 218 295 205 C 295 201 292 198 290 198 Z" fill="#ffffff"/>
-    
-    <!-- Left Armrest -->
-    <path d="M 221 182 C 214 182 208 188 208 196 C 208 206 215 214 224 214 C 226 214 228 213 229 211 L 229 190 C 229 185 225 182 221 182 Z" fill="#ffffff"/>
-    
-    <!-- Right Armrest -->
-    <path d="M 291 182 C 298 182 304 188 304 196 C 304 206 297 214 288 214 C 286 214 284 213 283 211 L 283 190 C 283 185 287 182 291 182 Z" fill="#ffffff"/>
-    
-    <!-- Armchair Legs -->
-    <line x1="228" y1="228" x2="222" y2="244" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
-    <line x1="284" y1="228" x2="290" y2="244" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
-    <line x1="244" y1="228" x2="242" y2="238" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
-    <line x1="268" y1="228" x2="270" y2="238" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- Colorful Shopping Bag inside the pin -->
+    <g id="shoppingBag">
+      <clipPath id="bagShape">
+        <path d="M 224 188 L 288 188 L 296 250 C 296 254 292 258 287 258 L 225 258 C 220 258 216 254 216 250 Z"/>
+      </clipPath>
+
+      <g clip-path="url(#bagShape)">
+        <!-- Vibrant Colorful Stripes -->
+        <rect x="210" y="185" width="95" height="20" fill="#FF5252"/>
+        <rect x="210" y="203" width="95" height="18" fill="#FFB142"/>
+        <rect x="210" y="219" width="95" height="18" fill="#2ED573"/>
+        <rect x="210" y="235" width="95" height="25" fill="#1E90FF"/>
+      </g>
+
+      <!-- White crisp border -->
+      <path d="M 224 188 L 288 188 L 296 250 C 296 254 292 258 287 258 L 225 258 C 220 258 216 254 216 250 Z" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="round"/>
+      
+      <!-- Highlight -->
+      <path d="M 236 188 L 241 258" stroke="rgba(255,255,255,0.5)" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
   </g>
 </svg>
