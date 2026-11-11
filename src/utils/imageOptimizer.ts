@@ -16,8 +16,10 @@ const DEFAULT_OPTIONS: ImageOptimizationOptions = {
   format: 'webp',
 };
 
-export const BLANK_IMAGE =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400' width='400' height='400' fill='%23f3f4f6'%3E%3Crect width='400' height='400' fill='%23f3f4f6'/%3E%3C/svg%3E";
+export const BLANK_WHITE_IMAGE =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'><rect width='400' height='400' fill='%23ffffff'/></svg>";
+
+export const BLANK_IMAGE = BLANK_WHITE_IMAGE;
 
 export function isAppOffline(): boolean {
   return typeof navigator !== 'undefined' && !navigator.onLine;
@@ -35,11 +37,6 @@ export function getOptimizedImageUrl(
   url?: string | null,
   options: ImageOptimizationOptions = DEFAULT_OPTIONS
 ): string {
-  // When offline inside the app, return clean blank image placeholder
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    return BLANK_IMAGE;
-  }
-
   if (!url || typeof url !== 'string') {
     return '';
   }

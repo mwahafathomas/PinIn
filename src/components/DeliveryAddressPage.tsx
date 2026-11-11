@@ -27,18 +27,50 @@ export function saveDeliveryAddressToStorage(address: DeliveryAddress): void {
         if (Array.isArray(parsed)) list = parsed;
       } catch {}
     }
-    // Prepend as default/top address without duplicates
+    // Prepend as default/top address without duplicates, max 3 addresses
     const filtered = list.filter(
       (a) =>
         !(
-          a.streetAddressLine1.toLowerCase() === address.streetAddressLine1.toLowerCase() &&
-          a.postalCode === address.postalCode
+          a.streetAddressLine1?.toLowerCase().trim() === address.streetAddressLine1?.toLowerCase().trim() &&
+          a.postalCode?.trim() === address.postalCode?.trim()
         )
     );
-    list = [address, ...filtered];
+    list = [address, ...filtered].slice(0, 3);
     localStorage.setItem(ADDRESS_BOOK_KEY, JSON.stringify(list));
   } catch (e) {
     console.warn('Failed to save delivery address to localStorage:', e);
+  }
+}
+
+export function saveAllAddressesToStorage(list: DeliveryAddress[]): void {
+  try {
+    const capped = list.slice(0, 3);
+    localStorage.setItem(ADDRESS_BOOK_KEY, JSON.stringify(capped));
+    if (capped.length > 0) {
+      localStorage.setItem(SAVED_ADDRESS_KEY, JSON.stringify(capped[0]));
+    } else {
+      localStorage.removeItem(SAVED_ADDRESS_KEY);
+    }
+  } catch (e) {
+    console.warn('Failed to save addresses:', e);
+  }
+}
+
+export function deleteAddressFromStorage(target: DeliveryAddress): DeliveryAddress[] {
+  try {
+    const list = getAllSavedAddresses().filter(
+      (a) =>
+        !(
+          a.streetAddressLine1?.toLowerCase().trim() === target.streetAddressLine1?.toLowerCase().trim() &&
+          a.postalCode?.trim() === target.postalCode?.trim() &&
+          (a.recipientName || '').toLowerCase().trim() === (target.recipientName || '').toLowerCase().trim()
+        )
+    );
+    saveAllAddressesToStorage(list);
+    return list;
+  } catch (e) {
+    console.warn('Failed to delete address:', e);
+    return [];
   }
 }
 
@@ -47,7 +79,7 @@ export function getAllSavedAddresses(): DeliveryAddress[] {
     const raw = localStorage.getItem(ADDRESS_BOOK_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed.slice(0, 3);
     }
     const single = getSavedDeliveryAddress();
     return single ? [single] : [];
@@ -204,7 +236,7 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Go back"
-              className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+              className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-blue-50/50 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
             >
               <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
             </button>

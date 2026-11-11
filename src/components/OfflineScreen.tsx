@@ -14,52 +14,38 @@ interface OfflineScreenProps {
  *   If internet is back, leads smoothly into the app.
  */
 export const OfflineScreen: React.FC<OfflineScreenProps> = ({ onSuccess, onRetry }) => {
-  const [isShowingSplash, setIsShowingSplash] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
 
   const handleTapToRefresh = async () => {
-    setIsShowingSplash(true);
-    // Show splash screen while checking connectivity
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (isChecking) return;
+    setIsChecking(true);
 
-    let connected = false;
     try {
+      let connected = false;
       if (typeof navigator !== 'undefined' && navigator.onLine) {
-        // Verify real connectivity with cache-busting check
-        const res = await fetch('/icon.svg?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-        connected = res.ok;
+        // Direct cache-busting HEAD check without showing splash screen
+        try {
+          const res = await fetch('/icon.svg?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+          connected = res.ok;
+        } catch {
+          connected = false;
+        }
       }
-    } catch {
-      connected = false;
-    }
 
-    if (!connected && onRetry) {
-      try {
-        const retryResult = await onRetry();
-        if (retryResult) connected = true;
-      } catch {}
-    }
+      if (!connected && onRetry) {
+        try {
+          const retryResult = await onRetry();
+          if (retryResult) connected = true;
+        } catch {}
+      }
 
-    if (connected) {
-      if (onSuccess) {
+      if (connected && onSuccess) {
         onSuccess();
       }
-    } else {
-      // Still no internet: return to the same page with no internet connection
-      setIsShowingSplash(false);
+    } finally {
+      setIsChecking(false);
     }
   };
-
-  if (isShowingSplash) {
-    return (
-      <div className="fixed inset-0 z-[100000] flex flex-col items-center justify-center bg-white px-6 text-center select-none animate-fadeIn">
-        <img
-          src="/splash.png"
-          alt="PinIn"
-          className="max-h-[70vh] w-auto max-w-[85vw] object-contain"
-        />
-      </div>
-    );
-  }
 
   return (
     <div
@@ -92,8 +78,8 @@ export const OfflineScreen: React.FC<OfflineScreenProps> = ({ onSuccess, onRetry
         className="flex items-center justify-center gap-2 py-3 px-5 text-[#2D8EDE] hover:bg-blue-50/50 rounded-2xl active:scale-95 transition-all cursor-pointer font-bold text-sm"
         aria-label="Tap to refresh"
       >
-        <RotateCw className="w-4 h-4 text-[#2D8EDE] stroke-[2.5]" />
-        <span>Tap to refresh</span>
+        <RotateCw className={`w-4 h-4 text-[#2D8EDE] stroke-[2.5] ${isChecking ? 'animate-spin' : ''}`} />
+        <span>{isChecking ? 'Checking...' : 'Tap to refresh'}</span>
       </button>
     </div>
   );

@@ -195,7 +195,7 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
             type="button"
             onClick={handleBack}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-900 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-blue-50/50 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>

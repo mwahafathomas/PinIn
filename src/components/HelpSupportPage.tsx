@@ -48,10 +48,8 @@ export const HelpSupportPage: React.FC<HelpSupportPageProps> = ({
       fetchHelpByCategory(selectedCategory)
         .then((items) => {
           setQuestions(items);
-          // If items exist, expand first one by default
-          if (items.length > 0) {
-            setExpandedId(items[0].id);
-          }
+          // Keep all questions collapsed by default
+          setExpandedId(null);
         })
         .finally(() => {
           setIsLoading(false);

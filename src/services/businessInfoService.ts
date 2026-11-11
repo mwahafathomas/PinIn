@@ -15,7 +15,7 @@ export interface BusinessInfo {
 const BUSINESS_INFO_STORAGE_KEY = 'pinin_business_info_cache_v1';
 
 export const DEFAULT_BUSINESS_INFO: BusinessInfo = {
-  app_icon_url: '/PinIn-app-icon.png',
+  app_icon_url: '/PinIn_app_icon_cfebe3e1.png',
   business_name: 'PinIn (Pty) Ltd',
   address: '100 West Street, Sandton, Johannesburg, 2196',
   telephone_number: '+27 (0) 11 883 0000',

@@ -99,7 +99,7 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
             type="button"
             onClick={handleBack}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-900 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-blue-50/50 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -145,7 +145,7 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                     {/* Left Column: Image 1, 2, 3, 4 */}
                     <div className="p-3 bg-white flex items-center justify-center">
                       {images.length <= 1 ? (
-                        <div className="w-full h-full min-h-[140px] flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden p-2">
+                        <div className="w-full h-full min-h-[140px] flex items-center justify-center bg-white rounded-xl overflow-hidden">
                           {images[0] ? (
                             <img
                               src={getOptimizedImageUrl(images[0], { width: 300, quality: 75, format: 'webp' })}
@@ -153,7 +153,7 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                               onError={() => {
                                 if (images[0]) setFailedImages((prev) => ({ ...prev, [images[0]]: true }));
                               }}
-                              className="max-h-32 w-auto object-contain pointer-events-none select-none"
+                              className="w-full h-full object-cover pointer-events-none select-none rounded-xl"
                               loading="lazy"
                             />
                           ) : (
@@ -165,7 +165,7 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                           {images.slice(0, 4).map((imgUrl, idx) => (
                             <div
                               key={idx}
-                              className="w-full aspect-square bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center p-1 border border-gray-100"
+                              className="w-full aspect-square bg-white rounded-lg overflow-hidden flex items-center justify-center border border-gray-100"
                             >
                               <img
                                 src={getOptimizedImageUrl(imgUrl, { width: 160, quality: 70, format: 'webp' })}
@@ -173,7 +173,7 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                                 onError={() => {
                                   if (imgUrl) setFailedImages((prev) => ({ ...prev, [imgUrl]: true }));
                                 }}
-                                className="w-full h-full object-contain pointer-events-none select-none"
+                                className="w-full h-full object-cover pointer-events-none select-none rounded-lg"
                                 loading="lazy"
                               />
                             </div>
@@ -257,7 +257,7 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                 {/* 3: Place the app icon (small icon from Supabase business_info) */}
                 <div className="flex items-center gap-2">
                   <img
-                    src={businessInfo.app_icon_url || '/PinIn-app-icon.png'}
+                    src={businessInfo.app_icon_url || '/PinIn_app_icon_cfebe3e1.png'}
                     alt="PinIn Icon"
                     className="w-9 h-9 object-contain rounded-lg border border-gray-200 bg-white p-0.5"
                     onError={(e) => {

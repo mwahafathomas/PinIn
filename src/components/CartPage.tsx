@@ -7,8 +7,6 @@ import {
   CheckCircle,
   Check,
   AlertCircle,
-  ZoomIn,
-  ZoomOut,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import {
@@ -50,10 +48,9 @@ const SwipeableCartCard: React.FC<{
   isSelected: boolean;
   onToggleSelect: (id: string) => void;
   onSelectItem?: (item: any) => void;
-  onZoomImage?: (img: { url: string; title: string }) => void;
   onUpdateQuantity: (listingId: string, qty: number) => void;
   onRemove: (listingId: string) => void;
-}> = ({ item, isSelected, onToggleSelect, onSelectItem, onZoomImage, onUpdateQuantity, onRemove }) => {
+}> = ({ item, isSelected, onToggleSelect, onSelectItem, onUpdateQuantity, onRemove }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
@@ -121,9 +118,7 @@ const SwipeableCartCard: React.FC<{
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            if (onZoomImage) {
-              onZoomImage({ url: item.imageUrl, title: item.title });
-            } else if (onSelectItem) {
+            if (onSelectItem) {
               const targetListingId = item.listingId || item.id;
               onSelectItem({
                 id: targetListingId,
@@ -138,8 +133,8 @@ const SwipeableCartCard: React.FC<{
               });
             }
           }}
-          className="cursor-zoom-in shrink-0 focus-visible:outline-none group/img"
-          aria-label={`Zoom image for ${item.title}`}
+          className="cursor-pointer shrink-0 focus-visible:outline-none group/img"
+          aria-label={`View listing for ${item.title}`}
         >
           <img
             src={getOptimizedImageUrl(item.imageUrl, { width: 140, quality: 75, format: 'webp' })}
@@ -248,81 +243,9 @@ export const CartPage: React.FC<CartPageProps> = ({
   const [placedOrder, setPlacedOrder] = useState<OrderRecord | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [showAddressRequiredToast, setShowAddressRequiredToast] = useState(false);
 
-  // Image Zoom at all sides state & gestures
-  const [zoomedImage, setZoomedImage] = useState<{ url: string; title: string } | null>(null);
-  const [zoomScale, setZoomScale] = useState<number>(1);
-  const [panPosition, setPanPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const panStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const touchStartDistRef = useRef<number | null>(null);
-  const initialScaleRef = useRef<number>(1);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      touchStartDistRef.current = dist;
-      initialScaleRef.current = zoomScale;
-    } else if (e.touches.length === 1 && zoomScale > 1) {
-      setIsDragging(true);
-      dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      panStartRef.current = { ...panPosition };
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && touchStartDistRef.current !== null) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const factor = dist / touchStartDistRef.current;
-      const nextScale = Math.min(4, Math.max(1, initialScaleRef.current * factor));
-      setZoomScale(nextScale);
-      if (nextScale === 1) {
-        setPanPosition({ x: 0, y: 0 });
-      }
-    } else if (e.touches.length === 1 && isDragging && zoomScale > 1) {
-      const dx = e.touches[0].clientX - dragStartRef.current.x;
-      const dy = e.touches[0].clientY - dragStartRef.current.y;
-      setPanPosition({
-        x: panStartRef.current.x + dx,
-        y: panStartRef.current.y + dy,
-      });
-    }
-  };
-
-  const handleTouchEnd = () => {
-    touchStartDistRef.current = null;
-    setIsDragging(false);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoomScale > 1) {
-      setIsDragging(true);
-      dragStartRef.current = { x: e.clientX, y: e.clientY };
-      panStartRef.current = { ...panPosition };
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging && zoomScale > 1) {
-      const dx = e.clientX - dragStartRef.current.x;
-      const dy = e.clientY - dragStartRef.current.y;
-      setPanPosition({
-        x: panStartRef.current.x + dx,
-        y: panStartRef.current.y + dy,
-      });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
 
   useEffect(() => {
     if (isOpen) {
@@ -496,8 +419,8 @@ export const CartPage: React.FC<CartPageProps> = ({
             <div className="h-28 w-full bg-gray-200 rounded-2xl" />
           </div>
         ) : items.length === 0 ? (
-          /* Empty Cart State */
-          <div className="bg-white rounded-3xl border border-gray-200 p-8 text-center space-y-4 shadow-xs mt-6 my-auto">
+          /* Empty Cart State without surrounding boxes */
+          <div className="p-8 text-center space-y-4 mt-6 my-auto">
             <div className="w-16 h-16 rounded-full bg-blue-50 text-[#2D8EDE] flex items-center justify-center mx-auto">
               <ShoppingCart className="w-8 h-8 stroke-[1.8]" />
             </div>
@@ -563,11 +486,6 @@ export const CartPage: React.FC<CartPageProps> = ({
                         isSelected={isSelected}
                         onToggleSelect={handleToggleSelect}
                         onSelectItem={onSelectItem}
-                        onZoomImage={(img) => {
-                          setZoomedImage(img);
-                          setZoomScale(1);
-                          setPanPosition({ x: 0, y: 0 });
-                        }}
                         onUpdateQuantity={updateCartQuantity}
                         onRemove={removeFromCart}
                       />
@@ -699,10 +617,15 @@ export const CartPage: React.FC<CartPageProps> = ({
                 return;
               }
 
-              // check delivery address
-              if (!currentAddress && !deliveryAddress.trim()) {
-                setErrorMessage('Please add a delivery address to proceed.');
-                setIsAddressPageOpen(true);
+              // check delivery address: do not allow proceeding without delivery address
+              const hasAddress = Boolean(
+                (currentAddress && currentAddress.streetAddressLine1 && currentAddress.cityTown) ||
+                (deliveryAddress && deliveryAddress.trim().length > 0)
+              );
+
+              if (!hasAddress) {
+                setShowAddressRequiredToast(true);
+                setTimeout(() => setShowAddressRequiredToast(false), 2500);
                 return;
               }
 
@@ -772,104 +695,11 @@ export const CartPage: React.FC<CartPageProps> = ({
         }}
       />
 
-      {/* Fullscreen Photo Zoom Modal - Zoom at all sides */}
-      {zoomedImage && (
-        <div
-          className="fixed inset-0 z-60 bg-white flex flex-col justify-between items-center select-none animate-fadeIn"
-          onClick={() => {
-            if (zoomScale === 1) setZoomedImage(null);
-            else {
-              setZoomScale(1);
-              setPanPosition({ x: 0, y: 0 });
-            }
-          }}
-        >
-          {/* Top Bar with Go Back */}
-          <div className="w-full p-4 flex items-center justify-between z-20 bg-white border-b border-gray-100">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setZoomScale(1);
-                setPanPosition({ x: 0, y: 0 });
-                setZoomedImage(null);
-              }}
-              aria-label="Close photo view"
-              className="w-11 h-11 rounded-full bg-white hover:bg-gray-100 text-gray-900 flex items-center justify-center transition-all cursor-pointer border border-gray-200 active:scale-90 shadow-md"
-            >
-              <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const nextScale = Math.max(1, zoomScale - 0.5);
-                  setZoomScale(nextScale);
-                  if (nextScale === 1) setPanPosition({ x: 0, y: 0 });
-                }}
-                className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 flex items-center justify-center transition-transform active:scale-95 cursor-pointer"
-                aria-label="Zoom out"
-              >
-                <ZoomOut className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-bold text-gray-700 min-w-[3rem] text-center select-none">
-                {Math.round(zoomScale * 100)}%
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setZoomScale((prev) => Math.min(4, prev + 0.5));
-                }}
-                className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-800 flex items-center justify-center transition-transform active:scale-95 cursor-pointer"
-                aria-label="Zoom in"
-              >
-                <ZoomIn className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="w-11" />
-          </div>
-
-          {/* Center Zoomable & Pannable Image on All Sides */}
-          <div
-            className="relative w-full flex-1 flex items-center justify-center overflow-hidden p-2 touch-none bg-white cursor-grab active:cursor-grabbing"
-            onClick={(e) => e.stopPropagation()}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              if (zoomScale === 1) {
-                setZoomScale(2.5);
-              } else {
-                setZoomScale(1);
-                setPanPosition({ x: 0, y: 0 });
-              }
-            }}
-          >
-            <img
-              src={zoomedImage.url}
-              alt={zoomedImage.title}
-              style={{
-                transform: `scale(${zoomScale}) translate(${panPosition.x / zoomScale}px, ${panPosition.y / zoomScale}px)`,
-                transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-              }}
-              className="max-w-full max-h-[80vh] w-auto h-auto object-contain mx-auto select-none pointer-events-none"
-              draggable={false}
-            />
-          </div>
-
-          {/* Bottom Bar: Instructions */}
-          <div className="w-full pb-6 pt-2 flex items-center justify-center z-20 bg-white">
-            <div className="bg-gray-100 px-4 py-1.5 rounded-full text-gray-700 text-xs font-bold border border-gray-200 shadow-xs pointer-events-none">
-              {zoomScale > 1 ? 'Drag in any direction to pan • Double-tap to reset' : 'Pinch or double-tap to zoom'}
-            </div>
+      {/* Centered message when trying to checkout without delivery address */}
+      {showAddressRequiredToast && (
+        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 pointer-events-none animate-in fade-in zoom-in duration-200">
+          <div className="bg-black/90 text-white font-black text-sm px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md tracking-wide">
+            add delivery address
           </div>
         </div>
       )}

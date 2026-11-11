@@ -8,6 +8,7 @@ export interface FurnitureItem {
   condition: 'Brand New' | 'Like New' | 'Good' | 'Fair' | 'Vintage';
   imageUrl: string;
   additionalImages?: string[];
+  images?: string[];
   seller: {
     id: string;
     name: string;
@@ -51,6 +52,8 @@ export interface FurnitureItem {
   whatYouMightLike?: string;
   electronics?: string;
   categoryOrder?: number;
+  showAtHomePage?: string;
+  homePageOrder?: number;
   // Sale Tag and Sale Price
   saleTag?: string; // e.g. "Sale" or "sale"
   salePrice?: number; // New discounted price when on sale

@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { ChevronLeft, Check, Plus } from 'lucide-react';
 import { CartItem, clearCart, removeFromCart } from '../services/cartService';
 import { createOrder, OrderRecord } from '../services/ordersService';
 import { recordListingAsBought } from '../services/listingStockService';
 import { UserAccount, DeliveryAddress } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
-import { DeliveryAddressPage } from './DeliveryAddressPage';
+import {
+  DeliveryAddressPage,
+  getAllSavedAddresses,
+  deleteAddressFromStorage,
+  saveAllAddressesToStorage,
+} from './DeliveryAddressPage';
 
 interface CheckoutPageProps {
   isOpen: boolean;
@@ -21,6 +27,126 @@ interface CheckoutPageProps {
 
 type PaymentMethod = 'Card' | 'EFT' | 'Capitec Pay' | 'Ozow';
 
+const SwipeableAddressCard: React.FC<{
+  address: DeliveryAddress;
+  isSelected: boolean;
+  isConfirmed: boolean;
+  onSelect: () => void;
+  onConfirm: () => void;
+  onDelete: () => void;
+}> = ({ address, isSelected, isConfirmed, onSelect, onConfirm, onDelete }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
+    if (info.offset.x < -35 || info.velocity.x < -250) {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-xl group select-none">
+      {/* Background Revealed Action: Red Delete option on the right, hidden until swiped */}
+      <div className={`absolute inset-y-0 right-0 w-20 bg-red-600 rounded-xl flex items-center justify-center z-0 transition-opacity duration-200 ${
+        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+      }`}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="w-full h-full flex items-center justify-center text-white active:scale-95 transition-transform p-2 cursor-pointer font-black text-xs uppercase tracking-wider"
+          aria-label="Delete address"
+        >
+          Delete
+        </button>
+      </div>
+
+      {/* Foreground Swipeable Card */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -80, right: 0 }}
+        dragElastic={0.15}
+        onDragEnd={handleDragEnd}
+        animate={{ x: isOpen ? -80 : 0 }}
+        transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+        onClick={() => {
+          if (isOpen) {
+            setIsOpen(false);
+          } else {
+            onSelect();
+          }
+        }}
+        className={`relative z-10 p-3.5 rounded-xl border flex flex-col gap-2 cursor-pointer transition-colors ${
+          isSelected
+            ? 'border-[#2D8EDE] bg-[#f2f7fd] ring-1 ring-[#2D8EDE]/40'
+            : 'border-gray-200 bg-white hover:border-gray-300'
+        }`}
+      >
+        <div className="flex items-start gap-2.5">
+          {/* Radio Selection Circle on left */}
+          <div className="shrink-0 mt-0.5">
+            <div
+              className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                isSelected
+                  ? 'border-[#2D8EDE] bg-[#2D8EDE]'
+                  : 'border-gray-300 bg-white'
+              }`}
+            >
+              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+            </div>
+          </div>
+
+          {/* Address Details */}
+          <div className="flex-1 min-w-0 text-xs space-y-0.5">
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-gray-900 truncate">
+                {address.recipientName}
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded-md">
+                {address.province}
+              </span>
+            </div>
+            {address.recipientPhone && (
+              <p className="text-[11px] font-medium text-gray-600">
+                {address.recipientPhone}
+              </p>
+            )}
+            <p className="text-[11px] text-gray-700 leading-tight">
+              {address.streetAddressLine1}
+              {address.streetAddressLine2 ? `, ${address.streetAddressLine2}` : ''}
+            </p>
+            <p className="text-[11px] text-gray-500">
+              {address.cityTown}, {address.province} {address.postalCode}
+            </p>
+          </div>
+        </div>
+
+        {/* Confirmation status / action for this address */}
+        <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfirm();
+            }}
+            className={`py-1.5 px-3 rounded-lg text-xs font-bold border flex items-center gap-1.5 transition-all cursor-pointer ${
+              isConfirmed
+                ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                : 'bg-white border-[#2D8EDE] text-[#2D8EDE] hover:bg-blue-50/50 shadow-xs'
+            }`}
+          >
+            {isConfirmed && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
+            <span>{isConfirmed ? 'Address confirmed' : 'Confirm address'}</span>
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   isOpen,
   onClose,
@@ -33,12 +159,28 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onOrderSuccess,
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('Card');
+
+  // Address list (maximum 3 addresses)
+  const [addressList, setAddressList] = useState<DeliveryAddress[]>(() => {
+    const saved = getAllSavedAddresses().slice(0, 3);
+    if (saved.length > 0) return saved;
+    return deliveryAddress ? [deliveryAddress] : [];
+  });
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState<number>(() => {
+    const saved = getAllSavedAddresses().slice(0, 3);
+    return saved.length > 0 || deliveryAddress ? 0 : -1;
+  });
   const [isAddressConfirmed, setIsAddressConfirmed] = useState<boolean>(false);
   const [isAddNewAddressOpen, setIsAddNewAddressOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   if (!isOpen) return null;
+
+  const activeAddress =
+    selectedAddressIndex >= 0 && selectedAddressIndex < addressList.length
+      ? addressList[selectedAddressIndex]
+      : deliveryAddress;
 
   // Calculate total amount including delivery fee
   const itemsSubtotal = items.reduce(
@@ -48,7 +190,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const totalAmount = itemsSubtotal + (deliveryFee || 0);
 
   const handlePay = async () => {
-    if (!deliveryAddress) {
+    if (!activeAddress) {
       setErrorMessage('Please add a delivery address to proceed.');
       return;
     }
@@ -72,13 +214,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       const mainSellerId = items[0]?.sellerId;
       const mainListingId = items[0]?.listingId;
       const buyerDisplayName =
-        deliveryAddress.recipientName ||
+        activeAddress.recipientName ||
         (user?.isLoggedIn ? (user.surname ? `${user.name} ${user.surname}` : user.name) : 'Customer');
       const buyerEmail = user?.email || 'customer@pinin.co.za';
 
-      const deliverySummary = `Delivery to: ${deliveryAddress.streetAddressLine1}${
-        deliveryAddress.streetAddressLine2 ? `, ${deliveryAddress.streetAddressLine2}` : ''
-      }, ${deliveryAddress.cityTown}, ${deliveryAddress.province} (${deliveryAddress.postalCode}) [Method: ${selectedMethod}]`;
+      const deliverySummary = `Delivery to: ${activeAddress.streetAddressLine1}${
+        activeAddress.streetAddressLine2 ? `, ${activeAddress.streetAddressLine2}` : ''
+      }, ${activeAddress.cityTown}, ${activeAddress.province} (${activeAddress.postalCode}) [Method: ${selectedMethod}]`;
 
       const totalQuantity = items.reduce((acc, i) => acc + (i.quantity || 1), 0);
 
@@ -97,14 +239,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         quantity: totalQuantity,
         deliveryFee: deliveryFee,
         delivery: deliverySummary,
-        recipientName: deliveryAddress.recipientName || buyerDisplayName,
-        recipientPhone: deliveryAddress.recipientPhone || '',
-        streetAddressLine1: deliveryAddress.streetAddressLine1,
-        streetAddressLine2: deliveryAddress.streetAddressLine2 || undefined,
-        cityTown: deliveryAddress.cityTown,
-        province: deliveryAddress.province,
-        postalCode: deliveryAddress.postalCode,
-        deliveryInstructions: deliveryAddress.deliveryInstructions || '',
+        recipientName: activeAddress.recipientName || buyerDisplayName,
+        recipientPhone: activeAddress.recipientPhone || '',
+        streetAddressLine1: activeAddress.streetAddressLine1,
+        streetAddressLine2: activeAddress.streetAddressLine2 || undefined,
+        cityTown: activeAddress.cityTown,
+        province: activeAddress.province,
+        postalCode: activeAddress.postalCode,
+        deliveryInstructions: activeAddress.deliveryInstructions || '',
         imageUrl: items[0]?.imageUrl,
         items: items.map((i) => ({
           listingId: i.listingId,
@@ -200,64 +342,84 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           ))}
         </section>
 
-        {/* 6: Delivery address, confirm address option, add new address option */}
+        {/* 6: Delivery address (all addresses up to 3, slide to delete, confirm one) */}
         <section aria-label="Delivery Address" className="p-4 bg-white space-y-3">
-          <div className="text-xs font-black text-gray-900 uppercase tracking-wider">
-            Delivery Address
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-gray-900 uppercase tracking-wider">
+              Delivery Address
+            </span>
           </div>
 
-          {deliveryAddress ? (
-            <div className="p-3 border border-gray-200 rounded-lg text-xs space-y-1 bg-gray-50/60">
-              <div className="font-bold text-gray-900">
-                {deliveryAddress.recipientName}
-                {deliveryAddress.recipientPhone ? ` • ${deliveryAddress.recipientPhone}` : ''}
-              </div>
-              <div className="text-gray-700">
-                {deliveryAddress.streetAddressLine1}
-                {deliveryAddress.streetAddressLine2 ? `, ${deliveryAddress.streetAddressLine2}` : ''}
-              </div>
-              <div className="text-gray-600">
-                {deliveryAddress.cityTown}, {deliveryAddress.province} {deliveryAddress.postalCode}
-              </div>
+          {addressList.length === 0 ? (
+            <div className="p-4 border border-dashed border-gray-300 rounded-xl text-center text-xs text-gray-500 bg-gray-50/50">
+              No delivery address added. Please add an address below.
             </div>
           ) : (
-            <div className="p-3 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500">
-              No delivery address added.
+            <div className="space-y-2.5">
+              {addressList.map((addr, idx) => {
+                const isSelected = selectedAddressIndex === idx;
+                return (
+                  <SwipeableAddressCard
+                    key={`${addr.streetAddressLine1}-${addr.postalCode}-${idx}`}
+                    address={addr}
+                    isSelected={isSelected}
+                    isConfirmed={isSelected && isAddressConfirmed}
+                    onSelect={() => {
+                      if (selectedAddressIndex !== idx) {
+                        setSelectedAddressIndex(idx);
+                        setIsAddressConfirmed(false); // Let user confirm the one they want!
+                        onUpdateDeliveryAddress(addr);
+                        setErrorMessage('');
+                      }
+                    }}
+                    onConfirm={() => {
+                      if (!isSelected) {
+                        setSelectedAddressIndex(idx);
+                        onUpdateDeliveryAddress(addr);
+                      }
+                      setIsAddressConfirmed((prev) => !prev);
+                      setErrorMessage('');
+                    }}
+                    onDelete={() => {
+                      const updated = deleteAddressFromStorage(addr).slice(0, 3);
+                      setAddressList(updated);
+                      if (selectedAddressIndex === idx) {
+                        setIsAddressConfirmed(false);
+                        const nextIdx = updated.length > 0 ? 0 : -1;
+                        setSelectedAddressIndex(nextIdx);
+                        if (nextIdx >= 0) {
+                          onUpdateDeliveryAddress(updated[nextIdx]);
+                        }
+                      } else if (selectedAddressIndex > idx) {
+                        setSelectedAddressIndex(selectedAddressIndex - 1);
+                      }
+                    }}
+                  />
+                );
+              })}
             </div>
           )}
 
-          {/* Confirm address option & Add new address option */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            {/* Confirm address option */}
+          {/* Add New Address Option (Max 3) */}
+          <div className="pt-1">
             <button
               type="button"
-              disabled={!deliveryAddress}
+              disabled={addressList.length >= 3}
               onClick={() => {
-                if (!deliveryAddress) {
-                  setErrorMessage('Please add a delivery address first.');
+                if (addressList.length >= 3) {
+                  setErrorMessage('Maximum of 3 addresses added.');
                   return;
                 }
-                setIsAddressConfirmed((prev) => !prev);
-                setErrorMessage('');
+                setIsAddNewAddressOpen(true);
               }}
-              className={`py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                isAddressConfirmed
-                  ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
-                  : 'bg-white border-[#2D8EDE] text-[#2D8EDE] hover:bg-blue-50/40 shadow-xs ring-1 ring-[#2D8EDE]/20'
-              }`}
+              className="w-full py-2.5 px-3 rounded-xl text-xs font-bold border border-gray-300 hover:border-[#2D8EDE] disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed text-[#2D8EDE] bg-white hover:bg-blue-50/40 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
-              {isAddressConfirmed && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-              <span>{isAddressConfirmed ? 'Address confirmed' : 'Confirm address'}</span>
-            </button>
-
-            {/* Add new address option */}
-            <button
-              type="button"
-              onClick={() => setIsAddNewAddressOpen(true)}
-              className="py-2 px-3 rounded-lg text-xs font-bold border border-gray-300 hover:border-[#2D8EDE] text-[#2D8EDE] bg-white hover:bg-blue-50/40 flex items-center justify-center gap-1 transition-all cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Add New Address</span>
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>
+                {addressList.length >= 3
+                  ? 'Maximum 3 addresses added'
+                  : 'Add New Address'}
+              </span>
             </button>
           </div>
         </section>
@@ -317,7 +479,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           {/* 7: Pay with (the payment method selected) */}
           <button
             type="button"
-            disabled={isSubmitting || !isAddressConfirmed || !deliveryAddress}
+            disabled={isSubmitting || !isAddressConfirmed || !activeAddress}
             onClick={handlePay}
             className="flex-1 max-w-xs py-3.5 px-4 bg-[#2D8EDE] hover:bg-[#2579BE] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center text-center capitalize"
           >
@@ -337,8 +499,21 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         isOpen={isAddNewAddressOpen}
         onClose={() => setIsAddNewAddressOpen(false)}
         onSaveAddress={(newAddr) => {
+          const updated = [
+            newAddr,
+            ...addressList.filter(
+              (a) =>
+                !(
+                  a.streetAddressLine1?.toLowerCase().trim() === newAddr.streetAddressLine1?.toLowerCase().trim() &&
+                  a.postalCode?.trim() === newAddr.postalCode?.trim()
+                )
+            ),
+          ].slice(0, 3);
+          setAddressList(updated);
+          saveAllAddressesToStorage(updated);
+          setSelectedAddressIndex(0);
+          setIsAddressConfirmed(false); // DO NOT display it as address confirmed already!
           onUpdateDeliveryAddress(newAddr);
-          setIsAddressConfirmed(true);
           setIsAddNewAddressOpen(false);
         }}
         title="Add New Address"

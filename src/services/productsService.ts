@@ -133,11 +133,57 @@ export function mapProductRowToFurnitureItem(product: SupabaseProductRow): Furni
   const titleStr = product.title?.trim() || 'Supplier Product';
   const descriptionStr = product.description?.trim() || '';
 
-  const imageUrlStr =
-    product.image_url?.trim() ||
-    (product as any).imageUrl?.trim() ||
-    (product as any).image?.trim() ||
+  // Robust image extraction for product rows (supporting comma-separated URLs, JSON arrays, and extra columns)
+  const allProductExtractedImages: string[] = [];
+  const addProductImage = (v: unknown) => {
+    if (typeof v === 'string') {
+      const clean = v.trim().replace(/^["']+|["']+$/g, '');
+      if (clean && !allProductExtractedImages.includes(clean)) {
+        allProductExtractedImages.push(clean);
+      }
+    }
+  };
+
+  const parseProductImageSource = (src: unknown) => {
+    if (!src) return;
+    if (Array.isArray(src)) {
+      src.forEach(addProductImage);
+    } else if (typeof src === 'string') {
+      const trimmed = src.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) parsed.forEach(addProductImage);
+        } catch {}
+      } else if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        trimmed
+          .slice(1, -1)
+          .split(',')
+          .forEach((s) => addProductImage(s.replace(/^["']+|["']+$/g, '').trim()));
+      } else if (trimmed.includes(',')) {
+        trimmed.split(',').forEach((s) => addProductImage(s.trim()));
+      } else if (trimmed !== '') {
+        addProductImage(trimmed);
+      }
+    }
+  };
+
+  parseProductImageSource(product.image_url);
+  parseProductImageSource((product as any).imageUrl);
+  parseProductImageSource((product as any).image);
+  parseProductImageSource((product as any).photos);
+  parseProductImageSource((product as any).images);
+  parseProductImageSource((product as any).additional_images);
+  parseProductImageSource((product as any).additionalImages);
+  for (let i = 2; i <= 7; i++) {
+    parseProductImageSource((product as any)[`image_url_${i}`]);
+    parseProductImageSource((product as any)[`image_${i}`]);
+  }
+
+  const primaryProductImage =
+    allProductExtractedImages[0] ||
     'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
+  const additionalImagesList = allProductExtractedImages.slice(1);
 
   const categoryStr =
     product.category?.trim() ||
@@ -156,24 +202,6 @@ export function mapProductRowToFurnitureItem(product: SupabaseProductRow): Furni
     (product as any).location ||
     (product as any).collection_suburb ||
     'National Delivery';
-
-  // Parse extra/additional images if available on the row
-  const additionalImagesList: string[] = [];
-  const addImg = (v: unknown) => {
-    if (typeof v === 'string') {
-      const t = v.trim();
-      if (t && !additionalImagesList.includes(t)) additionalImagesList.push(t);
-    }
-  };
-  if (Array.isArray((product as any).additional_images)) {
-    (product as any).additional_images.forEach(addImg);
-  } else if (Array.isArray((product as any).images)) {
-    (product as any).images.forEach(addImg);
-  }
-  for (let i = 2; i <= 7; i++) {
-    const extraVal = (product as any)[`image_url_${i}`] || (product as any)[`image_${i}`];
-    if (typeof extraVal === 'string' && extraVal.trim()) addImg(extraVal.trim());
-  }
 
   // Check for sale status
   const saleTagVal = (product as any).sale_tag || (product as any).sale || undefined;
@@ -194,7 +222,7 @@ export function mapProductRowToFurnitureItem(product: SupabaseProductRow): Furni
     originalPrice: originalPriceNum,
     category: categoryStr,
     condition: conditionStr,
-    imageUrl: getOptimizedImageUrl(imageUrlStr, { width: 600, quality: 75, format: 'webp' }),
+    imageUrl: getOptimizedImageUrl(primaryProductImage, { width: 600, quality: 75, format: 'webp' }),
     additionalImages: additionalImagesList.map((img) =>
       getOptimizedImageUrl(img, { width: 600, quality: 70, format: 'webp' })
     ),
@@ -237,6 +265,17 @@ export function mapProductRowToFurnitureItem(product: SupabaseProductRow): Furni
     categoryOrder:
       typeof (product as any).category_order === 'number'
         ? (product as any).category_order
+        : (product as any).category_order
+        ? parseInt(String((product as any).category_order), 10)
+        : undefined,
+    showAtHomePage: (product as any).show_at_home_page
+      ? String((product as any).show_at_home_page).trim()
+      : undefined,
+    homePageOrder:
+      typeof (product as any).home_page_order === 'number'
+        ? (product as any).home_page_order
+        : (product as any).home_page_order
+        ? parseInt(String((product as any).home_page_order), 10)
         : undefined,
     // Sale details
     saleTag: saleTagVal,

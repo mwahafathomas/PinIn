@@ -1,8 +1,9 @@
 import { supabase } from '../supabaseClient';
-import { getOptimizedImageUrl, MAX_FILE_SIZE_BYTES } from '../utils/imageOptimizer';
+import { getOptimizedImageUrl, MAX_FILE_SIZE_BYTES, BLANK_WHITE_IMAGE } from '../utils/imageOptimizer';
 
 export const PRODUCT_IMAGES_BUCKET = 'product-images';
 export const LISTINGS_STORAGE_BUCKET = 'listings';
+export const LISTING_IMAGES_BUCKET = 'listing-images';
 
 // Helper: Compress an image blob/file to reduce payload size to <= 1MB before upload or storage
 export async function compressImageBlob(
@@ -300,4 +301,174 @@ export async function uploadAllListingImages(
 
   return Promise.all(uploadPromises);
 }
+
+/**
+ * Upload an image file to Supabase Storage bucket 'listing-images'
+ * Folder structure: listing-images/{user_id}/{filename}
+ */
+export async function uploadListingImageToBucket(
+  file: File | Blob,
+  userId: string = 'public',
+  originalFileName?: string
+): Promise<{ publicUrl: string; filePath: string }> {
+  try {
+    const rawName =
+      originalFileName ||
+      (file instanceof File ? file.name : `photo_${Date.now()}.jpg`);
+    const cleanFileName = rawName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const safeUserId = (userId || 'public').trim();
+    const filePath = `${safeUserId}/${Date.now()}-${cleanFileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(LISTING_IMAGES_BUCKET)
+      .upload(filePath, file, {
+        cacheControl: '31536000, public, immutable',
+        upsert: true,
+        contentType: file.type || 'image/jpeg',
+      });
+
+    if (uploadError) {
+      console.warn(`Supabase storage upload error in ${LISTING_IMAGES_BUCKET}:`, uploadError.message);
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from(LISTING_IMAGES_BUCKET)
+      .getPublicUrl(filePath);
+
+    return {
+      publicUrl: data.publicUrl,
+      filePath,
+    };
+  } catch (err) {
+    console.warn('uploadListingImageToBucket error:', err);
+    throw err;
+  }
+}
+
+/**
+ * Delete an image from 'listing-images' bucket
+ */
+export async function deleteListingImageFromBucket(filePathOrUrl: string): Promise<boolean> {
+  if (!filePathOrUrl) return false;
+  try {
+    let targetPath = filePathOrUrl.trim();
+    if (targetPath.includes(LISTING_IMAGES_BUCKET)) {
+      const parts = targetPath.split(`${LISTING_IMAGES_BUCKET}/`);
+      if (parts.length > 1) {
+        targetPath = parts[1].split('?')[0];
+      }
+    }
+    const { error } = await supabase.storage
+      .from(LISTING_IMAGES_BUCKET)
+      .remove([targetPath]);
+
+    if (error) {
+      console.warn(`Error deleting image from ${LISTING_IMAGES_BUCKET}:`, error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('deleteListingImageFromBucket exception:', err);
+    return false;
+  }
+}
+
+/**
+ * List all public image URLs for a specific user or seller in the 'listing-images' bucket
+ */
+export async function fetchListingImagesFromStorage(userId: string): Promise<string[]> {
+  if (!userId || userId === 'unknown_seller') return [];
+  try {
+    const { data, error } = await supabase.storage
+      .from(LISTING_IMAGES_BUCKET)
+      .list(userId, {
+        limit: 100,
+        sortBy: { column: 'created_at', order: 'desc' },
+      });
+
+    if (error || !data || data.length === 0) return [];
+
+    return data
+      .filter((file) => !file.name.startsWith('.'))
+      .map((file) => {
+        const { data: urlData } = supabase.storage
+          .from(LISTING_IMAGES_BUCKET)
+          .getPublicUrl(`${userId}/${file.name}`);
+        return urlData.publicUrl;
+      });
+  } catch (e) {
+    console.warn('fetchListingImagesFromStorage error:', e);
+    return [];
+  }
+}
+
+// In-memory cache for listing thumbnails to prevent repetitive network requests
+const listingThumbnailCache = new Map<string, string>();
+
+/**
+ * Fetch home page thumbnail from Supabase Storage bucket 'listing-images'
+ * Folder name is exactly listing.id.
+ * Retrieves first file's public URL; falls back to BLANK_WHITE_IMAGE if no images or error.
+ */
+export async function getListingThumbnailFromStorage(listingId: string | number): Promise<string> {
+  if (!listingId) return BLANK_WHITE_IMAGE;
+  const idStr = listingId.toString().trim();
+  if (!idStr) return BLANK_WHITE_IMAGE;
+
+  if (listingThumbnailCache.has(idStr)) {
+    return listingThumbnailCache.get(idStr)!;
+  }
+
+  try {
+    const { data: files, error } = await supabase.storage.from(LISTING_IMAGES_BUCKET).list(idStr);
+    if (!error && files && files.length > 0) {
+      const validFiles = files.filter((f) => !f.name.startsWith('.'));
+      if (validFiles.length > 0) {
+        const { data } = supabase.storage.from(LISTING_IMAGES_BUCKET).getPublicUrl(`${idStr}/${validFiles[0].name}`);
+        if (data?.publicUrl) {
+          listingThumbnailCache.set(idStr, data.publicUrl);
+          return data.publicUrl;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`Error fetching thumbnail from ${LISTING_IMAGES_BUCKET}/${idStr}:`, err);
+  }
+
+  return BLANK_WHITE_IMAGE;
+}
+
+/**
+ * Fetch ALL images for a single listing from Supabase Storage bucket 'listing-images'
+ * Folder name is exactly listing.id.
+ * Returns array of public URLs; falls back to [BLANK_WHITE_IMAGE] if empty or error.
+ */
+export async function getListingAllImagesFromStorage(listingId: string | number): Promise<string[]> {
+  if (!listingId) return [BLANK_WHITE_IMAGE];
+  const idStr = listingId.toString().trim();
+  if (!idStr) return [BLANK_WHITE_IMAGE];
+
+  try {
+    const { data: files, error } = await supabase.storage.from(LISTING_IMAGES_BUCKET).list(idStr);
+    if (!error && files && files.length > 0) {
+      const validFiles = files.filter((f) => !f.name.startsWith('.'));
+      if (validFiles.length > 0) {
+        const imageUrls = validFiles.map((f) => {
+          const { data } = supabase.storage.from(LISTING_IMAGES_BUCKET).getPublicUrl(`${idStr}/${f.name}`);
+          return data.publicUrl;
+        });
+        if (imageUrls.length > 0) {
+          listingThumbnailCache.set(idStr, imageUrls[0]);
+          return imageUrls;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`Error fetching all images from ${LISTING_IMAGES_BUCKET}/${idStr}:`, err);
+  }
+
+  return [BLANK_WHITE_IMAGE];
+}
+
 

@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FurnitureItem } from '../types/furniture';
-import { MapPin, Bookmark, MoreVertical, Flag } from 'lucide-react';
-import { getOptimizedImageUrl, BLANK_IMAGE } from '../utils/imageOptimizer';
+import { BLANK_WHITE_IMAGE } from '../utils/imageOptimizer';
+import { supabase } from '../supabaseClient';
+import { Bookmark, MoreVertical, Flag } from 'lucide-react';
 
 interface FurnitureCardProps {
   item: FurnitureItem;
@@ -25,47 +26,50 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
   showMenuDots = true,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const carouselRef = useRef<HTMLDivElement>(null);
-
-  const extraCols: string[] = [];
-  for (let i = 2; i <= 7; i++) {
-    const val =
-      (item as any)[`image_url_${i}`] ||
-      (item as any)[`image_${i}`] ||
-      (item as any)[`image${i}`] ||
-      (item as any)[`image_url${i}`];
-    if (typeof val === 'string' && val.trim()) extraCols.push(val.trim());
-  }
-
-  const rawImages =
-    (item as any).images && (item as any).images.length > 0
-      ? (item as any).images
-      : item.additionalImages && item.additionalImages.length > 0
-      ? [item.imageUrl, ...item.additionalImages, ...extraCols.filter((c) => !item.additionalImages?.includes(c))]
-      : [item.imageUrl, ...extraCols];
-
-  const allImages = rawImages.map((img) =>
-    getOptimizedImageUrl(img, { width: 600, quality: 70, format: 'webp' })
+  const [thumbnailUrl, setThumbnailUrl] = useState<string>(
+    item.imageUrl && item.imageUrl !== BLANK_WHITE_IMAGE ? item.imageUrl : BLANK_WHITE_IMAGE
   );
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    const container = e.currentTarget;
-    if (container && container.clientWidth > 0) {
-      const idx = Math.round(container.scrollLeft / container.clientWidth);
-      if (idx !== activeImageIndex && idx >= 0 && idx < allImages.length) {
-        setActiveImageIndex(idx);
-      }
+  useEffect(() => {
+    let isMounted = true;
+    if (item.imageUrl && item.imageUrl !== BLANK_WHITE_IMAGE) {
+      setThumbnailUrl(item.imageUrl);
+      return;
     }
-  };
+
+    const fetchThumbnail = async () => {
+      try {
+        const idStr = item.id.toString();
+        const { data: files } = await supabase.storage.from('listing-images').list(idStr);
+        if (!isMounted) return;
+        if (files && files.length > 0) {
+          const validFiles = files.filter((f) => !f.name.startsWith('.'));
+          if (validFiles.length > 0) {
+            const { data } = supabase.storage.from('listing-images').getPublicUrl(`${idStr}/${validFiles[0].name}`);
+            if (data?.publicUrl) {
+              setThumbnailUrl(data.publicUrl);
+              return;
+            }
+          }
+        }
+        setThumbnailUrl(BLANK_WHITE_IMAGE);
+      } catch {
+        if (isMounted) setThumbnailUrl(BLANK_WHITE_IMAGE);
+      }
+    };
+
+    fetchThumbnail();
+    return () => {
+      isMounted = false;
+    };
+  }, [item.id, item.imageUrl]);
 
   return (
     <div className="group relative flex flex-col bg-white rounded-none border border-gray-200 overflow-hidden shadow-xs hover:shadow-md transition-all duration-200">
       {/* Photo Container: ~80% of card height with sharp 90-degree corners (Swipeable without side arrows) */}
       <div
-        className="relative aspect-4/5 w-full bg-gray-100 rounded-none overflow-hidden cursor-pointer"
+        className="relative aspect-4/5 w-full bg-white rounded-none overflow-hidden cursor-pointer"
         onClick={() => onSelect(item)}
       >
         {/* Shimmer skeleton while image loads */}
@@ -73,64 +77,22 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
           <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse z-0" />
         )}
 
-        {allImages.length > 1 ? (
-          <div
-            ref={carouselRef}
-            onScroll={handleScroll}
-            className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-none touch-pan-x"
-          >
-            {allImages.map((img, idx) => (
-              <div
-                key={idx}
-                className="w-full h-full shrink-0 snap-center relative bg-gray-100"
-              >
-                <img
-                  src={img}
-                  alt={`${item.title} photo ${idx + 1}`}
-                  onLoad={() => setIsImageLoaded(true)}
-                  onError={(e) => {
-                    setIsImageLoaded(true);
-                    const target = e.currentTarget;
-                    if (!target.dataset.fallback) {
-                      target.dataset.fallback = 'true';
-                      target.src = typeof navigator !== 'undefined' && !navigator.onLine
-                        ? BLANK_IMAGE
-                        : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
-                    }
-                  }}
-                  className={`w-full h-full object-contain p-1 select-none transition-opacity duration-300 ${
-                    isImageLoaded ? 'opacity-100' : 'opacity-0'
-                  }`}
-                  loading="lazy"
-                  decoding="async"
-                  draggable={false}
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <img
-            src={getOptimizedImageUrl(item.imageUrl, { width: 600, quality: 75, format: 'webp' })}
-            alt={item.title}
-            onLoad={() => setIsImageLoaded(true)}
-            onError={(e) => {
-              setIsImageLoaded(true);
-              const target = e.currentTarget;
-              if (!target.dataset.fallback) {
-                target.dataset.fallback = 'true';
-                target.src = typeof navigator !== 'undefined' && !navigator.onLine
-                  ? BLANK_IMAGE
-                  : 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80';
-              }
-            }}
-            className={`w-full h-full object-contain p-1 group-hover:scale-105 transition-all duration-300 select-none ${
-              isImageLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-            loading="lazy"
-            decoding="async"
-            draggable={false}
-          />
-        )}
+        <img
+          src={thumbnailUrl || BLANK_WHITE_IMAGE}
+          alt={item.title}
+          onLoad={() => setIsImageLoaded(true)}
+          onError={(e) => {
+            setIsImageLoaded(true);
+            const target = e.currentTarget;
+            target.src = BLANK_WHITE_IMAGE;
+          }}
+          className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-300 select-none ${
+            isImageLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
 
         {/* 14: Price Blue Badge with Rand 'R' on top-left of photo */}
         <div className="absolute top-2 left-2 z-10 pointer-events-none">
@@ -150,19 +112,7 @@ export const FurnitureCard: React.FC<FurnitureCardProps> = ({
           )}
         </div>
 
-        {/* Multiple images indicator dots (Subtle, no side arrows) */}
-        {allImages.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded-full backdrop-blur-xs pointer-events-none">
-            {allImages.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1.5 rounded-full transition-all ${
-                  activeImageIndex === i ? 'w-3 bg-white' : 'w-1.5 bg-white/50'
-                }`}
-              />
-            ))}
-          </div>
-        )}
+
 
         {/* Save Icon (Bookmark) on top-right of photo */}
         <button

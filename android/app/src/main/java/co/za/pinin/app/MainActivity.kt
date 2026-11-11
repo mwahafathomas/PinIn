@@ -64,8 +64,10 @@ class MainActivity : ComponentActivity() {
         }
 
         // 3 & 6. FIX THE CRASH BUG & Show Real System Permission Dialog on Android 13+
-        // Uses real system permission dialog (not custom dialog), no finish(), no intent to home screen
         requestSystemNotificationPermission()
+
+        // 6. Request storage permission at runtime if Android version < 13
+        requestStoragePermissionIfNeeded()
 
         connectivityObserver = NetworkConnectivityObserver(applicationContext)
         viewModel = MainViewModel(connectivityObserver)
@@ -77,30 +79,47 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    companion object {
+        const val NOTIFICATION_PERMISSION_CODE = 1001
+        const val STORAGE_PERMISSION_CODE = 1002
+        const val DOWNLOAD_CHANNEL_ID = "pinin_downloads"
+    }
+
     /**
-     * Create Notification Channel for Android 8+
-     * Channel ID = pinin_default
-     * Channel Name = PinIn Notifications
-     * Importance = IMPORTANCE_HIGH
+     * Create Notification Channels for Android 8+
+     * Channel 1: pinin_default (OneSignal push notifications)
+     * Channel 2: pinin_downloads (Invoice download completed notifications)
      */
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelId = "pinin_default"
-            val channelName = "PinIn Notifications"
-            val channelDescription = "PinIn push notifications"
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(channelId, channelName, importance).apply {
-                description = channelDescription
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+
+            // Default push notification channel
+            val pushChannel = NotificationChannel(
+                "pinin_default",
+                "PinIn Notifications",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "PinIn push notifications"
                 enableVibration(true)
             }
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-            notificationManager?.createNotificationChannel(channel)
+            notificationManager?.createNotificationChannel(pushChannel)
+
+            // Invoice download notification channel
+            val downloadChannel = NotificationChannel(
+                DOWNLOAD_CHANNEL_ID,
+                "PinIn Downloads",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifications for saved invoice PDF files"
+                enableVibration(true)
+            }
+            notificationManager?.createNotificationChannel(downloadChannel)
         }
     }
 
     /**
      * Request notification permission on Android 13+ (API 33+) using the real system dialog
-     * ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
      */
     private fun requestSystemNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -112,9 +131,145 @@ class MainActivity : ComponentActivity() {
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
-                    1001
+                    NOTIFICATION_PERMISSION_CODE
                 )
             }
+        }
+    }
+
+    /**
+     * Step 6: Request storage permission at runtime if Android version < 13 (API < 33)
+     */
+    fun requestStoragePermissionIfNeeded(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            val writePermission = ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+            if (writePermission != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE
+                    ),
+                    STORAGE_PERMISSION_CODE
+                )
+                return false
+            }
+        }
+        return true
+    }
+
+    /**
+     * Step 3, 4 & 5: JavaScript Interface exposed to webview / client as window.Android.saveInvoice(base64Data, fileName)
+     * Saves base64 PDF into device Downloads directory, shows Toast "Invoice saved to Downloads",
+     * and shows a system notification to tap and open the PDF.
+     */
+    inner class AndroidInvoiceBridge {
+        @android.webkit.JavascriptInterface
+        fun saveInvoice(base64Data: String, fileName: String) {
+            saveInvoiceToDownloads(base64Data, fileName)
+        }
+    }
+
+    fun saveInvoiceToDownloads(base64Data: String, fileName: String) {
+        try {
+            val cleanFileName = if (fileName.endsWith(".pdf", ignoreCase = true)) fileName else "$fileName.pdf"
+            val pdfBytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+
+            var savedUri: android.net.Uri? = null
+            var savedFile: java.io.File? = null
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10+ (API 29+): Use MediaStore Downloads collection
+                val contentValues = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, cleanFileName)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+                }
+
+                val resolver = applicationContext.contentResolver
+                val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                if (uri != null) {
+                    resolver.openOutputStream(uri)?.use { outputStream ->
+                        outputStream.write(pdfBytes)
+                        outputStream.flush()
+                    }
+                    savedUri = uri
+                }
+            } else {
+                // Android 9 and below: Write directly to Environment.DIRECTORY_DOWNLOADS
+                val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                if (!downloadsDir.exists()) {
+                    downloadsDir.mkdirs()
+                }
+                val destFile = java.io.File(downloadsDir, cleanFileName)
+                java.io.FileOutputStream(destFile).use { output ->
+                    output.write(pdfBytes)
+                    output.flush()
+                }
+                savedFile = destFile
+                savedUri = androidx.core.content.FileProvider.getUriForFile(
+                    this,
+                    "${applicationContext.packageName}.fileprovider",
+                    destFile
+                )
+            }
+
+            // Step 5: After download, show Toast "Invoice saved to Downloads"
+            runOnUiThread {
+                android.widget.Toast.makeText(
+                    applicationContext,
+                    "Invoice saved to Downloads",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
+
+            // Step 5: Show system notification to open the file
+            if (savedUri != null) {
+                showDownloadNotification(cleanFileName, savedUri)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            runOnUiThread {
+                android.widget.Toast.makeText(
+                    applicationContext,
+                    "Error saving invoice: ${e.localizedMessage ?: "Unknown error"}",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun showDownloadNotification(fileName: String, fileUri: android.net.Uri) {
+        try {
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                setDataAndType(fileUri, "application/pdf")
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            val pendingIntent = android.app.PendingIntent.getActivity(
+                this,
+                (System.currentTimeMillis() % 10000).toInt(),
+                intent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) android.app.PendingIntent.FLAG_IMMUTABLE else 0)
+            )
+
+            val notification = androidx.core.app.NotificationCompat.Builder(this, DOWNLOAD_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setContentTitle("Invoice Downloaded")
+                .setContentText(fileName)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .build()
+
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            notificationManager?.notify((System.currentTimeMillis() % 10000).toInt(), notification)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -128,8 +283,13 @@ class MainActivity : ComponentActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1001) {
-            // Wait for user to click Allow / Don't Allow without closing activity
+        when (requestCode) {
+            NOTIFICATION_PERMISSION_CODE -> {
+                // Wait for user to click Allow / Don't Allow without closing activity
+            }
+            STORAGE_PERMISSION_CODE -> {
+                // Storage permission handled smoothly
+            }
         }
     }
 }

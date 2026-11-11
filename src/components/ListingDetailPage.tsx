@@ -19,11 +19,12 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { FurnitureItem, UserAccount } from '../types/furniture';
-import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+import { getOptimizedImageUrl, BLANK_IMAGE, BLANK_WHITE_IMAGE } from '../utils/imageOptimizer';
 import { addToCart, getCartItems } from '../services/cartService';
 import { isListingInStock, getListingAvailableDate } from '../services/listingStockService';
 import { Share as NativeShare } from '@capacitor/share';
 import { supabase } from '../supabaseClient';
+import { PhotoViewerModal } from './PhotoViewerModal';
 
 const AVAILABLE_SIZES = ['S', 'M', 'L', 'X', 'XL'] as const;
 
@@ -93,44 +94,44 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   const [reportReason, setReportReason] = useState("description doesn't match product");
   const [otherDetails, setOtherDetails] = useState('');
   const [selectedSize, setSelectedSize] = useState<string>('');
-  const [zoomScale, setZoomScale] = useState<number>(1);
-  const touchStartDistRef = useRef<number | null>(null);
-  const initialScaleRef = useRef<number>(1);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      touchStartDistRef.current = dist;
-      initialScaleRef.current = zoomScale;
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && touchStartDistRef.current !== null) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const factor = dist / touchStartDistRef.current;
-      const nextScale = Math.min(Math.max(1, initialScaleRef.current * factor), 4);
-      setZoomScale(nextScale);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (touchStartDistRef.current !== null) {
-      touchStartDistRef.current = null;
-      if (zoomScale < 1.05) {
-        setZoomScale(1);
-      }
-    }
-  };
   const [quantity, setQuantity] = useState(1);
   const [feedbackToast, setFeedbackToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [listingImages, setListingImages] = useState<string[]>([BLANK_WHITE_IMAGE]);
+
+  // Load ALL files from Supabase Storage bucket "listing-images" folder = listing.id
+  useEffect(() => {
+    if (!item?.id || !isOpen) return;
+    const id = item.id.toString();
+    let isMounted = true;
+
+    const fetchListingImages = async () => {
+      try {
+        const { data: files, error } = await supabase.storage.from('listing-images').list(id);
+        if (!isMounted) return;
+        if (error || !files || files.length === 0) {
+          setListingImages([BLANK_WHITE_IMAGE]);
+          return;
+        }
+        const validFiles = files.filter((f) => !f.name.startsWith('.'));
+        if (validFiles.length === 0) {
+          setListingImages([BLANK_WHITE_IMAGE]);
+          return;
+        }
+        const imageUrls = validFiles.map(
+          (f) => supabase.storage.from('listing-images').getPublicUrl(`${id}/${f.name}`).data.publicUrl
+        );
+        setListingImages(imageUrls.length > 0 ? imageUrls : [BLANK_WHITE_IMAGE]);
+      } catch {
+        if (isMounted) setListingImages([BLANK_WHITE_IMAGE]);
+      }
+    };
+
+    fetchListingImages();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, item?.id]);
 
   useEffect(() => {
     // Scroll carousel to top on open
@@ -169,69 +170,31 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
   const isItemInStock = isListingInStock(item);
   const itemAvailableDate = getListingAvailableDate(item);
-  const rawImages: string[] = [];
-  const addImageToList = (img: unknown) => {
-    if (img && typeof img === 'string') {
-      const clean = img.trim();
-      if (clean && !rawImages.includes(clean)) {
-        rawImages.push(clean);
-      }
-    }
+  const allImages = listingImages.length > 0 ? listingImages : [BLANK_WHITE_IMAGE];
+
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const handleCarouselTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchEndX.current = null;
   };
 
-  if (item.imageUrl && typeof item.imageUrl === 'string') {
-    addImageToList(item.imageUrl);
-  }
-
-  const parseAndAddImages = (source: unknown) => {
-    if (!source) return;
-    if (Array.isArray(source)) {
-      source.forEach(addImageToList);
-    } else if (typeof source === 'string') {
-      const trimmed = source.trim();
-      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        try {
-          const parsed = JSON.parse(trimmed);
-          if (Array.isArray(parsed)) parsed.forEach(addImageToList);
-        } catch {}
-      } else if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-        trimmed
-          .slice(1, -1)
-          .split(',')
-          .forEach((s) => {
-            addImageToList(s.replace(/^"(.*)"$/, '$1').trim());
-          });
-      } else if (trimmed.includes(',')) {
-        trimmed.split(',').forEach((s) => addImageToList(s.trim()));
-      } else if (trimmed !== '') {
-        addImageToList(trimmed);
-      }
-    }
+  const handleCarouselTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
   };
 
-  parseAndAddImages(item.additionalImages);
-  parseAndAddImages((item as any).additional_images);
-  parseAndAddImages((item as any).images);
-  parseAndAddImages((item as any).imageUrls);
-
-  for (let i = 2; i <= 7; i++) {
-    const extra =
-      (item as any)[`image_url_${i}`] ||
-      (item as any)[`image_${i}`] ||
-      (item as any)[`image${i}`] ||
-      (item as any)[`image_url${i}`];
-    if (typeof extra === 'string' && extra.trim()) {
-      addImageToList(extra.trim());
+  const handleCarouselTouchEnd = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const distance = touchStartX.current - touchEndX.current;
+    if (distance > 35 && activeImageIndex < allImages.length - 1) {
+      scrollToImageIndex(activeImageIndex + 1);
+    } else if (distance < -35 && activeImageIndex > 0) {
+      scrollToImageIndex(activeImageIndex - 1);
     }
-  }
-
-  if (rawImages.length === 0 && item.imageUrl) {
-    addImageToList(item.imageUrl);
-  }
-
-  const allImages = rawImages.map((img) =>
-    getOptimizedImageUrl(img, { width: 600, quality: 70, format: 'webp' })
-  );
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
 
   const handleCarouselScroll = () => {
     if (carouselRef.current) {
@@ -304,6 +267,8 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
     if (!isUserLoggedIn) {
       if (onOpenAuth) {
         onOpenAuth('signin');
+      } else {
+        window.location.href = '/auth?mode=signin';
       }
       return;
     }
@@ -322,7 +287,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
       setFeedbackToast({ message: 'item is already in users cart', type: 'warning' });
       setTimeout(() => {
         setFeedbackToast(null);
-      }, 2500);
+      }, 4000);
       return;
     }
 
@@ -354,6 +319,8 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
     if (!isUserLoggedIn) {
       if (onOpenAuth) {
         onOpenAuth('signin');
+      } else {
+        window.location.href = '/auth?mode=signin';
       }
       return;
     }
@@ -416,7 +383,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-blue-50 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -528,6 +495,9 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               <div
                 ref={carouselRef}
                 onScroll={handleCarouselScroll}
+                onTouchStart={handleCarouselTouchStart}
+                onTouchMove={handleCarouselTouchMove}
+                onTouchEnd={handleCarouselTouchEnd}
                 className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-none touch-pan-x rounded-none"
                 style={{ scrollBehavior: 'smooth' }}
               >
@@ -538,8 +508,11 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                     className="w-full h-full shrink-0 snap-center snap-always relative flex items-center justify-center cursor-pointer rounded-none"
                   >
                     <img
-                      src={imgUrl}
+                      src={typeof navigator !== 'undefined' && !navigator.onLine ? BLANK_WHITE_IMAGE : imgUrl}
                       alt={`${item.title} photo ${idx + 1}`}
+                      onError={(e) => {
+                        e.currentTarget.src = BLANK_WHITE_IMAGE;
+                      }}
                       className="w-full h-full object-cover select-none rounded-none"
                       loading="lazy"
                       decoding="async"
@@ -549,28 +522,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 ))}
               </div>
 
-              {/* Prev / Next navigation buttons */}
-              {allImages.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={handlePrevImage}
-                    aria-label="Previous image"
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-xs shadow-md transition-all active:scale-90 z-20 cursor-pointer focus-visible:outline-none"
-                  >
-                    <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={handleNextImage}
-                    aria-label="Next image"
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-xs shadow-md transition-all active:scale-90 z-20 cursor-pointer focus-visible:outline-none"
-                  >
-                    <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-                  </button>
-                </>
-              )}
 
               {/* Photo counter */}
               {allImages.length > 1 && (
@@ -824,6 +776,15 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                       View Cart
                     </button>
                   )}
+                  {feedbackToast.message.includes('already in users cart') && onOpenCart && (
+                    <button
+                      type="button"
+                      onClick={onOpenCart}
+                      className="underline text-[#2D8EDE] hover:text-blue-700 font-black cursor-pointer text-xs"
+                    >
+                      view items
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -924,6 +885,15 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 View Cart
               </button>
             )}
+            {feedbackToast.message.includes('already in users cart') && onOpenCart && (
+              <button
+                type="button"
+                onClick={onOpenCart}
+                className="mt-2 text-xs text-[#2D8EDE] bg-white px-4 py-1.5 rounded-full font-black hover:bg-gray-100 transition-colors cursor-pointer shadow-md active:scale-95"
+              >
+                view items
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1020,67 +990,14 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
         </div>
       )}
 
-      {/* Fullscreen Photo Modal with Two-Finger Pinch Zoom */}
-      {isPhotoModalOpen && (
-        <div
-          className="fixed inset-0 z-60 bg-white flex flex-col justify-between items-center select-none"
-          onClick={() => {
-            if (zoomScale === 1) setIsPhotoModalOpen(false);
-            else setZoomScale(1);
-          }}
-        >
-          {/* Top Bar with Go Back (White background) */}
-          <div className="w-full p-4 flex items-center justify-between z-20 bg-white">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setZoomScale(1);
-                setIsPhotoModalOpen(false);
-              }}
-              aria-label="Close photo view"
-              className="w-11 h-11 rounded-full bg-white hover:bg-gray-100 text-gray-900 flex items-center justify-center transition-all cursor-pointer border border-gray-200 active:scale-90 shadow-md"
-            >
-              <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
-            </button>
-            <div className="w-11" />
-          </div>
-
-          {/* Center Zoomable Image with Two-Finger Pinch Zoom */}
-          <div
-            className="relative w-full flex-1 flex items-center justify-center overflow-hidden p-2 touch-none bg-white"
-            onClick={(e) => e.stopPropagation()}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              setZoomScale((prev) => (prev === 1 ? 2.5 : 1));
-            }}
-          >
-            <img
-              src={allImages[activeImageIndex] || item.imageUrl}
-              alt={item.title}
-              style={{
-                transform: `scale(${zoomScale})`,
-                transition: 'transform 0.2s ease-out',
-              }}
-              className={`max-w-full max-h-[80vh] w-auto h-auto object-contain mx-auto shadow-sm select-none ${
-                zoomScale > 1 ? 'cursor-zoom-out' : 'cursor-zoom-in'
-              }`}
-            />
-          </div>
-
-          {/* Bottom Photo Count (White background) */}
-          <div className="w-full pb-6 pt-2 flex items-center justify-center z-20 bg-white">
-            {allImages.length > 1 && (
-              <div className="bg-gray-100 px-3.5 py-1 rounded-full text-gray-900 text-xs font-bold border border-gray-200 shadow-xs pointer-events-none">
-                {activeImageIndex + 1} / {allImages.length}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Fullscreen Photo Modal with all-directional matrix pinch zoom and pan */}
+      <PhotoViewerModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        images={allImages.length > 0 ? allImages : [item.imageUrl]}
+        initialIndex={activeImageIndex}
+        title={item.title}
+      />
     </div>
   );
 };

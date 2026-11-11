@@ -1,3 +1,4 @@
+import { jsPDF } from 'jspdf';
 import { OrderRecord } from '../services/ordersService';
 import { BusinessInfo } from '../services/businessInfoService';
 
@@ -25,15 +26,24 @@ export function formatInvoiceAddress(order: OrderRecord): string {
   }
 
   if (order.delivery) {
-    // Strip "[Method: ...]" if present
     return order.delivery.replace(/\[Method:\s*[^\]]+\]/i, '').replace(/^Delivery to:\s*/i, '').trim();
   }
 
   return 'Standard Delivery Address';
 }
 
-export function generateInvoiceHtml(order: OrderRecord, info: BusinessInfo): string {
-  const invoiceNum = order.invoiceNumber || order.orderNumber.replace('PIN-', 'INV-');
+/**
+ * Builds a clean, official PDF invoice using jsPDF.
+ * Output file name: PinIn-Invoice-#ORDER_ID.pdf (e.g. PinIn-Invoice-#1234.pdf)
+ * Directly interfaces with Android native bridge window.Android.saveInvoice(base64Data, fileName)
+ * when running inside the Android APK.
+ */
+export function downloadInvoice(order: OrderRecord, info: BusinessInfo): void {
+  const cleanOrderNum = String(order.orderNumber || order.id || '1001')
+    .replace(/^PIN-/i, '')
+    .replace(/^#/, '');
+  const fileName = `PinIn-Invoice-#${cleanOrderNum}.pdf`;
+  const invoiceNum = order.invoiceNumber || `INV-${cleanOrderNum}`;
   const paymentMethod = extractPaymentMethod(order.delivery);
   const deliveryAddress = formatInvoiceAddress(order);
 
@@ -41,8 +51,8 @@ export function generateInvoiceHtml(order: OrderRecord, info: BusinessInfo): str
     ? order.items
     : [
         {
-          itemBought: order.itemBought,
-          itemPrice: order.itemPrice || order.price,
+          itemBought: order.itemBought || 'Order Item',
+          itemPrice: order.itemPrice || order.price || '0',
           quantity: order.quantity || 1,
           size: 'Standard',
         },
@@ -57,151 +67,245 @@ export function generateInvoiceHtml(order: OrderRecord, info: BusinessInfo): str
     ? Number(order.deliveryFee)
     : Math.max(0, Number(order.price || 0) - subtotal);
   const deliveryFeeDisplay = computedDelivery > 0 ? `R${computedDelivery.toFixed(2)}` : 'Free';
+  const grandTotal = Number(order.price || subtotal + computedDelivery).toFixed(2);
 
-  const itemsRows = items.map((item, idx) => `
-    <tr>
-      <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #111827;">
-        ${item.itemBought}
-      </td>
-      <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; color: #4b5563;">
-        ${item.size || 'Standard'}
-      </td>
-      <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #111827; font-weight: 600;">
-        ${item.quantity || 1}
-      </td>
-      <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #6b7280;">
-        -
-      </td>
-      <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 700; color: #111827;">
-        R${Number(item.itemPrice || 0).toFixed(2)}
-      </td>
-    </tr>
-  `).join('');
+  // Initialize jsPDF A4 (595.28 x 841.89 pt)
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'pt',
+    format: 'a4',
+  });
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Invoice ${invoiceNum} - PinIn</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f9fafb; color: #1f2937; padding: 24px; line-height: 1.5; font-size: 13px; }
-    .invoice-card { max-width: 720px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
-    .header-bar { display: flex; align-items: center; justify-content: space-between; padding-bottom: 18px; border-bottom: 2px solid #2D8EDE; }
-    .app-brand { font-size: 26px; font-weight: 900; color: #111827; }
-    .app-brand span { color: #2D8EDE; }
-    .app-icon { width: 44px; height: 44px; object-fit: contain; border-radius: 8px; }
-    .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 20px 0; border-bottom: 1px solid #e5e7eb; }
-    .col-left { border-right: 1px solid #e5e7eb; padding-right: 20px; }
-    .info-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; }
-    .info-label { color: #6b7280; font-weight: 500; }
-    .info-value { color: #111827; font-weight: 700; text-align: right; }
-    .divider { border-top: 1px solid #e5e7eb; margin: 12px 0; }
-    .section-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #111827; margin-bottom: 10px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
-    th { background: #f3f4f6; color: #374151; font-weight: 700; text-align: left; padding: 10px; border-bottom: 1px solid #d1d5db; }
-    .totals-box { margin-top: 16px; padding-top: 14px; border-top: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 6px; }
-    .total-row { display: flex; justify-content: space-between; font-size: 13px; color: #4b5563; }
-    .grand-total { font-size: 16px; font-weight: 900; color: #111827; border-top: 2px solid #2D8EDE; padding-top: 8px; margin-top: 4px; }
-    .thank-you { text-align: center; margin-top: 28px; padding-top: 18px; border-top: 1px dashed #d1d5db; font-size: 14px; font-weight: 800; color: #2D8EDE; }
-    @media print {
-      body { background: #ffffff; padding: 0; }
-      .invoice-card { border: none; box-shadow: none; padding: 0; }
-    }
-  </style>
-</head>
-<body>
-  <div class="invoice-card">
-    <div class="header-bar">
-      <div>
-        <div class="app-brand">Pin<span>In</span></div>
-        <div style="font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Tax Invoice</div>
-      </div>
-      <div>
-        <img class="app-icon" src="${info.app_icon_url || '/PinIn-app-icon.png'}" alt="PinIn App Icon" onerror="this.style.display='none'" />
-      </div>
-    </div>
+  const margin = 40;
+  const pageWidth = 595.28;
+  const contentWidth = pageWidth - margin * 2;
+  let currentY = 50;
 
-    <div class="split-grid">
-      <div class="col-left">
-        <div class="info-row"><span class="info-label">Invoice number:</span><span class="info-value">${invoiceNum}</span></div>
-        <div class="info-row"><span class="info-label">Order number:</span><span class="info-value">${order.orderNumber}</span></div>
-        <div class="info-row"><span class="info-label">Invoice date:</span><span class="info-value">${order.dateBought}</span></div>
-        
-        <div class="divider"></div>
+  // Header Brand
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(24);
+  doc.setTextColor(17, 24, 39); // #111827
+  doc.text('Pin', margin, currentY);
+  const pinWidth = doc.getTextWidth('Pin');
+  doc.setTextColor(45, 142, 222); // #2D8EDE
+  doc.text('In', margin + pinWidth, currentY);
 
-        <div class="info-row"><span class="info-label">Business name:</span><span class="info-value">${info.business_name}</span></div>
-        <div class="info-row"><span class="info-label">Address:</span><span class="info-value" style="max-width: 180px;">${info.address}</span></div>
-        <div class="info-row"><span class="info-label">Telephone:</span><span class="info-value">${info.telephone_number}</span></div>
-        <div class="info-row"><span class="info-label">VAT No:</span><span class="info-value">${info.vat_no}</span></div>
-        <div class="info-row"><span class="info-label">REG No:</span><span class="info-value">${info.reg_no}</span></div>
-        <div class="info-row"><span class="info-label">Website:</span><span class="info-value">${info.website}</span></div>
-      </div>
+  // TAX INVOICE title on the right
+  doc.setFontSize(14);
+  doc.setTextColor(107, 114, 128);
+  doc.text('TAX INVOICE', pageWidth - margin, currentY, { align: 'right' });
 
-      <div>
-        <div class="section-title">Customer Information</div>
-        <div class="info-row"><span class="info-label">Customer name:</span><span class="info-value">${order.buyerName || order.username || 'Customer'}</span></div>
-        <div class="info-row"><span class="info-label">Delivery address:</span><span class="info-value" style="max-width: 180px;">${deliveryAddress}</span></div>
-      </div>
-    </div>
+  // Blue accent line under header
+  currentY += 15;
+  doc.setDrawColor(45, 142, 222);
+  doc.setLineWidth(2.5);
+  doc.line(margin, currentY, pageWidth - margin, currentY);
 
-    <div style="padding-top: 18px;">
-      <div class="section-title">Items</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Item name</th>
-            <th>Size</th>
-            <th style="text-align: center;">Qty</th>
-            <th style="text-align: center;">VAT</th>
-            <th style="text-align: right;">Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemsRows}
-        </tbody>
-      </table>
+  currentY += 25;
 
-      <div class="totals-box">
-        <div class="total-row"><span>Delivery fee:</span><span style="font-weight: 700;">${deliveryFeeDisplay}</span></div>
-        <div class="total-row"><span>Subtotal:</span><span style="font-weight: 700;">R${subtotal.toFixed(2)}</span></div>
-        <div class="total-row grand-total"><span>Total:</span><span style="color: #2D8EDE;">R${Number(order.price || 0).toFixed(2)}</span></div>
-        <div class="total-row" style="margin-top: 6px; font-size: 11px;"><span>Payment method:</span><span style="font-weight: 700;">${paymentMethod}</span></div>
-      </div>
-    </div>
+  // Split section: Business & Invoice details (Left) vs Customer details (Right)
+  const colWidth = (contentWidth - 20) / 2;
+  const rightColX = margin + colWidth + 20;
+  const topBlockStartY = currentY;
 
-    <div class="thank-you">Thank you for shopping with PinIn!</div>
-  </div>
-</body>
-</html>`;
-}
+  // Left Column - Invoice Meta & Business Info
+  doc.setFontSize(9);
+  doc.setTextColor(156, 163, 175);
+  doc.text('INVOICE NUMBER:', margin, currentY);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(17, 24, 39);
+  doc.text(invoiceNum, margin + 110, currentY);
 
-export function downloadInvoice(order: OrderRecord, info: BusinessInfo): void {
-  const htmlContent = generateInvoiceHtml(order, info);
-  const invoiceNum = order.invoiceNumber || order.orderNumber.replace('PIN-', 'INV-');
-  const filename = `PinIn-Invoice-${invoiceNum}.html`;
+  currentY += 16;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(156, 163, 175);
+  doc.text('ORDER NUMBER:', margin, currentY);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(17, 24, 39);
+  doc.text(order.orderNumber, margin + 110, currentY);
 
-  try {
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 200);
-  } catch (err) {
-    console.error('Download invoice failed:', err);
-    // Fallback: open print window
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
+  currentY += 16;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(156, 163, 175);
+  doc.text('INVOICE DATE:', margin, currentY);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(17, 24, 39);
+  doc.text(order.dateBought || new Date().toISOString().split('T')[0], margin + 110, currentY);
+
+  currentY += 16;
+  doc.setDrawColor(229, 231, 235);
+  doc.setLineWidth(0.8);
+  doc.line(margin, currentY, margin + colWidth, currentY);
+  currentY += 14;
+
+  const renderInfoRow = (label: string, value?: string) => {
+    if (!value) return;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(107, 114, 128);
+    doc.text(label, margin, currentY);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(31, 41, 55);
+    const splitVal = doc.splitTextToSize(value, colWidth - 95);
+    doc.text(splitVal, margin + 95, currentY);
+    currentY += Math.max(14, splitVal.length * 11);
+  };
+
+  renderInfoRow('Business name:', info.business_name);
+  renderInfoRow('Address:', info.address);
+  renderInfoRow('Telephone:', info.telephone_number);
+  renderInfoRow('VAT No:', info.vat_no);
+  renderInfoRow('REG No:', info.reg_no);
+  renderInfoRow('Website:', info.website);
+
+  const leftBottomY = currentY;
+
+  // Right Column - Customer Info
+  let rightY = topBlockStartY;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(17, 24, 39);
+  doc.text('CUSTOMER INFORMATION', rightColX, rightY);
+
+  rightY += 16;
+  doc.setDrawColor(229, 231, 235);
+  doc.setLineWidth(0.8);
+  doc.line(rightColX, rightY - 6, pageWidth - margin, rightY - 6);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(156, 163, 175);
+  doc.text('CUSTOMER NAME:', rightColX, rightY + 6);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(17, 24, 39);
+  doc.text(order.buyerName || order.username || 'Customer', rightColX, rightY + 20);
+
+  rightY += 38;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(156, 163, 175);
+  doc.text('DELIVERY ADDRESS:', rightColX, rightY);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(55, 65, 81);
+  const addressLines = doc.splitTextToSize(deliveryAddress, colWidth);
+  doc.text(addressLines, rightColX, rightY + 14);
+
+  // Table starts below highest block
+  currentY = Math.max(leftBottomY, rightY + 14 + addressLines.length * 12) + 20;
+
+  // Section: Items Table
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(17, 24, 39);
+  doc.text('ITEMS', margin, currentY);
+
+  currentY += 10;
+  // Table Header Background
+  doc.setFillColor(243, 244, 246);
+  doc.rect(margin, currentY, contentWidth, 22, 'F');
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(55, 65, 81);
+  doc.text('Item name', margin + 8, currentY + 15);
+  doc.text('Size', margin + 250, currentY + 15);
+  doc.text('Qty', margin + 330, currentY + 15, { align: 'center' });
+  doc.text('VAT', margin + 410, currentY + 15, { align: 'center' });
+  doc.text('Price', pageWidth - margin - 8, currentY + 15, { align: 'right' });
+
+  currentY += 24;
+
+  // Table Body Rows
+  items.forEach((item) => {
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.5);
+    doc.line(margin, currentY + 20, pageWidth - margin, currentY + 20);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(17, 24, 39);
+    const itemTitle = doc.splitTextToSize(item.itemBought, 230);
+    doc.text(itemTitle, margin + 8, currentY + 13);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(75, 85, 99);
+    doc.text(item.size || 'Standard', margin + 250, currentY + 13);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(17, 24, 39);
+    doc.text(String(item.quantity || 1), margin + 330, currentY + 13, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(156, 163, 175);
+    doc.text('-', margin + 410, currentY + 13, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(17, 24, 39);
+    const itemTotal = (Number(item.itemPrice || 0) * Number(item.quantity || 1)).toFixed(2);
+    doc.text(`R${itemTotal}`, pageWidth - margin - 8, currentY + 13, { align: 'right' });
+
+    currentY += Math.max(22, itemTitle.length * 13 + 4);
+  });
+
+  currentY += 12;
+
+  // Totals Box
+  const totalsBoxX = pageWidth - margin - 220;
+  const totalsBoxWidth = 220;
+
+  const renderTotalLine = (label: string, val: string, isBold = false, isAccent = false) => {
+    doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+    doc.setFontSize(isBold ? 11 : 9);
+    doc.setTextColor(isAccent ? 45 : 75, isAccent ? 142 : 85, isAccent ? 222 : 99);
+    doc.text(label, totalsBoxX, currentY);
+    doc.text(val, pageWidth - margin - 8, currentY, { align: 'right' });
+    currentY += 16;
+  };
+
+  renderTotalLine('Delivery fee:', deliveryFeeDisplay);
+  renderTotalLine('Subtotal:', `R${subtotal.toFixed(2)}`);
+
+  // Line above total
+  doc.setDrawColor(45, 142, 222);
+  doc.setLineWidth(1.5);
+  doc.line(totalsBoxX, currentY - 6, pageWidth - margin, currentY - 6);
+
+  renderTotalLine('Total:', `R${grandTotal}`, true, true);
+  renderTotalLine('Payment method:', paymentMethod);
+
+  // Thank you message at footer
+  currentY += 28;
+  doc.setDrawColor(209, 213, 219);
+  doc.setLineWidth(0.8);
+  doc.setLineDashPattern([3, 3], 0);
+  doc.line(margin + 50, currentY, pageWidth - margin - 50, currentY);
+  doc.setLineDashPattern([], 0);
+
+  currentY += 22;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(45, 142, 222);
+  doc.text('Thank you for shopping with PinIn!', pageWidth / 2, currentY, { align: 'center' });
+
+  // Native Android JavaScriptInterface Bridge check (Step 3 & 4)
+  const androidObj = (window as any).Android;
+  if (androidObj && typeof androidObj.saveInvoice === 'function') {
+    try {
+      const dataUri = doc.output('datauristring');
+      const base64Data = dataUri.includes(',') ? dataUri.split(',')[1] : dataUri;
+      androidObj.saveInvoice(base64Data, fileName);
+      return;
+    } catch (err) {
+      console.warn('Android native invoice save notice:', err);
     }
   }
+
+  // Standard Web Download fallback (Step 2)
+  doc.save(fileName);
 }

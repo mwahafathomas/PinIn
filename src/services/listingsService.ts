@@ -2,8 +2,8 @@ import { FurnitureItem } from '../types/furniture';
 import { supabase } from '../supabaseClient';
 import { INITIAL_FURNITURE } from '../data/mockData';
 import { getCoordinatesForLocation } from '../utils/geoUtils';
-import { uploadAllListingImages, uploadListingImage, uploadListingVideo } from './storageService';
-import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+import { uploadAllListingImages, uploadListingImage, uploadListingVideo, getListingThumbnailFromStorage, getListingAllImagesFromStorage } from './storageService';
+import { getOptimizedImageUrl, BLANK_WHITE_IMAGE } from '../utils/imageOptimizer';
 import {
   type SupabaseProductRow,
   mapProductRowToFurnitureItem,
@@ -81,9 +81,9 @@ export interface SupabaseListingRow {
   product_information?: string | null;
   reviews?: any;
   trending_tag?: string | null;
-  trending_items?: string | null;
-  what_you_might_like?: string | null;
   category_order?: number | string | null;
+  show_at_home_page?: string | null;
+  home_page_order?: number | string | null;
   image_url_2?: string | null;
   image_url_3?: string | null;
   image_url_4?: string | null;
@@ -164,66 +164,9 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
 
   const titleStr = row.title || (row as any).name || (row as any).item_name || 'Furniture Item';
   const priceNum = Number(row.price ?? (row as any).amount ?? (row as any).cost ?? 0);
-  // Robust image extraction for Supabase listings (supporting all column naming conventions & formats)
-  const extractPrimaryImage = (): string => {
-    const directCandidate =
-      row.image_url ||
-      (row as any).imageUrl ||
-      (row as any).image ||
-      (row as any).photo ||
-      (row as any).photo_url ||
-      (row as any).picture ||
-      (row as any).picture_url ||
-      (row as any).thumbnail ||
-      (row as any).thumbnail_url ||
-      (row as any).img ||
-      (row as any).img_url ||
-      (row as any).image_1 ||
-      (row as any).image1 ||
-      (row as any).product_image;
-
-    if (typeof directCandidate === 'string' && directCandidate.trim()) {
-      return directCandidate.trim();
-    }
-
-    const checkArrayOrJson = (val: unknown): string | null => {
-      if (!val) return null;
-      if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'string' && val[0].trim()) {
-        return val[0].trim();
-      }
-      if (typeof val === 'string') {
-        const trimmed = val.trim();
-        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-          try {
-            const arr = JSON.parse(trimmed);
-            if (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'string') return arr[0].trim();
-          } catch {}
-        }
-        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-          const parts = trimmed.slice(1, -1).split(',');
-          if (parts.length > 0 && parts[0].trim()) {
-            return parts[0].replace(/^["']+|["']+$/g, '').trim();
-          }
-        }
-        if (trimmed.includes(',')) {
-          const parts = trimmed.split(',');
-          if (parts[0].trim()) return parts[0].replace(/^["']+|["']+$/g, '').trim();
-        }
-        if (trimmed.length > 0) return trimmed;
-      }
-      return null;
-    };
-
-    return (
-      checkArrayOrJson(row.images) ||
-      checkArrayOrJson(row.additional_images) ||
-      checkArrayOrJson((row as any).photos) ||
-      checkArrayOrJson((row as any).pictures) ||
-      'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80'
-    );
-  };
-
-  const imageStr = extractPrimaryImage();
+  // New image system: Images are fetched exclusively from Supabase Storage bucket 'listing-images'/{listing.id}
+  // Default to BLANK_WHITE_IMAGE if not yet loaded or if empty
+  const defaultImage = BLANK_WHITE_IMAGE;
 
   return {
     id: String(row.id || `list_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`),
@@ -233,59 +176,9 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
     originalPrice: row.original_price ? Number(row.original_price) : undefined,
     category: row.category || (row as any).category_name || (row as any).type || 'sofas',
     condition: row.condition || (row as any).condition_state || 'Like New',
-    imageUrl: getOptimizedImageUrl(imageStr, { width: 600, quality: 70, format: 'webp' }),
-    additionalImages: (() => {
-      const list: string[] = [];
-      const add = (v: unknown) => {
-        if (typeof v === 'string') {
-          const t = v.trim();
-          if (t && !list.includes(t)) list.push(t);
-        }
-      };
-      const parse = (src: unknown) => {
-        if (!src) return;
-        if (Array.isArray(src)) {
-          src.forEach(add);
-        } else if (typeof src === 'string') {
-          const trimmed = src.trim();
-          if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-            try {
-              const p = JSON.parse(trimmed);
-              if (Array.isArray(p)) p.forEach(add);
-            } catch {}
-          } else if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-            trimmed
-              .slice(1, -1)
-              .split(',')
-              .forEach((s) => add(s.replace(/^"(.*)"$/, '$1').trim()));
-          } else if (trimmed.includes(',')) {
-            trimmed.split(',').forEach((s) => add(s.trim()));
-          } else if (trimmed !== '') {
-            add(trimmed);
-          }
-        }
-      };
-      parse(row.additional_images);
-      parse((row as any).additionalImages);
-      parse((row as any).images);
-      parse((row as any).imageUrls);
-
-      // Also check individual columns image_url_2 through image_url_7 (and alternatives)
-      for (let i = 2; i <= 7; i++) {
-        const c1 = (row as any)[`image_url_${i}`];
-        const c2 = (row as any)[`image_${i}`];
-        const c3 = (row as any)[`image${i}`];
-        const c4 = (row as any)[`image_url${i}`];
-        if (typeof c1 === 'string' && c1.trim()) add(c1.trim());
-        else if (typeof c2 === 'string' && c2.trim()) add(c2.trim());
-        else if (typeof c3 === 'string' && c3.trim()) add(c3.trim());
-        else if (typeof c4 === 'string' && c4.trim()) add(c4.trim());
-      }
-
-      return list.map((img) =>
-        getOptimizedImageUrl(img, { width: 600, quality: 70, format: 'webp' })
-      );
-    })(),
+    imageUrl: defaultImage,
+    additionalImages: [],
+    images: [defaultImage],
     seller: {
       id: row.seller_id || 'unknown_seller',
       name: row.seller_name || 'PinIn Member',
@@ -364,6 +257,26 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
       : row.category_order
       ? parseInt(String(row.category_order), 10)
       : undefined,
+    showAtHomePage: row.show_at_home_page
+      ? String(row.show_at_home_page).trim()
+      : (row as any).home_page_visibility
+      ? String((row as any).home_page_visibility).trim()
+      : (row as any).showAtHomePage
+      ? String((row as any).showAtHomePage).trim()
+      : undefined,
+    homePageOrder: (() => {
+      const val =
+        row.home_page_order ??
+        (row as any).home_page_order ??
+        (row as any).homePageOrder ??
+        (row as any).homepage_order;
+      if (typeof val === 'number' && !isNaN(val)) return val;
+      if (typeof val === 'string' && val.trim() !== '') {
+        const parsed = parseInt(val.trim(), 10);
+        return isNaN(parsed) ? undefined : parsed;
+      }
+      return undefined;
+    })(),
     // Sale tag & discounted sale price
     saleTag: row.sale_tag || (row as any).sale || (row as any).saleTag || undefined,
     salePrice: row.sale_price !== undefined && row.sale_price !== null && !isNaN(Number(row.sale_price))
@@ -429,6 +342,10 @@ export function mapFurnitureItemToRow(item: FurnitureItem): Record<string, unkno
   // seller_id, seller_name, seller_avatar, seller_rating, seller_review_count, seller_joined_date,
   // seller_response_rate, description, dimensions, material, brand, posted_at, status,
   // latitude, longitude, handwritten_date_image, verification_video
+  const allImgs = Array.isArray(item.images) && item.images.length > 0
+    ? item.images
+    : [item.imageUrl, ...(item.additionalImages || [])].filter(Boolean);
+
   const payload: Record<string, unknown> = {
     id: item.id,
     title: item.title,
@@ -437,8 +354,9 @@ export function mapFurnitureItemToRow(item: FurnitureItem): Record<string, unkno
     original_price: item.originalPrice ? Number(item.originalPrice) : null,
     category: item.category,
     condition: item.condition,
-    image_url: item.imageUrl,
-    additional_images: Array.isArray(item.additionalImages) ? item.additionalImages : [],
+    image_url: allImgs[0] || item.imageUrl,
+    images: allImgs,
+    additional_images: allImgs.slice(1),
     seller_id: item.seller?.id || 'anonymous_seller',
     seller_name: item.seller?.name || 'PinIn Member',
     seller_avatar: item.seller?.avatar || '',
@@ -657,12 +575,20 @@ export async function fetchAllListings(forceRefresh: boolean = false): Promise<F
       }
     }
 
-    // Map approved listings
-    const approvedListings = listingRows
-      .filter(
-        (row) => isListingRowApproved(row) && !MOCK_ITEM_IDS.has(String(row.id)) && !deleted.has(String(row.id))
-      )
-      .map(mapRowToFurnitureItem);
+    // Map approved listings with thumbnails from Supabase Storage bucket 'listing-images'/{id}
+    const approvedListings = await Promise.all(
+      listingRows
+        .filter(
+          (row) => isListingRowApproved(row) && !MOCK_ITEM_IDS.has(String(row.id)) && !deleted.has(String(row.id))
+        )
+        .map(async (row) => {
+          const item = mapRowToFurnitureItem(row);
+          const thumb = await getListingThumbnailFromStorage(row.id);
+          item.imageUrl = thumb;
+          item.images = [thumb];
+          return item;
+        })
+    );
 
     // 1. Remove hardcoded furniture filter - fetch all products
     const inStockProducts = productRows
@@ -730,7 +656,17 @@ export async function fetchUserListings(userId: string): Promise<FurnitureItem[]
       return getLocalUserListings(userId).filter((l) => !deleted.has(l.id));
     }
 
-    const mapped = rows.filter((r) => !deleted.has(r.id)).map(mapRowToFurnitureItem);
+    const mapped = await Promise.all(
+      rows
+        .filter((r) => !deleted.has(r.id))
+        .map(async (row) => {
+          const item = mapRowToFurnitureItem(row);
+          const thumb = await getListingThumbnailFromStorage(row.id);
+          item.imageUrl = thumb;
+          item.images = [thumb];
+          return item;
+        })
+    );
     if (mapped.length > 0) {
       setLocalUserListings(userId, mapped);
     }
@@ -758,7 +694,13 @@ export async function fetchListingById(itemId: string): Promise<FurnitureItem | 
     ]);
 
     if (listingRes.status === 'fulfilled' && !listingRes.value.error && listingRes.value.data) {
-      return mapRowToFurnitureItem(listingRes.value.data as SupabaseListingRow);
+      const item = mapRowToFurnitureItem(listingRes.value.data as SupabaseListingRow);
+      // Fetch all images from Supabase Storage bucket 'listing-images' folder = listing.id
+      const allImgs = await getListingAllImagesFromStorage(item.id);
+      item.imageUrl = allImgs[0] || BLANK_WHITE_IMAGE;
+      item.images = allImgs;
+      item.additionalImages = allImgs.slice(1);
+      return item;
     }
 
     if (productRes.status === 'fulfilled' && !productRes.value.error && productRes.value.data) {
@@ -879,6 +821,7 @@ export async function insertListing(item: FurnitureItem): Promise<{ success: boo
         category: pendingItem.category,
         condition: pendingItem.condition,
         image_url: pendingItem.imageUrl,
+        images: pendingItem.images || [pendingItem.imageUrl, ...(pendingItem.additionalImages || [])].filter(Boolean),
         additional_images: pendingItem.additionalImages || [],
         description: pendingItem.description || '',
         seller_id: pendingItem.seller?.id || 'anonymous_seller',

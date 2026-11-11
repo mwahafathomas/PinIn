@@ -23,7 +23,7 @@ import {
 import { FurnitureItem, UserAccount, SellFormData } from '../types/furniture';
 import { getCoordinatesForLocation } from '../utils/geoUtils';
 import { ListingGuidelinesPage } from './ListingGuidelinesPage';
-import { compressImageBlob } from '../services/storageService';
+import { compressImageBlob, uploadListingImageToBucket, deleteListingImageFromBucket } from '../services/storageService';
 import { MAX_FILE_SIZE_BYTES, formatFileSize } from '../utils/imageOptimizer';
 import { isDefaultAvatar, DEFAULT_AVATAR_IMAGE } from '../data/defaultAvatar';
 import { isUserProfileUpdated } from '../services/profilesService';
@@ -257,43 +257,38 @@ export const SellPage: React.FC<SellPageProps> = ({
     );
   }
 
-  // Handle uploading photos from device gallery (Max 10 images, max 1MB each with automatic compression)
+  // Handle uploading photos to Supabase Storage bucket 'listing-images' (Max 5 images)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const remainingSlots = 10 - formData.images.length;
+    const remainingSlots = 5 - formData.images.length;
     if (remainingSlots <= 0) {
-      alert('You have reached the maximum limit of 10 photos.');
+      alert('You have reached the maximum limit of 5 photos.');
       return;
     }
 
     const filesToRead: File[] = (Array.from(files) as File[]).slice(0, remainingSlots);
     
-    // Compress each image to ensure it is strictly <= 1MB and optimal format
+    // Compress and upload directly to Supabase storage bucket 'listing-images'
     const processedImages: string[] = [];
+    const userId = user.id || 'anonymous';
     for (const file of filesToRead) {
       try {
         const { blob } = await compressImageBlob(file, 1200, 0.75);
-        const dataUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            resolve((event.target?.result as string) || '');
-          };
-          reader.readAsDataURL(blob);
-        });
-        if (dataUrl) {
-          processedImages.push(dataUrl);
+        const { publicUrl } = await uploadListingImageToBucket(blob, userId, file.name);
+        if (publicUrl) {
+          processedImages.push(publicUrl);
         }
       } catch (err) {
-        console.warn('Error compressing photo:', err);
+        console.warn('Error uploading photo to listing-images:', err);
       }
     }
 
     if (processedImages.length > 0) {
       onUpdateFormData((prev) => ({
         ...prev,
-        images: [...prev.images, ...processedImages].slice(0, 10),
+        images: [...prev.images, ...processedImages].slice(0, 5),
       }));
     }
 
@@ -323,8 +318,12 @@ export const SellPage: React.FC<SellPageProps> = ({
     }
   };
 
-  // Remove single image
+  // Remove single image and delete from storage bucket
   const removeImage = (index: number) => {
+    const targetUrl = formData.images[index];
+    if (targetUrl) {
+      deleteListingImageFromBucket(targetUrl);
+    }
     onUpdateFormData((prev) => {
       const remaining = prev.images.filter((_, i) => i !== index);
       return {
@@ -422,8 +421,8 @@ export const SellPage: React.FC<SellPageProps> = ({
     e.preventDefault();
     setErrorMessage('');
 
-    if (formData.images.length < 4) {
-      setErrorMessage('Please upload at least 4 photos of your furniture before posting.');
+    if (formData.images.length === 0) {
+      setErrorMessage('Please upload at least 1 photo of your furniture before posting.');
       return;
     }
 
@@ -632,11 +631,11 @@ export const SellPage: React.FC<SellPageProps> = ({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Upload Photos <span className="text-[#0052FF] font-extrabold">(Min. 4) *</span>
+                  Upload Photos <span className="text-[#0052FF] font-extrabold">(Up to 5) *</span>
                 </span>
                 {formData.images.length > 0 && (
-                  <span className={`text-xs font-semibold ${formData.images.length < 4 ? 'text-amber-600 font-bold' : 'text-gray-400'}`}>
-                    {formData.images.length}/10 uploaded {formData.images.length < 4 ? `(need ${4 - formData.images.length} more)` : '✓'}
+                  <span className="text-xs font-semibold text-gray-500">
+                    {formData.images.length}/5 uploaded ✓
                   </span>
                 )}
               </div>
@@ -737,7 +736,7 @@ export const SellPage: React.FC<SellPageProps> = ({
                       </div>
                     ))}
 
-                    {formData.images.length < 10 && (
+                    {formData.images.length < 5 && (
                       <button
                         type="button"
                         onClick={() => setMediaMode('gallery')}
@@ -750,12 +749,10 @@ export const SellPage: React.FC<SellPageProps> = ({
                   </div>
                 )}
 
-                {formData.images.length > 0 && formData.images.length < 10 && (
+                {formData.images.length > 0 && formData.images.length < 5 && (
                   <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between">
                     <span className="text-[11px] font-medium text-gray-500">
-                      {formData.images.length < 4
-                        ? `⚠️ ${4 - formData.images.length} more photo${4 - formData.images.length > 1 ? 's' : ''} required`
-                        : '✓ Photo minimum met'}
+                      ✓ {formData.images.length} of 5 photos added
                     </span>
                     <button
                       type="button"

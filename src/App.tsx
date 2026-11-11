@@ -17,6 +17,7 @@ import { HeroSearch } from './components/HeroSearch';
 import { CategoryPills } from './components/CategoryPills';
 import { FurnitureGrid } from './components/FurnitureGrid';
 import { HomeFeedSections } from './components/HomeFeedSections';
+import { HomeAdBanner } from './components/HomeAdBanner';
 import { BottomNav } from './components/BottomNav';
 import { ListingDetailPage } from './components/ListingDetailPage';
 import { CartPage } from './components/CartPage';
@@ -117,7 +118,6 @@ import {
   formatDistanceKm,
   getCoordinatesForLocation,
 } from './utils/geoUtils';
-import { initFirstLaunchPermissions } from './services/nativePermissionsService';
 
 import {
   INITIAL_FURNITURE,
@@ -1094,9 +1094,6 @@ export default function App() {
     initOneSignal(onesignalAppId).then(() => {
       console.log('[OneSignal] Initialized.');
     });
-
-    // Auto-request native runtime permissions on first app open with 800ms delays (Requirement 4)
-    initFirstLaunchPermissions();
 
     // 1. Fetch fresh listings from Supabase
     fetchAllListings(true).then((items) => {
@@ -2418,6 +2415,32 @@ export default function App() {
         if (orderA !== orderB) {
           return orderA - orderB;
         }
+      } else {
+        // Home page feed: respect homePageOrder (e.g. 1, 2, 3, 4...) and showAtHomePage
+        const isShowHomeA =
+          a.showAtHomePage &&
+          (a.showAtHomePage.toLowerCase().trim() === 'show at home page' ||
+            a.showAtHomePage.toLowerCase().trim() === 'show');
+        const isShowHomeB =
+          b.showAtHomePage &&
+          (b.showAtHomePage.toLowerCase().trim() === 'show at home page' ||
+            b.showAtHomePage.toLowerCase().trim() === 'show');
+
+        const orderA =
+          typeof a.homePageOrder === 'number'
+            ? a.homePageOrder
+            : isShowHomeA
+            ? 500000
+            : 999999;
+        const orderB =
+          typeof b.homePageOrder === 'number'
+            ? b.homePageOrder
+            : isShowHomeB
+            ? 500000
+            : 999999;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
       }
 
       if (filters.sortBy === 'price-asc') return a.price - b.price;
@@ -2432,8 +2455,26 @@ export default function App() {
     };
   }, [furnitureList, selectedCategory, searchQuery, filters, hasLocationPermission, userCoords]);
 
-  // Aliased for product catalog
+  // Aliased for product catalog in results and search views
   const filteredProducts = filteredFurniture;
+
+  // Dedicated home page feed: ONLY show listings where showAtHomePage === 'show at home page'
+  // Sorted by homePageOrder ascending (e.g. 1, 2, 3...)
+  const homeProducts = useMemo(() => {
+    const forHome = furnitureList.filter((item) => {
+      const showVal = String(item.showAtHomePage || '').toLowerCase().trim();
+      return showVal === 'show at home page';
+    });
+
+    return [...forHome].sort((a, b) => {
+      const orderA = typeof a.homePageOrder === 'number' ? a.homePageOrder : 999999;
+      const orderB = typeof b.homePageOrder === 'number' ? b.homePageOrder : 999999;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      return b.id.localeCompare(a.id);
+    });
+  }, [furnitureList]);
 
   // Active filter count for badge
   const appliedFiltersCount = useMemo(() => {
@@ -2683,8 +2724,21 @@ export default function App() {
                   >
                     <div className="flex-1 flex flex-col justify-between min-h-full">
                       <div className="flex-1">
+                        {/* Ad Banner Space: size of first two listings, swipeable, no ad label, shows only if status = 'show' */}
+                        <HomeAdBanner
+                          onAdClick={(link) => {
+                            if (link) {
+                              if (link.startsWith('/') || link.startsWith('#')) {
+                                goTo(link);
+                              } else {
+                                window.open(link, '_blank', 'noopener,noreferrer');
+                              }
+                            }
+                          }}
+                        />
+
                         <FurnitureGrid
-                          items={filteredProducts}
+                          items={homeProducts}
                           savedItemIds={user.savedItemIds}
                           onSelectItem={(item) => {
                             setSelectedItem(item);

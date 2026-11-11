@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { FurnitureItem } from '../types/furniture';
 import { fetchHomeAdverts, AdvertItem } from '../services/advertsService';
 import { fetchDepartments, DepartmentItem } from '../services/departmentsService';
-import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+import { getOptimizedImageUrl, BLANK_WHITE_IMAGE } from '../utils/imageOptimizer';
 import { Bookmark, MapPin } from 'lucide-react';
 
 interface HomeFeedSectionsProps {
@@ -121,12 +121,15 @@ const AdvertBanner: React.FC<AdvertBannerProps> = ({
         onClick={() => onSelectItem(item)}
         className="w-38 sm:w-48 shrink-0 bg-white border border-gray-200 rounded-none overflow-hidden shadow-2xs hover:shadow-md active:scale-[0.98] transition-all flex flex-col cursor-pointer group"
       >
-        {/* Photo Container - displays FULL uncropped image */}
-        <div className="relative aspect-4/3 bg-gray-50 flex items-center justify-center overflow-hidden">
+        {/* Photo Container - displays clean 1:1 image without grey areas */}
+        <div className="relative aspect-4/3 bg-white flex items-center justify-center overflow-hidden">
           <img
-            src={getOptimizedImageUrl(item.imageUrl, { width: 500, quality: 75, format: 'webp' })}
+            src={getOptimizedImageUrl(item.imageUrl, { width: 500, quality: 75, format: 'webp' }) || BLANK_WHITE_IMAGE}
             alt={item.title}
-            className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              e.currentTarget.src = BLANK_WHITE_IMAGE;
+            }}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
             decoding="async"
           />
