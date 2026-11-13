@@ -34,14 +34,17 @@ interface SearchPageProps {
 
 // List of clothing categories for search matching
 const SEARCH_CATEGORIES = [
+  'Just dropped',
   'Tees, shirts',
   'Trousers',
   'Jeans',
   'Jackets, hoodies',
   'Dresses',
   'Skirts',
+  'Accessories',
+  'Shoes',
   'Men clothing',
-  'Women clothing',
+  'Ladies clothing',
 ];
 
 export const SearchPage: React.FC<SearchPageProps> = ({

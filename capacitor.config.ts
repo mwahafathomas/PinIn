@@ -21,6 +21,9 @@ const config: CapacitorConfig = {
       backgroundColor: "#ffffff",
       style: "Light",
     },
+    Filesystem: {
+      androidDisplay: true,
+    },
   },
 };
 

@@ -60,6 +60,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [authSubView, setAuthSubView] = useState<'default' | 'forgot-email' | 'verify-code' | 'new-password'>('default');
   const [resetEmail, setResetEmail] = useState('');
 
+  // Sync initialMode when route or prop changes
+  useEffect(() => {
+    setMode(initialMode);
+    setAuthSubView('default');
+  }, [initialMode]);
+
   // When switching modes, set appropriate default checkbox state
   useEffect(() => {
     if (mode === 'register') {
@@ -412,7 +418,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               }
             }}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-blue-50 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>

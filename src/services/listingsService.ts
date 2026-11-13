@@ -95,6 +95,7 @@ export interface SupabaseListingRow {
   sale_price?: number | string | null;
   is_sale?: boolean | string | number | null;
   item_size?: string | null;
+  shoe_size?: string | null;
   [key: string]: unknown;
 }
 
@@ -291,6 +292,7 @@ export function mapRowToFurnitureItem(row: SupabaseListingRow): FurnitureItem {
       String(row.sale_tag || (row as any).sale || '').toLowerCase().trim() === 'sale' ||
       (row.sale_price !== undefined && row.sale_price !== null && Number(row.sale_price) > 0),
     itemSize: row.item_size ? String(row.item_size).trim() : (row as any).itemSize || (row as any).size || undefined,
+    shoeSize: row.shoe_size ? String(row.shoe_size).trim() : (row as any).shoeSize || (row as any).shoe_sizes || undefined,
     stockType: (row as any).stock_type
       ? String((row as any).stock_type).trim().toLowerCase()
       : (row as any).stockType
@@ -376,6 +378,7 @@ export function mapFurnitureItemToRow(item: FurnitureItem): Record<string, unkno
     verification_video: item.verificationVideo || null,
     sale_tag: item.saleTag || (item.isSale ? 'Sale' : null),
     sale_price: item.salePrice !== undefined ? Number(item.salePrice) : null,
+    ...(item.shoeSize ? { shoe_size: item.shoeSize } : {}),
   };
 
   return payload;

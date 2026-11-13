@@ -262,6 +262,46 @@ function matchFurnitureWithCategories(item: FurnitureItem, categories?: string[]
       )
         return true;
     }
+    if (raw.includes('shoe') || raw.includes('sneaker') || raw.includes('boot')) {
+      if (
+        catLower.includes('shoe') ||
+        titleLower.includes('shoe') ||
+        titleLower.includes('sneaker') ||
+        titleLower.includes('boot') ||
+        titleLower.includes('heel') ||
+        titleLower.includes('sandal') ||
+        titleLower.includes('loafer') ||
+        descLower.includes('shoe')
+      )
+        return true;
+    }
+    if (raw.includes('accessor')) {
+      if (
+        catLower.includes('accessor') ||
+        titleLower.includes('accessor') ||
+        titleLower.includes('bag') ||
+        titleLower.includes('belt') ||
+        titleLower.includes('hat') ||
+        titleLower.includes('cap') ||
+        titleLower.includes('watch') ||
+        titleLower.includes('sunglass') ||
+        titleLower.includes('scarf') ||
+        descLower.includes('accessor')
+      )
+        return true;
+    }
+    if (raw.includes('just dropped') || raw.includes('new arrival')) {
+      const trendingLower = (item.trendingTag || '').toLowerCase();
+      if (
+        catLower.includes('just dropped') ||
+        catLower.includes('new arrival') ||
+        trendingLower.includes('just dropped') ||
+        trendingLower.includes('new') ||
+        titleLower.includes('just dropped') ||
+        descLower.includes('just dropped')
+      )
+        return true;
+    }
     if (raw.includes('couch') || raw.includes('sofa')) {
       if (
         catLower === 'sofas' ||
@@ -2075,8 +2115,12 @@ export default function App() {
         await supabase.from('saved_listings').delete().eq('user_id', user.id);
         await supabase.from('listings').delete().eq('seller_id', user.id);
         await supabase.from('profiles').delete().eq('id', user.id);
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
       }
+      localStorage.removeItem('pinin-auth-v2');
+      localStorage.removeItem('user_token');
+      localStorage.removeItem('user_data');
+      sessionStorage.clear();
     } catch (err) {
       console.warn('Account deletion note:', err);
     }
@@ -2179,33 +2223,47 @@ export default function App() {
       loginUserToOneSignal(authenticatedUser.id, authenticatedUser.email, authenticatedUser.name);
     }
     goTo('/', -1);
-    showToast(
-      authenticatedUser.name
-        ? `Welcome to PinIn, ${authenticatedUser.name}!`
-        : 'Signed in successfully!'
-    );
+    showToast('Welcome to PinIn!');
+  };
+
+  // Local-only Logout - does NOT affect sessions on other devices
+  const handleLogout = async () => {
+    try {
+      logoutUserFromOneSignal();
+
+      // 1. Local signout only - DOES NOT affect other devices
+      await supabase.auth.signOut({ scope: 'local' });
+
+      // 2. Clear local app auth state only
+      localStorage.removeItem('pinin-auth-v2');
+      localStorage.removeItem('user_token');
+      localStorage.removeItem('user_data');
+      sessionStorage.clear();
+      setUser(INITIAL_USER);
+
+      // 3. Redirect to login
+      window.location.href = '/login';
+    } catch (e) {
+      console.error(e);
+      // Force clear even if error
+      localStorage.clear();
+      sessionStorage.clear();
+      setUser(INITIAL_USER);
+      window.location.href = '/login';
+    }
   };
 
   // Toggle Auth / Sign out
   const handleToggleAuth = async () => {
     if (user.isLoggedIn) {
-      logoutUserFromOneSignal();
-      try {
-        localStorage.removeItem('user_token');
-        localStorage.removeItem('user_data');
-      } catch {}
-      try {
-        await supabase.auth.signOut();
-      } catch {}
-      setUser(INITIAL_USER);
-      showToast('Signed out of PinIn');
+      await handleLogout();
     } else {
       handleOpenAuth('signin');
     }
   };
 
-  // Clothing department pills after search box: All, Men & Women
-  const categories = ['All', 'Men', 'Women'];
+  // Clothing department pills after search box: All, Men & Ladies
+  const categories = ['All', 'Men', 'Ladies'];
 
   // Filtered & Sorted items (with km distance & <50km proximity prioritization)
   const { filteredFurniture, nearbyListingsCount } = useMemo(() => {
@@ -2240,16 +2298,22 @@ export default function App() {
     });
 
     const filtered = enrichedList.filter((item) => {
-      // Clothing Gender filter (Men & Women)
+      // Clothing Gender filter (Men & Ladies)
       const activeGender = (
         filters.gender || (selectedCategory !== 'All' ? selectedCategory.toLowerCase().trim() : '')
       ).toLowerCase().trim();
 
-      if (activeGender === 'men' || activeGender === 'women') {
+      if (activeGender === 'men' || activeGender === 'ladies' || activeGender === 'women') {
+        const isLadiesActive = activeGender === 'ladies' || activeGender === 'women';
         const itemGender = (item.gender || '').toLowerCase().trim();
         if (itemGender) {
           // Explicit gender assigned from Supabase
-          if (itemGender !== activeGender && itemGender !== 'unisex') {
+          const itemMatchesLadies = itemGender === 'ladies' || itemGender === 'women';
+          if (isLadiesActive) {
+            if (!itemMatchesLadies && itemGender !== 'unisex') {
+              return false;
+            }
+          } else if (itemGender !== activeGender && itemGender !== 'unisex') {
             return false;
           }
         } else {
@@ -2273,10 +2337,15 @@ export default function App() {
               itemCat.includes('trouser') ||
               itemTitle.includes('trouser') ||
               itemCat.includes('hoodie') ||
-              itemTitle.includes('hoodie');
+              itemTitle.includes('hoodie') ||
+              itemCat.includes('shoe') ||
+              itemCat.includes('accessor') ||
+              itemCat.includes('just dropped');
 
-            const isWomenOnly =
-              (itemCat.includes('women') ||
+            const isLadiesOnly =
+              (itemCat.includes('ladies') ||
+                itemCat.includes('women') ||
+                itemTitle.includes('ladies') ||
                 itemTitle.includes('women') ||
                 itemTitle.includes('dress') ||
                 itemTitle.includes('skirt') ||
@@ -2285,15 +2354,18 @@ export default function App() {
               !itemTitle.includes('men') &&
               !itemCat.includes('men');
 
-            if (!isMenMatch || isWomenOnly) {
+            if (!isMenMatch || isLadiesOnly) {
               return false;
             }
-          } else if (activeGender === 'women') {
-            const isWomenMatch =
+          } else if (isLadiesActive) {
+            const isLadiesMatch =
+              itemCat === 'ladies' ||
               itemCat === 'women' ||
-              itemCat.includes('women') ||
               itemCat.includes('ladies') ||
+              itemCat.includes('women') ||
+              itemTitle.includes('ladies') ||
               itemTitle.includes('women') ||
+              itemDesc.includes('ladies') ||
               itemDesc.includes('women') ||
               itemCat.includes('female') ||
               itemTitle.includes('female') ||
@@ -2308,9 +2380,12 @@ export default function App() {
               itemCat.includes('jean') ||
               itemTitle.includes('jean') ||
               itemCat.includes('hoodie') ||
-              itemTitle.includes('hoodie');
+              itemTitle.includes('hoodie') ||
+              itemCat.includes('shoe') ||
+              itemCat.includes('accessor') ||
+              itemCat.includes('just dropped');
 
-            if (!isWomenMatch) {
+            if (!isLadiesMatch) {
               return false;
             }
           }
@@ -2690,20 +2765,21 @@ export default function App() {
                       onOpenSearchPage={() => goTo('/search?type=clothes')}
                     />
 
-                    {/* Clothing Department Pills: All, Men & Women */}
+                    {/* Clothing Department Pills: All, Men & Ladies */}
                     <CategoryPills
                       categories={categories}
                       selectedCategory={selectedCategory}
                       onSelectCategory={(cat) => {
                         const trimmed = cat.trim();
-                        if (trimmed.toLowerCase() === 'men' || trimmed.toLowerCase() === 'women') {
+                        const lower = trimmed.toLowerCase();
+                        if (lower === 'men' || lower === 'ladies' || lower === 'women') {
                           setSelectedCategory(trimmed);
                           setFilters((prev) => ({
                             ...prev,
                             category: trimmed,
                             categories: [trimmed],
                           }));
-                          goTo(`/categories?gender=${trimmed.toLowerCase()}`);
+                          goTo(`/categories?gender=${lower}`);
                           return;
                         }
                         setSelectedCategory(cat);
@@ -2969,8 +3045,8 @@ export default function App() {
                     } else {
                       const chosenList = allSelected && allSelected.length > 0 ? allSelected : subItem ? [subItem] : [];
                       const targetGender = (groupId || '').toLowerCase().trim();
-                      if (targetGender === 'women') {
-                        setSelectedCategory('Women');
+                      if (targetGender === 'ladies' || targetGender === 'women') {
+                        setSelectedCategory('Ladies');
                       } else if (targetGender === 'men') {
                         setSelectedCategory('Men');
                       }

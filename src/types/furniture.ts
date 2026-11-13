@@ -64,11 +64,12 @@ export interface FurnitureItem {
   costPrice?: number;
   isSupplierProduct?: boolean;
   itemSize?: string;
+  shoeSize?: string;
   // Availability & Stock Status
   availabilityStatus?: string;
   stockType?: string; // 'made to order' | 'in stock'
   availableDate?: string;
-  // Department / Gender (e.g. 'men', 'women', 'unisex')
+  // Department / Gender (e.g. 'men', 'ladies', 'unisex')
   gender?: string;
 }
 

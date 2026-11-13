@@ -135,7 +135,7 @@ export const NewPassword: React.FC<NewPasswordProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 overflow-y-auto flex flex-col font-sans">
+    <div className="fixed inset-0 z-50 bg-gray-50 overflow-y-auto flex flex-col font-sans animate-in slide-in-from-right duration-200">
       {/* Top Header Bar (White) */}
       <header className="sticky top-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
@@ -143,7 +143,7 @@ export const NewPassword: React.FC<NewPasswordProps> = ({
             type="button"
             onClick={handleBack}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-blue-50 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>

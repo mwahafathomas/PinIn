@@ -203,6 +203,33 @@ export async function submitReturnRequest(data: {
     } catch (reasonErr) {
       console.warn('Supabase return_reasons notice:', reasonErr);
     }
+
+    // Update order status in orders table if orderId was provided
+    const targetOrderId = data.orderId || record.orderNumber;
+    if (data.orderId) {
+      try {
+        await supabase
+          .from('orders')
+          .update({
+            status: 'Returned',
+            delivery_status: 'Returned',
+            latest_update: `Return requested: ${record.reason}`,
+          })
+          .eq('id', data.orderId);
+      } catch {}
+    }
+
+    // Invoke Supabase Edge Function `send-order-email` for return
+    const order = { id: data.orderId || record.orderNumber };
+    try {
+      console.log('Sending return email for order', order.id);
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-order-email', {
+        body: { order_id: order.id, type: 'return' }
+      });
+      console.log('Return email result', emailData, emailError);
+    } catch (e) {
+      console.error('Email failed', e);
+    }
   } catch (err) {
     console.warn('Returns request error:', err);
   }
@@ -388,6 +415,16 @@ export async function submitOrderRefundRequest(order: {
         latest_update: 'Order cancelled and refund requested',
       })
       .eq('id', order.id);
+
+    try {
+      console.log('Sending refund email for order', order.id);
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-order-email', {
+        body: { order_id: order.id, type: 'refund' }
+      });
+      console.log('Refund email result', emailData, emailError);
+    } catch (e) {
+      console.error('Email failed', e);
+    }
   } catch {}
 
   // 4. Update order in localStorage

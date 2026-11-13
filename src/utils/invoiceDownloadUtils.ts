@@ -1,4 +1,7 @@
 import { jsPDF } from 'jspdf';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { OrderRecord } from '../services/ordersService';
 import { BusinessInfo } from '../services/businessInfoService';
 
@@ -32,18 +35,27 @@ export function formatInvoiceAddress(order: OrderRecord): string {
   return 'Standard Delivery Address';
 }
 
+export interface InvoiceDownloadResult {
+  success: boolean;
+  message: string;
+  uri?: string;
+}
+
 /**
  * Builds a clean, official PDF invoice using jsPDF.
- * Output file name: PinIn-Invoice-#ORDER_ID.pdf (e.g. PinIn-Invoice-#1234.pdf)
- * Directly interfaces with Android native bridge window.Android.saveInvoice(base64Data, fileName)
- * when running inside the Android APK.
+ * On Capacitor APK, saves to Documents + Downloads via @capacitor/filesystem and opens @capacitor/share.
+ * Falls back to custom WebView bridge or browser doc.save() on web.
  */
-export function downloadInvoice(order: OrderRecord, info: BusinessInfo): void {
+export async function downloadInvoice(
+  order: OrderRecord,
+  info: BusinessInfo
+): Promise<InvoiceDownloadResult> {
   const cleanOrderNum = String(order.orderNumber || order.id || '1001')
     .replace(/^PIN-/i, '')
-    .replace(/^#/, '');
-  const fileName = `PinIn-Invoice-#${cleanOrderNum}.pdf`;
-  const invoiceNum = order.invoiceNumber || `INV-${cleanOrderNum}`;
+    .replace(/^#/, '')
+    .replace(/[^a-zA-Z0-9_-]/g, '');
+  const fileName = `Invoice-${cleanOrderNum || '1001'}.pdf`;
+  const invoiceNum = order.invoiceNumber || `INV-${cleanOrderNum || '1001'}`;
   const paymentMethod = extractPaymentMethod(order.delivery);
   const deliveryAddress = formatInvoiceAddress(order);
 
@@ -293,19 +305,133 @@ export function downloadInvoice(order: OrderRecord, info: BusinessInfo): void {
   doc.setTextColor(45, 142, 222);
   doc.text('Thank you for shopping with PinIn!', pageWidth / 2, currentY, { align: 'center' });
 
-  // Native Android JavaScriptInterface Bridge check (Step 3 & 4)
-  const androidObj = (window as any).Android;
-  if (androidObj && typeof androidObj.saveInvoice === 'function') {
+  const dataUri = doc.output('datauristring');
+  const pdfBase64 = dataUri.includes(',') ? dataUri.split(',')[1] : dataUri;
+
+  // 1. Capacitor Native APK path (@capacitor/filesystem + @capacitor/share)
+  if (Capacitor.isNativePlatform()) {
     try {
-      const dataUri = doc.output('datauristring');
-      const base64Data = dataUri.includes(',') ? dataUri.split(',')[1] : dataUri;
-      androidObj.saveInvoice(base64Data, fileName);
-      return;
-    } catch (err) {
-      console.warn('Android native invoice save notice:', err);
+      try {
+        const permStatus = await Filesystem.checkPermissions();
+        if (permStatus.publicStorage !== 'granted') {
+          await Filesystem.requestPermissions();
+        }
+      } catch {
+        // Ignore if scoped storage does not require explicit publicStorage runtime prompt
+      }
+
+      // Save to Documents directory
+      let resultUri: string | undefined;
+      let savedLocation = `Documents/${fileName}`;
+
+      try {
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: pdfBase64,
+          directory: Directory.Documents,
+          recursive: true,
+        });
+        resultUri = result.uri;
+      } catch (docError) {
+        console.warn('Directory.Documents write failed, falling back to Cache:', docError);
+        const cacheResult = await Filesystem.writeFile({
+          path: fileName,
+          data: pdfBase64,
+          directory: Directory.Cache,
+          recursive: true,
+        });
+        resultUri = cacheResult.uri;
+        savedLocation = fileName;
+      }
+
+      // For Android - also save to Downloads via ExternalStorage
+      let savedToDownloads = false;
+      try {
+        await Filesystem.writeFile({
+          path: `Download/${fileName}`,
+          data: pdfBase64,
+          directory: Directory.ExternalStorage,
+          recursive: true,
+        });
+        savedToDownloads = true;
+      } catch {
+        // Fallback if ExternalStorage is restricted on Android 11+
+      }
+
+      // Also trigger optional native Android JavaScriptInterface bridge if present
+      const androidObj = (window as any).Android;
+      if (androidObj && typeof androidObj.saveInvoice === 'function') {
+        try {
+          androidObj.saveInvoice(pdfBase64, fileName);
+          savedToDownloads = true;
+        } catch (bridgeErr) {
+          console.warn('Android native bridge invoice save notice:', bridgeErr);
+        }
+      }
+
+      // Show Share dialog so user can Save As / Open / Send
+      if (resultUri) {
+        try {
+          await Share.share({
+            title: fileName,
+            text: `Invoice ${invoiceNum}`,
+            url: resultUri,
+            dialogTitle: 'Save or Share Invoice',
+          });
+        } catch (shareErr: any) {
+          const errMsg = String(shareErr?.message || '').toLowerCase();
+          if (!errMsg.includes('cancel') && !errMsg.includes('dismiss')) {
+            console.warn('Share sheet notice:', shareErr);
+          }
+        }
+      }
+
+      return {
+        success: true,
+        message: savedToDownloads
+          ? `Invoice saved to Documents/${fileName} and Downloads`
+          : `Invoice saved to ${savedLocation}`,
+        uri: resultUri,
+      };
+    } catch (err: any) {
+      console.error('APK invoice download failed:', err);
+      return {
+        success: false,
+        message: `Download failed: ${err?.message || 'Unable to save invoice PDF'}`,
+      };
     }
   }
 
-  // Standard Web Download fallback (Step 2)
-  doc.save(fileName);
+  // 2. Non-Capacitor Android WebView JavaScriptInterface bridge fallback
+  const androidObj = (window as any).Android;
+  if (androidObj && typeof androidObj.saveInvoice === 'function') {
+    try {
+      androidObj.saveInvoice(pdfBase64, fileName);
+      return {
+        success: true,
+        message: `Invoice saved to Downloads/${fileName}`,
+      };
+    } catch (err: any) {
+      console.warn('Android native invoice save notice:', err);
+      return {
+        success: false,
+        message: `Download failed: ${err?.message || 'Android bridge error'}`,
+      };
+    }
+  }
+
+  // 3. Standard Web Browser download
+  try {
+    doc.save(fileName);
+    return {
+      success: true,
+      message: `Downloaded ${fileName}`,
+    };
+  } catch (err: any) {
+    console.error('Web invoice download failed:', err);
+    return {
+      success: false,
+      message: `Download failed: ${err?.message || 'Unable to download PDF'}`,
+    };
+  }
 }

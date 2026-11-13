@@ -257,12 +257,23 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
     setIsSubmittingRefund(true);
 
     try {
-      await submitOrderRefundRequest(orderToRefund);
+      const order = orderToRefund;
+      await submitOrderRefundRequest(order);
+
+      try {
+        console.log('Sending refund email for order', order.id);
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-order-email', {
+          body: { order_id: order.id, type: 'refund' }
+        });
+        console.log('Refund email result', emailData, emailError);
+      } catch (e) {
+        console.error('Email failed', e);
+      }
 
       // Update in-memory orders list so status turns to 'Cancelled' immediately
       setOrdersList((prev) =>
         prev.map((o) =>
-          o.id === orderToRefund.id || o.orderNumber === orderToRefund.orderNumber
+          o.id === order.id || o.orderNumber === order.orderNumber
             ? { ...o, status: 'Cancelled', deliveryStatus: 'Cancelled' }
             : o
         )

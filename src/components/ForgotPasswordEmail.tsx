@@ -9,6 +9,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { supabase } from '../supabaseClient';
 
 interface ForgotPasswordEmailProps {
@@ -149,7 +150,12 @@ export const ForgotPasswordEmail: React.FC<ForgotPasswordEmailProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 overflow-y-auto flex flex-col font-sans">
+    <motion.div
+      initial={{ x: '-100%' }}
+      animate={{ x: 0 }}
+      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+      className="fixed inset-0 z-50 bg-gray-50 overflow-y-auto flex flex-col font-sans"
+    >
       {/* Top Header Bar (White) */}
       <header className="sticky top-0 z-30 w-full bg-white border-b border-gray-200 shadow-xs">
         <div className="w-full max-w-md md:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-14 flex items-center justify-between relative">
@@ -157,7 +163,7 @@ export const ForgotPasswordEmail: React.FC<ForgotPasswordEmailProps> = ({
             type="button"
             onClick={handleBack}
             aria-label="Go back"
-            className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
+            className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-blue-50 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
           >
             <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
           </button>
@@ -293,6 +299,6 @@ export const ForgotPasswordEmail: React.FC<ForgotPasswordEmailProps> = ({
           </div>
         </form>
       </main>
-    </div>
+    </motion.div>
   );
 };

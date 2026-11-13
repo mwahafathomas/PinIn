@@ -83,6 +83,7 @@ BEGIN
     ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS collection_lng numeric;
     ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS collection_suburb text;
     ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS collection_address text;
+    ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS shoe_size text;
     ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now();
 END $$;
 

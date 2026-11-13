@@ -374,7 +374,7 @@ export async function createOrder(data: {
       images: record.images,
     };
 
-    const { error: fullError } = await supabase.from('orders').insert([fullRow]);
+    const { data: fullData, error: fullError } = await supabase.from('orders').insert([fullRow]).select();
 
     if (fullError) {
       console.warn('[Supabase Orders] Full schema insert notice:', fullError.message, fullError.code);
@@ -401,24 +401,45 @@ export async function createOrder(data: {
         status: record.status,
       };
 
-      const { error: baseError } = await supabase.from('orders').insert([baseRow]);
+      const { data: baseData, error: baseError } = await supabase.from('orders').insert([baseRow]).select();
 
       if (baseError) {
         console.warn('[Supabase Orders] Base row insert notice:', baseError.message, baseError.code);
         // Attempt 3: Omit id so Postgres can use its default gen_random_uuid() or serial
         const { id: _omitId, ...rowWithoutId } = baseRow;
-        const { error: noIdError } = await supabase.from('orders').insert([rowWithoutId]);
+        const { data: noIdData, error: noIdError } = await supabase.from('orders').insert([rowWithoutId]).select();
 
         if (noIdError) {
           console.error('[Supabase Orders] All insert tiers failed:', noIdError.message, noIdError.details);
         } else {
+          if (noIdData && noIdData[0]?.id) {
+            record.id = String(noIdData[0].id);
+          }
           console.log('[Supabase Orders] Insert succeeded with DB-generated ID');
         }
       } else {
+        if (baseData && baseData[0]?.id) {
+          record.id = String(baseData[0].id);
+        }
         console.log('[Supabase Orders] Insert succeeded with base schema');
       }
     } else {
+      if (fullData && fullData[0]?.id) {
+        record.id = String(fullData[0].id);
+      }
       console.log('[Supabase Orders] Insert succeeded with full schema');
+    }
+
+    // Trigger send-order-email Edge Function
+    const newOrder = record;
+    try {
+      console.log('Sending email for order', newOrder.id);
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-order-email', {
+        body: { order_id: newOrder.id, type: 'purchase' }
+      });
+      console.log('Email result', emailData, emailError);
+    } catch (e) {
+      console.error('Email failed', e);
     }
 
     // Also record into Supabase `orders_history` table
@@ -758,3 +779,39 @@ export async function getUserOrders(userEmail?: string, buyerId?: string): Promi
 
 // Aliases for compatibility
 export const fetchUserOrders = getUserOrders;
+
+/**
+ * Update order status and trigger Supabase Edge Function `send-order-email`
+ */
+export async function updateOrderStatus(orderId: string, newStatus: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        status: newStatus,
+        delivery_status: newStatus,
+        latest_update: `Order status updated to ${newStatus}`,
+      })
+      .eq('id', orderId);
+
+    if (error) {
+      console.warn('[Supabase Orders] updateOrderStatus notice:', error.message);
+    }
+
+    try {
+      const lower = (newStatus || '').toLowerCase();
+      if (lower === 'cancelled' || lower === 'refunded') {
+        await supabase.functions.invoke('send-order-email', { body: { order_id: orderId, type: 'refund' } });
+      } else if (lower === 'returned') {
+        await supabase.functions.invoke('send-order-email', { body: { order_id: orderId, type: 'return' } });
+      }
+    } catch (e) {
+      console.error('Email failed', e);
+    }
+
+    return !error;
+  } catch (err) {
+    console.warn('[Supabase Orders] updateOrderStatus error:', err);
+    return false;
+  }
+}

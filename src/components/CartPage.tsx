@@ -325,6 +325,13 @@ export const CartPage: React.FC<CartPageProps> = ({
   const doorToDoorPrice = doorToDoorMethod ? doorToDoorMethod.price : 60;
   const deliveryFee = isDeliveryFree ? 0 : doorToDoorPrice;
   const grandTotal = subtotal + deliveryFee;
+  const hasAddress = Boolean(
+    currentAddress &&
+      currentAddress.streetAddressLine1 &&
+      currentAddress.streetAddressLine1.trim().length > 0 &&
+      currentAddress.cityTown &&
+      currentAddress.cityTown.trim().length > 0
+  );
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden font-sans">
@@ -602,30 +609,29 @@ export const CartPage: React.FC<CartPageProps> = ({
 
       {/* Pinned & Always Visible "Proceed to check out" Bottom Box */}
       {items.length > 0 && !placedOrder && (
-        <div className="shrink-0 z-30 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-3px_10px_rgba(0,0,0,0.04)]">
+        <div className="shrink-0 z-30 bg-white border-t border-gray-200 px-4 py-3 shadow-[0_-3px_10px_rgba(0,0,0,0.04)] space-y-2">
+          {!hasAddress && selectedItems.length > 0 && (
+            <p className="text-[11px] font-bold text-amber-700 text-center">
+              Please add a delivery address above before proceeding to check out.
+            </p>
+          )}
           <button
             type="button"
-            disabled={selectedItems.length === 0}
+            disabled={selectedItems.length === 0 || !hasAddress}
             onClick={(e) => {
-              if (selectedItems.length === 0) return;
+              if (selectedItems.length === 0 || !hasAddress) {
+                if (!hasAddress) {
+                  setShowAddressRequiredToast(true);
+                  setTimeout(() => setShowAddressRequiredToast(false), 2500);
+                }
+                return;
+              }
 
               if (!user?.isLoggedIn) {
                 e.preventDefault();
                 if (onOpenAuth) {
                   onOpenAuth('signin');
                 }
-                return;
-              }
-
-              // check delivery address: do not allow proceeding without delivery address
-              const hasAddress = Boolean(
-                (currentAddress && currentAddress.streetAddressLine1 && currentAddress.cityTown) ||
-                (deliveryAddress && deliveryAddress.trim().length > 0)
-              );
-
-              if (!hasAddress) {
-                setShowAddressRequiredToast(true);
-                setTimeout(() => setShowAddressRequiredToast(false), 2500);
                 return;
               }
 

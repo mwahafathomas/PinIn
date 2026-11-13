@@ -286,6 +286,11 @@ export function mapProductRowToFurnitureItem(product: SupabaseProductRow): Furni
     stockQuantity: stockQty,
     costPrice: costPriceNum,
     isSupplierProduct: true,
+    shoeSize: (product as any).shoe_size
+      ? String((product as any).shoe_size).trim()
+      : (product as any).shoeSize
+      ? String((product as any).shoeSize).trim()
+      : undefined,
     stockType: (product as any).stock_type
       ? String((product as any).stock_type).trim().toLowerCase()
       : (product as any).stockType

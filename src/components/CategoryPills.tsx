@@ -7,12 +7,12 @@ interface CategoryPillsProps {
 }
 
 export const CategoryPills: React.FC<CategoryPillsProps> = ({
-  categories = ['All', 'Men', 'Women'],
+  categories = ['All', 'Men', 'Ladies'],
   selectedCategory,
   onSelectCategory,
 }) => {
   const displayCategories =
-    categories && categories.length > 0 ? categories : ['All', 'Men', 'Women'];
+    categories && categories.length > 0 ? categories : ['All', 'Men', 'Ladies'];
 
   return (
     <div className="w-full bg-white border-b border-gray-100 shadow-2xs">

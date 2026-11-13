@@ -40,6 +40,8 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
   const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(DEFAULT_BUSINESS_INFO);
   const [isDownloaded, setIsDownloaded] = useState<boolean>(false);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [downloadFeedback, setDownloadFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -47,6 +49,9 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
       fetchBusinessInfo().then(setBusinessInfo);
       setStep(1);
       setSelectedOrder(null);
+      setIsDownloaded(false);
+      setIsDownloading(false);
+      setDownloadFeedback(null);
     }
   }, [isOpen]);
 
@@ -81,10 +86,29 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
     return [];
   };
 
-  const handleDownload = (order: OrderRecord) => {
-    downloadInvoice(order, businessInfo);
-    setIsDownloaded(true);
-    setTimeout(() => setIsDownloaded(false), 3000);
+  const handleDownload = async (order: OrderRecord) => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    setDownloadFeedback(null);
+
+    try {
+      const result = await downloadInvoice(order, businessInfo);
+      if (result.success) {
+        setIsDownloaded(true);
+        setDownloadFeedback({ type: 'success', text: result.message });
+        setTimeout(() => setIsDownloaded(false), 3500);
+        setTimeout(() => setDownloadFeedback(null), 5000);
+      } else {
+        setDownloadFeedback({ type: 'error', text: result.message });
+      }
+    } catch (err: any) {
+      setDownloadFeedback({
+        type: 'error',
+        text: `Download failed: ${err?.message || 'Unexpected error'}`,
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -274,11 +298,17 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDownload(selectedOrder)}
+                  disabled={isDownloading}
                   aria-label="Download invoice file"
                   title="Download invoice file"
-                  className="p-2 rounded-xl border border-gray-300 bg-white hover:bg-blue-50 text-[#2D8EDE] hover:border-[#2D8EDE] transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 shadow-2xs"
+                  className="p-2 rounded-xl border border-gray-300 bg-white hover:bg-blue-50 text-[#2D8EDE] hover:border-[#2D8EDE] disabled:opacity-60 transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 shadow-2xs"
                 >
-                  {isDownloaded ? (
+                  {isDownloading ? (
+                    <>
+                      <Download className="w-4 h-4 text-[#2D8EDE] stroke-[2.5] animate-pulse" />
+                      <span className="text-[11px] font-black text-[#2D8EDE]">Saving...</span>
+                    </>
+                  ) : isDownloaded ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-600 stroke-[3]" />
                       <span className="text-[11px] font-black text-emerald-600">Saved</span>
@@ -291,6 +321,18 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
                   )}
                 </button>
               </div>
+
+              {downloadFeedback && (
+                <div
+                  className={`px-3.5 py-2 text-xs font-bold border-b ${
+                    downloadFeedback.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-red-50 text-red-700 border-red-200'
+                  }`}
+                >
+                  {downloadFeedback.text}
+                </div>
+              )}
 
               {/* =================================================================== */}
               {/* UPPER SECTION: Split into Left Column and Right Column              */}

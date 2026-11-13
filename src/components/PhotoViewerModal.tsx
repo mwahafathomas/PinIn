@@ -344,7 +344,7 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
             onClose();
           }}
           aria-label="Go back"
-          className="p-2 -ml-2 rounded-lg text-gray-900 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
+          className="p-2 -ml-2 rounded-lg text-[#2D8EDE] hover:bg-blue-50 active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
         >
           <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
         </button>
@@ -401,37 +401,13 @@ export const PhotoViewerModal: React.FC<PhotoViewerModalProps> = ({
       </main>
 
       {/* Bottom Photo Count Bar (Pure White Background) */}
-      <footer className="w-full shrink-0 pb-6 pt-3 px-4 flex items-center justify-between z-20 bg-white border-t border-gray-100">
-        <div className="w-16">
-          {currentIndex > 0 && scale <= 1.05 && (
-            <button
-              type="button"
-              onClick={() => setCurrentIndex((prev) => prev - 1)}
-              className="text-xs font-bold text-gray-500 hover:text-gray-900 cursor-pointer"
-            >
-              Previous
-            </button>
-          )}
-        </div>
-
+      <footer className="w-full shrink-0 pb-6 pt-3 px-4 flex items-center justify-center z-20 bg-white border-t border-gray-100">
         {/* Counter */}
         {images.length > 0 && (
           <div className="bg-gray-100 px-3.5 py-1 rounded-full text-gray-900 text-xs font-bold border border-gray-200 shadow-xs pointer-events-none">
             {currentIndex + 1} / {images.length}
           </div>
         )}
-
-        <div className="w-16 text-right">
-          {currentIndex < images.length - 1 && scale <= 1.05 && (
-            <button
-              type="button"
-              onClick={() => setCurrentIndex((prev) => prev + 1)}
-              className="text-xs font-bold text-[#2D8EDE] hover:underline cursor-pointer"
-            >
-              Next
-            </button>
-          )}
-        </div>
       </footer>
     </div>
   );

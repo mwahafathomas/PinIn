@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { OrderRecord } from '../services/ordersService';
 import { submitReturnRequest } from '../services/returnsAndRefundsService';
+import { supabase } from '../supabaseClient';
 import { UserAccount } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
 
@@ -160,16 +161,28 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
           ? otherReasonText.trim()
           : additionalDetails.trim() || undefined;
 
+      const order = selectedOrder;
       const res = await submitReturnRequest({
-        orderNumber: selectedOrder.orderNumber,
-        orderId: selectedOrder.id,
+        orderNumber: order.orderNumber,
+        orderId: order.id,
         userEmail: buyerEmail,
         userName: buyerName,
-        listingId: selectedOrder.listingId,
-        itemBought: selectedOrder.itemBought,
+        listingId: order.listingId,
+        itemBought: order.itemBought,
         reason: selectedReason,
         description: finalDescription,
       });
+
+      // Send return email via Supabase Edge Function
+      try {
+        console.log('Sending return email for order', order.id);
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-order-email', {
+          body: { order_id: order.id, type: 'return' }
+        });
+        console.log('Return email result', emailData, emailError);
+      } catch (e) {
+        console.error('Email failed', e);
+      }
 
       if (res.success) {
         setSubmittedSuccess(true);

@@ -26,7 +26,22 @@ import { Share as NativeShare } from '@capacitor/share';
 import { supabase } from '../supabaseClient';
 import { PhotoViewerModal } from './PhotoViewerModal';
 
-const AVAILABLE_SIZES = ['S', 'M', 'L', 'X', 'XL'] as const;
+const CLOTHING_SIZES = ['S', 'M', 'L', 'X', 'XL'] as const;
+const SHOE_SIZES = ['3', '4', '5', '6', '7', '8', '9'] as const;
+
+function parseShoeSizeOptions(rawShoeSize?: string): string[] {
+  const defaultSizes = [...SHOE_SIZES];
+  if (!rawShoeSize || !rawShoeSize.trim()) return defaultSizes;
+  const cleaned = rawShoeSize.trim().toLowerCase();
+  if (cleaned === '3-9' || cleaned === '3 - 9' || cleaned === '3 to 9' || cleaned === 'all') {
+    return defaultSizes;
+  }
+  const tokens = rawShoeSize
+    .split(/[,;/]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return tokens.length > 0 ? tokens : defaultSizes;
+}
 
 interface ListingDetailPageProps {
   item: FurnitureItem | null;
@@ -134,10 +149,12 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   }, [isOpen, item?.id]);
 
   useEffect(() => {
-    // Scroll carousel to top on open
+    // Scroll carousel to top on open and reset selected size
     if (isOpen) {
       setActiveImageIndex(0);
       setIsLoading(false);
+      setSelectedSize('');
+      setFeedbackToast(null);
     }
   }, [isOpen, item?.id]);
 
@@ -171,6 +188,13 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   const isItemInStock = isListingInStock(item);
   const itemAvailableDate = getListingAvailableDate(item);
   const allImages = listingImages.length > 0 ? listingImages : [BLANK_WHITE_IMAGE];
+  const isShoeListing = Boolean(
+    (item.category && item.category.toLowerCase().includes('shoe')) ||
+      (item.shoeSize && item.shoeSize.trim().length > 0)
+  );
+  const sizeOptions: readonly string[] = isShoeListing
+    ? parseShoeSizeOptions(item.shoeSize)
+    : CLOTHING_SIZES;
 
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -247,24 +271,33 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeImageIndex, allImages.length]);
 
+  const checkIsUserLoggedIn = (): boolean => {
+    if (user) {
+      return Boolean(
+        user.isLoggedIn &&
+          user.id &&
+          user.id !== 'guest' &&
+          user.id !== 'guest_deleted'
+      );
+    }
+    try {
+      const raw = localStorage.getItem('user_data');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return Boolean(
+          parsed?.isLoggedIn &&
+            parsed?.id &&
+            parsed.id !== 'guest' &&
+            parsed.id !== 'guest_deleted'
+        );
+      }
+    } catch {}
+    return false;
+  };
+
   const handleAddToCart = () => {
     // Check if user is signed in
-    const isUserLoggedIn = Boolean(
-      user?.isLoggedIn ||
-      user?.id ||
-      (() => {
-        try {
-          const raw = localStorage.getItem('user_data');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            return Boolean(parsed?.isLoggedIn || parsed?.id);
-          }
-        } catch {}
-        return false;
-      })()
-    );
-
-    if (!isUserLoggedIn) {
+    if (!checkIsUserLoggedIn()) {
       if (onOpenAuth) {
         onOpenAuth('signin');
       } else {
@@ -301,22 +334,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
 
   const handleBuyNow = () => {
     // Check if user is signed in
-    const isUserLoggedIn = Boolean(
-      user?.isLoggedIn ||
-      user?.id ||
-      (() => {
-        try {
-          const raw = localStorage.getItem('user_data');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            return Boolean(parsed?.isLoggedIn || parsed?.id);
-          }
-        } catch {}
-        return false;
-      })()
-    );
-
-    if (!isUserLoggedIn) {
+    if (!checkIsUserLoggedIn()) {
       if (onOpenAuth) {
         onOpenAuth('signin');
       } else {
@@ -576,13 +594,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 {item.description ||
                   'High quality apparel piece available on PinIn. Well maintained and ready for immediate purchase.'}
               </p>
-
-              {item.dimensions && (
-                <p className="text-xs font-bold text-gray-500 mt-3 pt-2.5 border-t border-gray-200 flex items-center gap-1.5">
-                  <span className="font-extrabold text-gray-800">Dimensions:</span>
-                  <span className="text-gray-700 font-semibold">{item.dimensions}</span>
-                </p>
-              )}
             </div>
 
             {/* Product Information (Clean, with grey divider) */}
@@ -677,18 +688,18 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                 </div>
               </div>
 
-              {/* Sizes: S, M, L, X, XL */}
+              {/* Sizes: Shoe sizes (3-9) for Shoes category, Clothing sizes (S, M, L, X, XL) otherwise */}
               <div className="pt-3 border-t border-gray-200 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black text-gray-900 uppercase tracking-wider">
-                    Select Size
+                    {isShoeListing ? 'Select Shoe Size' : 'Select Size'}
                   </span>
                   <span className="text-xs font-black text-[#2D8EDE]">
                     Size: {selectedSize || 'Not selected'}
                   </span>
                 </div>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {AVAILABLE_SIZES.map((sz) => {
+                <div className={`grid gap-1.5 ${sizeOptions.length === 7 ? 'grid-cols-7' : 'grid-cols-5'}`}>
+                  {sizeOptions.map((sz) => {
                     const isSelected = selectedSize === sz;
                     return (
                       <button
@@ -727,7 +738,7 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
               </div>
             </div>
 
-            {/* Sold by & SKU & Feedback Toast */}
+            {/* Sold by & SKU */}
             <div className="pb-3 border-b border-gray-200 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -749,44 +760,6 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
                   </div>
                 )}
               </div>
-
-              {/* Feedback toast when added to cart or validation alert */}
-              {feedbackToast && (
-                <div
-                  className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-between animate-in fade-in duration-200 ${
-                    feedbackToast.type === 'success'
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                      : 'bg-amber-50 border-amber-200 text-amber-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    {feedbackToast.type === 'success' ? (
-                      <Check className="w-4 h-4 stroke-[3] text-emerald-600" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 stroke-[2.5] text-amber-600" />
-                    )}
-                    <span>{feedbackToast.message}</span>
-                  </div>
-                  {feedbackToast.type === 'success' && onOpenCart && (
-                    <button
-                      type="button"
-                      onClick={onOpenCart}
-                      className="underline text-emerald-700 hover:text-emerald-900 font-extrabold cursor-pointer"
-                    >
-                      View Cart
-                    </button>
-                  )}
-                  {feedbackToast.message.includes('already in users cart') && onOpenCart && (
-                    <button
-                      type="button"
-                      onClick={onOpenCart}
-                      className="underline text-[#2D8EDE] hover:text-blue-700 font-black cursor-pointer text-xs"
-                    >
-                      view items
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -16,17 +16,20 @@ const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
 
 export const SUPABASE_URL = cleanUrl || rawUrl;
 export const SUPABASE_PUBLIC_KEY = rawKey;
+export const SUPABASE_ANON_KEY = rawKey;
 
 export const supabase = createClient(
   SUPABASE_URL,
-  SUPABASE_PUBLIC_KEY,
+  SUPABASE_ANON_KEY,
   {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
+      storageKey: 'pinin-auth-v2', // new key to force fresh sessions
     },
   }
 );
 
 export default supabase;
-
