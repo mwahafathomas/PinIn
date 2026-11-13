@@ -50,14 +50,13 @@ jobs:
       - name: Use your public icons for APK
         run: |
           mkdir -p resources
-          cp public/pwa-512x512.png resources/icon.png
-          cp public/pwa-maskable-512x512.png resources/icon.png
-          cp public/splash.png resources/splash.png
+          cp public/PinIn_app_icon_cfebe3e1.png resources/icon.png
+          cp public/new_splash_screen_088883f7.png resources/splash.png
           ls -lh resources/
       - name: Generate icons and splash
         run: |
           npm install @capacitor/assets --save-dev --legacy-peer-deps
-          npx capacitor-assets generate --android --iconBackgroundColor "#ffffff" --splashBackgroundColor "#ffffff"
+          npx capacitor-assets generate --android --assetPath resources --iconBackgroundColor "#ffffff" --splashBackgroundColor "#ffffff"
       - name: Build APK
         run: |
           cd android
