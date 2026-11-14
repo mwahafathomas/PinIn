@@ -7,6 +7,7 @@ import {
   fetchRefundsHistory,
   RefundRecord,
 } from '../services/returnsAndRefundsService';
+import { registerBackHandler } from '../utils/backNavigation';
 
 interface CreditsPageProps {
   isOpen: boolean;
@@ -74,6 +75,21 @@ export const CreditsPage: React.FC<CreditsPageProps> = ({
       loadHistory();
     }
   }, [isOpen, user?.id, user?.email]);
+
+  const handleHardwareBackRef = useRef<() => boolean>(() => false);
+  handleHardwareBackRef.current = () => {
+    if (isWithdrawPageOpen) {
+      setIsWithdrawPageOpen(false);
+      return true;
+    }
+    onClose();
+    return true;
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBackHandler(() => handleHardwareBackRef.current());
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

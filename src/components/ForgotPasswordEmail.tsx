@@ -9,7 +9,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { supabase } from '../supabaseClient';
 
 interface ForgotPasswordEmailProps {

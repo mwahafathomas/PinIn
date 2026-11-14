@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { fetchHelpByCategory, HelpItem } from '../services/helpSupportService';
+import { registerBackHandler } from '../utils/backNavigation';
 
 interface HelpSupportPageProps {
   isOpen: boolean;
@@ -56,6 +57,21 @@ export const HelpSupportPage: React.FC<HelpSupportPageProps> = ({
         });
     }
   }, [selectedCategory]);
+
+  const handleHardwareBackRef = useRef<() => boolean>(() => false);
+  handleHardwareBackRef.current = () => {
+    if (selectedCategory) {
+      setSelectedCategory(null);
+      return true;
+    }
+    onClose();
+    return true;
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBackHandler(() => handleHardwareBackRef.current());
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

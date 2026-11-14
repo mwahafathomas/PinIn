@@ -1,6 +1,5 @@
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 
@@ -354,17 +353,24 @@ app.all(['/api/sync-dummyjson', '/functions/v1/sync-dummyjson'], async (req, res
   }
 });
 
-// 3. Vite Middleware integration
-async function startServer() {
+// 3. Vite Middleware integration (bind port 3000 immediately so health checks pass fast)
+function startServer() {
   if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: {
-        middlewareMode: true,
-        hmr: false,
-      },
-      appType: 'spa',
+    const viteReady = import('vite').then(({ createServer: createViteServer }) =>
+      createViteServer({
+        server: {
+          middlewareMode: true,
+          hmr: false,
+        },
+        appType: 'spa',
+      })
+    );
+
+    app.use((req, res, next) => {
+      viteReady
+        .then((vite) => vite.middlewares(req, res, next))
+        .catch(next);
     });
-    app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));

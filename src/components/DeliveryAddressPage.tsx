@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { DeliveryAddress } from '../types/furniture';
+import { registerBackHandler } from '../utils/backNavigation';
 
 export const SAVED_ADDRESS_KEY = 'pinin_saved_delivery_address_v2';
 export const ADDRESS_BOOK_KEY = 'pinin_address_book_v2';
@@ -164,6 +165,17 @@ export const DeliveryAddressPage: React.FC<DeliveryAddressPageProps> = ({
 
       return () => clearTimeout(timer);
     }
+  }, [isOpen]);
+
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBackHandler(() => {
+      onCloseRef.current();
+      return true;
+    });
   }, [isOpen]);
 
   if (!isOpen) return null;

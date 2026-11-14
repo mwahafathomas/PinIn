@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,6 +20,7 @@ import {
 } from '../services/returnsAndRefundsService';
 import { supabase } from '../supabaseClient';
 import { getCachedArchivedImage, getArchivedListingImage } from '../services/listingArchiveService';
+import { registerBackHandler } from '../utils/backNavigation';
 
 interface OrdersFlowModalProps {
   isOpen: boolean;
@@ -116,8 +117,6 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
     }
   }, [refundSuccessPopupOpen]);
 
-  if (!isOpen) return null;
-
   // Handle back navigation
   const handleBack = () => {
     if (step === 20 || step === 30 || step === 40) {
@@ -126,6 +125,36 @@ export const OrdersFlowModal: React.FC<OrdersFlowModalProps> = ({
       onClose();
     }
   };
+
+  const handleHardwareBackRef = useRef<() => boolean>(() => false);
+  handleHardwareBackRef.current = () => {
+    if (refundSuccessPopupOpen) {
+      setRefundSuccessPopupOpen(false);
+      return true;
+    }
+    if (unavailableMessage) {
+      setUnavailableMessage('');
+      return true;
+    }
+    if (ineligibleOrder) {
+      setIneligibleOrder(null);
+      return true;
+    }
+    if (isConfirmModalOpen) {
+      setIsConfirmModalOpen(false);
+      setOrderToRefund(null);
+      return true;
+    }
+    handleBack();
+    return true;
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBackHandler(() => handleHardwareBackRef.current());
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const DEFAULT_PRODUCT_FALLBACK_IMAGE =
     'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&q=70&auto=format';

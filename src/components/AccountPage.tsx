@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft,
@@ -52,6 +52,7 @@ import { OrdersFlowModal } from './OrdersFlowModal';
 import { InvoicesFlowModal } from './InvoicesFlowModal';
 import { CreditsPage } from './CreditsPage';
 import { HelpSupportPage } from './HelpSupportPage';
+import { registerBackHandler } from '../utils/backNavigation';
 
 interface AccountPageProps {
   isOpen: boolean;
@@ -80,6 +81,8 @@ interface AccountPageProps {
   onOpenNotifications?: () => void;
   unreadMessagesCount?: number;
   unreadNotificationsCount?: number;
+  initialModal?: 'settings' | null;
+  onClearSettingsModal?: () => void;
 }
 
 const RETURNS_STORAGE_KEY = 'pinin_return_requests_v1';
@@ -101,6 +104,8 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   onOpenCategories,
   onGoHome,
   onSelectItem,
+  initialModal = null,
+  onClearSettingsModal,
 }) => {
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -109,8 +114,9 @@ export const AccountPage: React.FC<AccountPageProps> = ({
 
   // Full sub-pages for requested items
   const [activeModal, setActiveModal] = useState<
-    'settings' | 'returns' | 'invoices' | 'address-book' | 'help' | 'credits-refunds' | 'my-orders' | null
-  >(null);
+    'settings' | 'returns' | 'invoices' | 'address-book' | 'help' | 'credits' | 'credits-refunds' | 'my-orders' | null
+  >(initialModal);
+  const [returnsOrigin, setReturnsOrigin] = useState<'invoices' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubpageLoading, setIsSubpageLoading] = useState(false);
 
@@ -147,6 +153,39 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       return () => clearTimeout(timer);
     }
   }, [activeModal, user.email, user.id]);
+
+  useEffect(() => {
+    if (isOpen && initialModal === 'settings') {
+      setActiveModal('settings');
+    }
+  }, [isOpen, initialModal]);
+
+  const closeSettingsModal = () => {
+    setActiveModal(null);
+    onClearSettingsModal?.();
+  };
+
+  const handleAccountOverlayBackRef = useRef<() => boolean>(() => false);
+  handleAccountOverlayBackRef.current = () => {
+    if (showSignOutConfirm) {
+      setShowSignOutConfirm(false);
+      return true;
+    }
+    if (showDeleteConfirm) {
+      setShowDeleteConfirm(false);
+      return true;
+    }
+    if (activeModal === 'settings') {
+      closeSettingsModal();
+      return true;
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBackHandler(() => handleAccountOverlayBackRef.current());
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -268,6 +307,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                     onOpenAuth?.('signin');
                     return;
                   }
+                  setReturnsOrigin(null);
                   setActiveModal('returns');
                 }}
                 className="w-full flex items-center justify-between py-3.5 px-2 hover:bg-gray-50 text-gray-800 text-left transition-colors cursor-pointer"
@@ -391,7 +431,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
               <div className="flex items-center">
                 <button
                   type="button"
-                  onClick={() => setActiveModal(null)}
+                  onClick={closeSettingsModal}
                   aria-label="Go back"
                   className="p-2 -ml-2 rounded-lg text-gray-800 hover:bg-gray-100 active:scale-95 transition-transform flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D8EDE] cursor-pointer"
                 >
@@ -492,6 +532,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 onClose={() => setActiveModal(null)}
                 orders={orders}
                 onOpenReturns={(_selectedReturnOrder) => {
+                  setReturnsOrigin(null);
                   setActiveModal('returns');
                 }}
                 onOpenListing={(listingId) => {
@@ -516,7 +557,14 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             {activeModal === 'returns' && (
               <ReturnsFlowModal
                 isOpen={true}
-                onClose={() => setActiveModal(null)}
+                onClose={() => {
+                  if (returnsOrigin === 'invoices') {
+                    setReturnsOrigin(null);
+                    setActiveModal('invoices');
+                  } else {
+                    setActiveModal(null);
+                  }
+                }}
                 user={user}
                 orders={orders}
                 onOpenPolicies={() => {
@@ -533,6 +581,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                 onClose={() => setActiveModal(null)}
                 orders={orders}
                 onOpenReturns={(_selectedReturnOrder) => {
+                  setReturnsOrigin('invoices');
                   setActiveModal('returns');
                 }}
               />

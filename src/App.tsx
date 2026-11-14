@@ -7,7 +7,7 @@ import {
   useParams,
   Navigate,
 } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { App as CapApp } from '@capacitor/app';
 import { Share as CapShare } from '@capacitor/share';
 
@@ -118,6 +118,7 @@ import {
   formatDistanceKm,
   getCoordinatesForLocation,
 } from './utils/geoUtils';
+import { consumeTopBackHandler } from './utils/backNavigation';
 
 import {
   INITIAL_FURNITURE,
@@ -580,21 +581,108 @@ export default function App() {
     setDirection(-1);
     if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
       navigate(-1);
-    } else if (window.history.length > 1 && location.pathname !== '/') {
-      navigate(-1);
     } else {
       navigate(fallbackPath);
     }
   };
 
+  const HOME_BACK_ROUTES = useMemo(
+    () => new Set(['/categories', '/search', '/results', '/auth', '/login', '/register', '/cart', '/account']),
+    []
+  );
+  const ACCOUNT_SETTINGS_BACK_ROUTES = useMemo(
+    () => new Set(['/edit-profile', '/delete-account']),
+    []
+  );
+  const ACCOUNT_BACK_ROUTES = useMemo(
+    () => new Set(['/saved', '/help']),
+    []
+  );
+  const prevPathnameRef = useRef<string>(location.pathname);
+  const prevSearchRef = useRef<string>(location.search);
+  const wasPopStateRef = useRef<boolean>(false);
+
   // Listen for browser / hardware back button popstate
   useEffect(() => {
     const handlePopState = () => {
       setDirection(-1);
+      wasPopStateRef.current = true;
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Ensure browser/swipe back from Home-bound routes and Account/Saved sub-routes lands cleanly
+  useEffect(() => {
+    const prevPath = prevPathnameRef.current;
+    const prevSearch = prevSearchRef.current;
+    const currentPath = location.pathname;
+    prevPathnameRef.current = currentPath;
+    prevSearchRef.current = location.search;
+
+    if (wasPopStateRef.current) {
+      wasPopStateRef.current = false;
+      const prevParams = new URLSearchParams(prevSearch);
+      const isListingPath =
+        prevPath.startsWith('/item/') || prevPath.startsWith('/product/') || prevPath.startsWith('/listing/');
+
+      if (isListingPath && prevParams.get('from') === 'saved') {
+        if (currentPath !== '/saved') {
+          setDirection(-1);
+          navigate('/saved', { replace: true });
+          return;
+        }
+      } else if (
+        ACCOUNT_BACK_ROUTES.has(prevPath) ||
+        ((prevPath === '/privacy' || prevPath === '/contact') && prevParams.get('from') === 'account')
+      ) {
+        if (currentPath !== '/account') {
+          setDirection(-1);
+          navigate('/account', { replace: true });
+          return;
+        }
+      } else if (ACCOUNT_SETTINGS_BACK_ROUTES.has(prevPath)) {
+        if (currentPath !== '/account' || new URLSearchParams(window.location.search).get('modal') !== 'settings') {
+          setDirection(-1);
+          navigate('/account?modal=settings', { replace: true });
+          return;
+        }
+      } else if (HOME_BACK_ROUTES.has(prevPath)) {
+        setSearchQuery('');
+        setSelectedCategory('All');
+        setFilters({
+          category: 'all',
+          categories: [],
+          minPrice: 0,
+          maxPrice: 20000,
+          condition: [],
+          sortBy: 'featured',
+          location: '',
+          locationQuery: '',
+        });
+        if (currentPath !== '/') {
+          setDirection(-1);
+          navigate('/', { replace: true });
+          return;
+        }
+      }
+    }
+
+    if (currentPath === '/' && (prevPath === '/search' || prevPath === '/results' || prevPath === '/categories')) {
+      setSearchQuery('');
+      setSelectedCategory('All');
+      setFilters({
+        category: 'all',
+        categories: [],
+        minPrice: 0,
+        maxPrice: 20000,
+        condition: [],
+        sortBy: 'featured',
+        location: '',
+        locationQuery: '',
+      });
+    }
+  }, [location.pathname, location.search, HOME_BACK_ROUTES, ACCOUNT_SETTINGS_BACK_ROUTES, ACCOUNT_BACK_ROUTES, navigate]);
 
   // State (Initialized from fast local storage caches so screen is populated immediately on open)
   const [furnitureList, setFurnitureList] = useState<FurnitureItem[]>(() => {
@@ -872,6 +960,7 @@ export default function App() {
   const isMenuOpenRef = useRef(isMenuOpen);
   const showPostReviewPopupRef = useRef(showPostReviewPopup);
   const locationRef = useRef(location);
+  const handleGoHomeRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     isMenuOpenRef.current = isMenuOpen;
@@ -887,6 +976,12 @@ export default function App() {
 
   useEffect(() => {
     const handleHardwareBack = () => {
+      const now = Date.now();
+      if (now - lastBackPressTimeRef.current < 250) {
+        return;
+      }
+      lastBackPressTimeRef.current = now;
+
       // 1. If drawer/menu is open, close drawer first
       if (isMenuOpenRef.current) {
         setIsMenuOpen(false);
@@ -899,32 +994,62 @@ export default function App() {
         return;
       }
 
-      const currentPath = locationRef.current.pathname;
+      // 3. If a nested modal/overlay page is open, close top layer first
+      if (consumeTopBackHandler()) {
+        return;
+      }
 
-      // 3. If current route is / (home/marketplace) then show "Press again to exit", don't exit instantly on first press
+      const currentPath = locationRef.current.pathname;
+      const searchParams = new URLSearchParams(locationRef.current.search);
+
+      // 4. ONLY when the app is on Home page, a single hardware back press closes the app
       if (currentPath === '/' || currentPath === '/marketplace' || currentPath === '/home') {
-        const now = Date.now();
-        if (now - lastBackPressTimeRef.current < 2000) {
-          try {
-            CapApp.exitApp();
-          } catch (e) {
-            console.warn('Could not exit app:', e);
-          }
-        } else {
-          lastBackPressTimeRef.current = now;
-          showToast('Press again to exit');
+        try {
+          CapApp.exitApp();
+        } catch (e) {
+          console.warn('Could not exit app:', e);
         }
         return;
       }
 
-      // 4. If on product detail / chat / other pages, go back to previous page using navigate(-1)
+      // 5. Saved listing detail ALWAYS goes back to Saved Items page
+      const isListingPath =
+        currentPath.startsWith('/item/') || currentPath.startsWith('/product/') || currentPath.startsWith('/listing/');
+      if (isListingPath && searchParams.get('from') === 'saved') {
+        setDirection(-1);
+        navigate('/saved', { replace: true });
+        return;
+      }
+
+      // 6. Account sub-routes (Saved Items, Help, Policies/Contact from Account) ALWAYS go back to Account page
+      if (
+        ACCOUNT_BACK_ROUTES.has(currentPath) ||
+        ((currentPath === '/privacy' || currentPath === '/contact') && searchParams.get('from') === 'account')
+      ) {
+        setDirection(-1);
+        navigate('/account', { replace: true });
+        return;
+      }
+
+      // 7. Pages that MUST ALWAYS return directly to Account Settings (Edit Profile, Delete Account)
+      if (ACCOUNT_SETTINGS_BACK_ROUTES.has(currentPath)) {
+        setDirection(-1);
+        navigate('/account?modal=settings', { replace: true });
+        return;
+      }
+
+      // 8. Pages that MUST ALWAYS return directly to Home page (clearing search & filters)
+      if (HOME_BACK_ROUTES.has(currentPath)) {
+        handleGoHomeRef.current();
+        return;
+      }
+
+      // 9. On other pages (e.g., normal product detail), go back cleanly or return Home without ever closing the app
       setDirection(-1);
       if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
         navigate(-1);
-      } else if (window.history.length > 1) {
-        navigate(-1);
       } else {
-        navigate('/');
+        handleGoHomeRef.current();
       }
     };
 
@@ -1651,6 +1776,7 @@ export default function App() {
     });
     goTo('/', -1);
   };
+  handleGoHomeRef.current = handleGoHome;
 
   // Sell item with initial title from empty search
   const handleSellWithTitle = (title: string) => {
@@ -2864,14 +2990,7 @@ export default function App() {
               element={
                 <CartPage
                   isOpen={true}
-                  onClose={() => {
-                    if (window.history.state && window.history.state.idx > 0) {
-                      setDirection(-1);
-                      navigate(-1);
-                    } else {
-                      goTo('/', -1);
-                    }
-                  }}
+                  onClose={handleGoHome}
                   user={user}
                   onGoHome={handleGoHome}
                   onOpenCategories={() => goTo('/categories')}
@@ -2907,13 +3026,15 @@ export default function App() {
                   user={user}
                   onOpenAuth={handleOpenAuth}
                   onClose={() => {
+                    if (new URLSearchParams(location.search).get('from') === 'saved') {
+                      goTo('/saved', -1);
+                      return;
+                    }
                     setDirection(-1);
                     if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
                       navigate(-1);
-                    } else if (window.history.length > 1 && location.pathname !== '/marketplace' && location.pathname !== '/') {
-                      navigate(-1);
                     } else {
-                      navigate('/');
+                      handleGoHome();
                     }
                   }}
                 />
@@ -2939,13 +3060,15 @@ export default function App() {
                   user={user}
                   onOpenAuth={handleOpenAuth}
                   onClose={() => {
+                    if (new URLSearchParams(location.search).get('from') === 'saved') {
+                      goTo('/saved', -1);
+                      return;
+                    }
                     setDirection(-1);
                     if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
                       navigate(-1);
-                    } else if (window.history.length > 1 && location.pathname !== '/marketplace' && location.pathname !== '/') {
-                      navigate(-1);
                     } else {
-                      navigate('/');
+                      handleGoHome();
                     }
                   }}
                 />
@@ -2969,13 +3092,15 @@ export default function App() {
                   user={user}
                   onOpenAuth={handleOpenAuth}
                   onClose={() => {
+                    if (new URLSearchParams(location.search).get('from') === 'saved') {
+                      goTo('/saved', -1);
+                      return;
+                    }
                     setDirection(-1);
                     if (window.history.state && typeof window.history.state.idx === 'number' && window.history.state.idx > 0) {
                       navigate(-1);
-                    } else if (window.history.length > 1 && location.pathname !== '/marketplace' && location.pathname !== '/') {
-                      navigate(-1);
                     } else {
-                      navigate('/');
+                      handleGoHome();
                     }
                   }}
                 />
@@ -2993,16 +3118,7 @@ export default function App() {
                   isOpen={true}
                   fromSell={location.search.includes('from=sell')}
                   genderFilter={new URLSearchParams(location.search).get('gender')}
-                  onClose={() => {
-                    if (location.search.includes('from=sell')) {
-                      const origin = location.search.includes('origin=account') ? '?from=account' : '';
-                      goTo(`/sell${origin}`, -1);
-                    } else if (location.search.includes('from=filters')) {
-                      goTo('/filters', -1);
-                    } else {
-                      handleGoHome();
-                    }
-                  }}
+                  onClose={handleGoHome}
                   selectedCategory={
                     location.search.includes('from=sell')
                       ? sellFormData.categoryLabel || sellFormData.category
@@ -3095,7 +3211,7 @@ export default function App() {
               element={
                 <FilterResultsPage
                   isOpen={true}
-                  onClose={() => goBack('/')}
+                  onClose={handleGoHome}
                   items={filteredFurniture}
                   filters={filters}
                   appliedCount={appliedFiltersCount}
@@ -3126,7 +3242,7 @@ export default function App() {
                   conversations={conversations}
                   allUsers={allAppUsers}
                   currentUser={user}
-                  onClose={() => goBack('/')}
+                  onClose={handleGoHome}
                   onSelectItem={(item) => {
                     setSelectedItem(item);
                     goTo(`/item/${item.id}`);
@@ -3167,21 +3283,27 @@ export default function App() {
               element={
                 <AccountPage
                   isOpen={true}
-                  onClose={() => goBack('/')}
+                  onClose={handleGoHome}
                   user={user}
                   onDeleteAccount={handleDeleteAccount}
                   onOpenDeleteAccount={() => goTo('/delete-account')}
                   onOpenEditProfile={() => goTo('/edit-profile')}
                   onOpenSavedItems={() => goTo('/saved')}
-                  onOpenPolicies={() => goTo('/privacy')}
-                  onOpenPrivacyPolicy={() => goTo('/privacy')}
-                  onOpenContactUs={() => goTo('/contact')}
+                  onOpenPolicies={() => goTo('/privacy?from=account')}
+                  onOpenPrivacyPolicy={() => goTo('/privacy?from=account')}
+                  onOpenContactUs={() => goTo('/contact?from=account')}
                   onOpenAuth={handleOpenAuth}
                   onSignOut={handleToggleAuth}
                   onOpenCart={() => goTo('/cart')}
                   onOpenCategories={() => goTo('/categories')}
                   onGoHome={handleGoHome}
                   onSelectItem={(item) => goTo('/listing/' + (item.id || item.listingId))}
+                  initialModal={new URLSearchParams(location.search).get('modal') === 'settings' ? 'settings' : null}
+                  onClearSettingsModal={() => {
+                    if (new URLSearchParams(location.search).get('modal')) {
+                      navigate('/account', { replace: true });
+                    }
+                  }}
                 />
               }
             />
@@ -3196,9 +3318,9 @@ export default function App() {
                     const searchParams = new URLSearchParams(location.search);
                     if (searchParams.get('from') === 'sell' || editProfileSource === 'sell') {
                       setEditProfileSource(null);
-                      goBack('/sell');
+                      goTo('/sell', -1);
                     } else {
-                      goBack('/account');
+                      goTo('/account?modal=settings', -1);
                     }
                   }}
                   user={user}
@@ -3213,7 +3335,7 @@ export default function App() {
               element={
                 <DeleteAccountPage
                   isOpen={true}
-                  onClose={() => goBack('/account')}
+                  onClose={() => goTo('/account?modal=settings', -1)}
                   user={user}
                   onConfirmDeleteAccount={handleDeleteAccount}
                 />
@@ -3226,11 +3348,11 @@ export default function App() {
               element={
                 <SavedItemsPage
                   isOpen={true}
-                  onClose={() => goBack('/')}
+                  onClose={() => goTo('/account', -1)}
                   savedItems={savedFurnitureList}
                   onSelectItem={(item) => {
                     setSelectedItem(item);
-                    goTo(`/item/${item.id}`);
+                    goTo(`/item/${item.id}?from=saved`);
                   }}
                   onRemoveSaved={handleToggleSave}
                   onOpenSearch={handleGoHome}
@@ -3248,7 +3370,13 @@ export default function App() {
               element={
                 <PrivacyPolicyPage
                   isOpen={true}
-                  onClose={() => goBack('/')}
+                  onClose={() => {
+                    if (new URLSearchParams(location.search).get('from') === 'account') {
+                      goTo('/account', -1);
+                    } else {
+                      goBack('/');
+                    }
+                  }}
                 />
               }
             />
@@ -3259,7 +3387,13 @@ export default function App() {
               element={
                 <ContactUsPage
                   isOpen={true}
-                  onClose={() => goBack('/')}
+                  onClose={() => {
+                    if (new URLSearchParams(location.search).get('from') === 'account') {
+                      goTo('/account', -1);
+                    } else {
+                      goBack('/');
+                    }
+                  }}
                   user={user}
                   showToast={showToast}
                 />
@@ -3272,8 +3406,8 @@ export default function App() {
               element={
                 <HelpSupportPage
                   isOpen={true}
-                  onClose={() => goBack('/account')}
-                  onOpenContactUs={() => goTo('/contact')}
+                  onClose={() => goTo('/account', -1)}
+                  onOpenContactUs={() => goTo('/contact?from=account')}
                 />
               }
             />
@@ -3285,7 +3419,7 @@ export default function App() {
                 <AuthPage
                   isOpen={true}
                   initialMode={authMode}
-                  onBack={() => goBack('/')}
+                  onBack={handleGoHome}
                   onSuccess={handleAuthSuccess}
                 />
               }
@@ -3296,7 +3430,7 @@ export default function App() {
                 <AuthPage
                   isOpen={true}
                   initialMode="signin"
-                  onBack={() => goBack('/')}
+                  onBack={handleGoHome}
                   onSuccess={handleAuthSuccess}
                 />
               }
@@ -3307,7 +3441,7 @@ export default function App() {
                 <AuthPage
                   isOpen={true}
                   initialMode="register"
-                  onBack={() => goBack('/')}
+                  onBack={handleGoHome}
                   onSuccess={handleAuthSuccess}
                 />
               }

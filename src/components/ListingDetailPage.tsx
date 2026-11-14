@@ -25,6 +25,7 @@ import { isListingInStock, getListingAvailableDate } from '../services/listingSt
 import { Share as NativeShare } from '@capacitor/share';
 import { supabase } from '../supabaseClient';
 import { PhotoViewerModal } from './PhotoViewerModal';
+import { registerBackHandler } from '../utils/backNavigation';
 
 const CLOTHING_SIZES = ['S', 'M', 'L', 'X', 'XL'] as const;
 const SHOE_SIZES = ['3', '4', '5', '6', '7', '8', '9'] as const;
@@ -182,6 +183,28 @@ export const ListingDetailPage: React.FC<ListingDetailPageProps> = ({
   }, [isOpen, item?.id]);
 
   const carouselRef = useRef<HTMLDivElement>(null);
+
+  const handleOverlayBackRef = useRef<() => boolean>(() => false);
+  handleOverlayBackRef.current = () => {
+    if (isPhotoModalOpen) {
+      setIsPhotoModalOpen(false);
+      return true;
+    }
+    if (isReportModalOpen) {
+      setIsReportModalOpen(false);
+      return true;
+    }
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+      return true;
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBackHandler(() => handleOverlayBackRef.current());
+  }, [isOpen]);
 
   if (!isOpen || !item) return null;
 

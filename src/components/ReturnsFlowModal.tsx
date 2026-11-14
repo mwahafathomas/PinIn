@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   ChevronLeft,
   ChevronDown,
@@ -17,6 +17,7 @@ import { submitReturnRequest } from '../services/returnsAndRefundsService';
 import { supabase } from '../supabaseClient';
 import { UserAccount } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+import { registerBackHandler } from '../utils/backNavigation';
 
 interface ReturnsFlowModalProps {
   isOpen: boolean;
@@ -98,6 +99,25 @@ export const ReturnsFlowModal: React.FC<ReturnsFlowModalProps> = ({
       handleClose();
     }
   };
+
+  const handleHardwareBackRef = useRef<() => boolean>(() => false);
+  handleHardwareBackRef.current = () => {
+    if (showExchangeNoticePopup) {
+      setShowExchangeNoticePopup(false);
+      return true;
+    }
+    if (showPolicyOverlay) {
+      setShowPolicyOverlay(false);
+      return true;
+    }
+    handleBack();
+    return true;
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBackHandler(() => handleHardwareBackRef.current());
+  }, [isOpen]);
 
   // Check if an order item is within 7 days of delivery / purchase
   const checkIsReturnable = (order: OrderRecord) => {

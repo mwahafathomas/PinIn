@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { UserAccount } from '../types/furniture';
 import { supabase } from '../supabaseClient';
+import { registerBackHandler } from '../utils/backNavigation';
 
 export interface DeleteAccountInfoItem {
   id?: string | number;
@@ -60,6 +61,14 @@ export const DeleteAccountPage: React.FC<DeleteAccountPageProps> = ({
       })();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !isConfirmModalOpen) return;
+    return registerBackHandler(() => {
+      setIsConfirmModalOpen(false);
+      return true;
+    });
+  }, [isOpen, isConfirmModalOpen]);
 
   if (!isOpen) return null;
 

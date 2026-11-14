@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { ChevronLeft, Check, Plus } from 'lucide-react';
 import { CartItem, clearCart, removeFromCart } from '../services/cartService';
 import { createOrder, OrderRecord } from '../services/ordersService';
 import { recordListingAsBought } from '../services/listingStockService';
 import { UserAccount, DeliveryAddress } from '../types/furniture';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+import { registerBackHandler } from '../utils/backNavigation';
 import {
   DeliveryAddressPage,
   getAllSavedAddresses,
@@ -174,6 +175,23 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [isAddNewAddressOpen, setIsAddNewAddressOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
+  const isAddNewAddressOpenRef = React.useRef(isAddNewAddressOpen);
+  isAddNewAddressOpenRef.current = isAddNewAddressOpen;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBackHandler(() => {
+      if (isAddNewAddressOpenRef.current) {
+        setIsAddNewAddressOpen(false);
+        return true;
+      }
+      onCloseRef.current();
+      return true;
+    });
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ChevronLeft,
   Download,
@@ -20,6 +20,7 @@ import {
   formatInvoiceAddress,
 } from '../utils/invoiceDownloadUtils';
 import { getOptimizedImageUrl } from '../utils/imageOptimizer';
+import { registerBackHandler } from '../utils/backNavigation';
 
 interface InvoicesFlowModalProps {
   isOpen: boolean;
@@ -55,8 +56,6 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   // Handle back navigation
   const handleBack = () => {
     if (step === 2) {
@@ -65,6 +64,19 @@ export const InvoicesFlowModal: React.FC<InvoicesFlowModalProps> = ({
       onClose();
     }
   };
+
+  const handleBackRef = useRef(handleBack);
+  handleBackRef.current = handleBack;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBackHandler(() => {
+      handleBackRef.current();
+      return true;
+    });
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   // Helper to get up to 4 images for an order
   const getOrderImages = (order: OrderRecord): string[] => {
